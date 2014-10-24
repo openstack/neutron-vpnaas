@@ -93,8 +93,9 @@ class TestVPNAgent(base.BaseTestCase):
 
     def test_get_namespace(self):
         router_id = _uuid()
+        ns = "ns-" + router_id
         ri = l3_agent.RouterInfo(router_id, self.conf.root_helper,
-                                 self.conf.use_namespaces, {})
+                                 self.conf.use_namespaces, {}, ns_name=ns)
         self.agent.router_info = {router_id: ri}
         namespace = self.agent.get_namespace(router_id)
         self.assertTrue(namespace.endswith(router_id))
@@ -170,9 +171,10 @@ class TestVPNAgent(base.BaseTestCase):
             'neutron.agent.linux.iptables_manager.IptablesManager').start()
         router_id = _uuid()
         ri = l3_agent.RouterInfo(router_id, self.conf.root_helper,
-                                 self.conf.use_namespaces, {})
+                                 self.conf.use_namespaces, {},
+                                 ns_name="qrouter-%s" % router_id)
         ri.router = {
-            'id': _uuid(),
+            'id': router_id,
             'admin_state_up': True,
             'routes': [],
             'external_gateway_info': {},
@@ -183,15 +185,14 @@ class TestVPNAgent(base.BaseTestCase):
         self.agent._router_removed(router_id)
         device.destroy_router.assert_called_once_with(router_id)
 
-    def test_process_routers(self):
+    def test_process_router_if_compatible(self):
         self.plugin_api.get_external_network_id.return_value = None
-        routers = [
-            {'id': _uuid(),
-             'admin_state_up': True,
-             'routes': [],
-             'external_gateway_info': {}}]
+        router = {'id': _uuid(),
+                  'admin_state_up': True,
+                  'routes': [],
+                  'external_gateway_info': {}}
 
         device = mock.Mock()
         self.agent.devices = [device]
-        self.agent._process_routers(routers, False)
-        device.sync.assert_called_once_with(mock.ANY, routers)
+        self.agent._process_router_if_compatible(router)
+        device.sync.assert_called_once_with(mock.ANY, [router])

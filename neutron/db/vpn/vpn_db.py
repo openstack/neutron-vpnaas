@@ -28,6 +28,7 @@ from neutron.db.vpn import vpn_validator
 from neutron.extensions import vpnaas
 from neutron import manager
 from neutron.openstack.common import excutils
+from neutron.openstack.common.gettextutils import _LW
 from neutron.openstack.common import log as logging
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
@@ -601,6 +602,16 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
                 router_id=router_id,
                 vpnservice_id=vpnservices[0]['id'])
 
+    def check_subnet_in_use(self, context, subnet_id):
+        with context.session.begin(subtransactions=True):
+            vpnservices = context.session.query(VPNService).filter_by(
+                subnet_id=subnet_id
+            ).first()
+            if vpnservices:
+                raise vpnaas.SubnetInUseByVPNService(
+                    subnet_id=subnet_id,
+                    vpnservice_id=vpnservices['id'])
+
 
 class VPNPluginRpcDbMixin():
     def _get_agent_hosting_vpn_services(self, context, host):
@@ -646,7 +657,7 @@ class VPNPluginRpcDbMixin():
                     vpnservice_db = self._get_vpnservice(
                         context, vpnservice['id'])
                 except vpnaas.VPNServiceNotFound:
-                    LOG.warn(_('vpnservice %s in db is already deleted'),
+                    LOG.warn(_LW('vpnservice %s in db is already deleted'),
                              vpnservice['id'])
                     continue
 
