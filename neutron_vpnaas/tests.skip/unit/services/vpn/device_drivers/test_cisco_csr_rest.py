@@ -20,9 +20,9 @@ import requests
 from requests import exceptions as r_exc
 from requests_mock.contrib import fixture as mock_fixture
 
+from neutron.tests import base
 from neutron_vpnaas.services.vpn.device_drivers import (
     cisco_csr_rest_client as csr_client)
-from neutron.tests import base
 
 
 dummy_policy_id = 'dummy-ipsec-policy-id-name'

@@ -19,10 +19,10 @@ from oslo import messaging
 import six
 
 from neutron.common import rpc as n_rpc
-from neutron_vpnaas.db.loadbalancer import vpn_validator
 from neutron import manager
 from neutron.openstack.common import log as logging
 from neutron.plugins.common import constants
+from neutron_vpnaas.db.vpn import vpn_validator
 
 LOG = logging.getLogger(__name__)
 

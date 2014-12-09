@@ -15,13 +15,14 @@
 from oslo import messaging
 
 from neutron.common import rpc as n_rpc
-from neutron_vpnaas.db.loadbalancer import vpn_db
 from neutron.openstack.common import log as logging
 from neutron.plugins.cisco.l3.plugging_drivers import (
     n1kv_plugging_constants as n1kv_constants)
+from neutron_vpnaas.db.vpn import vpn_db
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import service_drivers
-from neutron_vpnaas.services.vpn.service_drivers import cisco_csr_db as csr_id_map
+from neutron_vpnaas.services.vpn.service_drivers \
+    import cisco_csr_db as csr_id_map
 from neutron_vpnaas.services.vpn.service_drivers import cisco_validator
 
 LOG = logging.getLogger(__name__)

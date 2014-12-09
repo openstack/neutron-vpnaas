@@ -21,13 +21,13 @@ from oslo.config import cfg
 from neutron import context as n_ctx
 from neutron.db import l3_db
 from neutron.db import servicetype_db as st_db
-from neutron_vpnaas.db.loadbalancer import vpn_validator
 from neutron.extensions import vpnaas
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
+from neutron.tests import base
+from neutron_vpnaas.db.vpn import vpn_validator
 from neutron_vpnaas.services.vpn import plugin as vpn_plugin
 from neutron_vpnaas.services.vpn.service_drivers import ipsec as ipsec_driver
-from neutron.tests import base
 
 _uuid = uuidutils.generate_uuid
 

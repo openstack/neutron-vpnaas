@@ -19,9 +19,9 @@ from sqlalchemy.orm import exc as sql_exc
 from neutron.common import exceptions
 from neutron.db import model_base
 from neutron.db import models_v2
-from neutron_vpnaas.db.loadbalancer import vpn_db
 from neutron.i18n import _LI
 from neutron.openstack.common import log as logging
+from neutron_vpnaas.db.vpn import vpn_db
 
 LOG = logging.getLogger(__name__)
 

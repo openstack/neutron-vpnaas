@@ -25,7 +25,6 @@ from neutron.db import l3_agentschedulers_db as l3_agent_db
 from neutron.db import l3_db
 from neutron.db import model_base
 from neutron.db import models_v2
-from neutron_vpnaas.db.loadbalancer import vpn_validator
 from neutron.extensions import vpnaas
 from neutron.i18n import _LW
 from neutron import manager
@@ -33,6 +32,7 @@ from neutron.openstack.common import log as logging
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 from neutron.plugins.common import utils
+from neutron_vpnaas.db.vpn import vpn_validator
 
 LOG = logging.getLogger(__name__)
 

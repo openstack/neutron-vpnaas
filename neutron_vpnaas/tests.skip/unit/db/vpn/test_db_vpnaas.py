@@ -25,16 +25,16 @@ from neutron import context
 from neutron.db import agentschedulers_db
 from neutron.db import l3_agentschedulers_db
 from neutron.db import servicetype_db as sdb
-from neutron_vpnaas.db.loadbalancer import vpn_db
 from neutron import extensions
 from neutron.extensions import vpnaas
 from neutron import manager
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 from neutron.scheduler import l3_agent_scheduler
-from neutron_vpnaas.services.vpn import plugin as vpn_plugin
 from neutron.tests.unit import test_db_plugin
 from neutron.tests.unit import test_l3_plugin
+from neutron_vpnaas.db.vpn import vpn_db
+from neutron_vpnaas.services.vpn import plugin as vpn_plugin
 
 DB_CORE_PLUGIN_KLASS = 'neutron.db.db_base_plugin_v2.NeutronDbPluginV2'
 DB_VPN_PLUGIN_KLASS = "neutron.services.vpn.plugin.VPNPlugin"

@@ -21,12 +21,14 @@ from neutron import context as n_ctx
 from neutron.db import servicetype_db as st_db
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
-from neutron_vpnaas.services.vpn import plugin as vpn_plugin
-from neutron_vpnaas.services.vpn.service_drivers import cisco_csr_db as csr_db
-from neutron_vpnaas.services.vpn.service_drivers import cisco_ipsec as ipsec_driver
-from neutron_vpnaas.services.vpn.service_drivers import cisco_validator as validator
 from neutron.tests import base
 from neutron.tests.unit import testlib_api
+from neutron_vpnaas.services.vpn import plugin as vpn_plugin
+from neutron_vpnaas.services.vpn.service_drivers import cisco_csr_db as csr_db
+from neutron_vpnaas.services.vpn.service_drivers \
+    import cisco_ipsec as ipsec_driver
+from neutron_vpnaas.services.vpn.service_drivers \
+    import cisco_validator as validator
 
 _uuid = uuidutils.generate_uuid
 

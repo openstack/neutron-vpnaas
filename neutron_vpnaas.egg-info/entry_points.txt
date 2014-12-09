@@ -1,0 +1,3 @@
+[console_scripts]
+neutron-vpn-agent = neutron_vpnaas.services.vpn.agent:main
+

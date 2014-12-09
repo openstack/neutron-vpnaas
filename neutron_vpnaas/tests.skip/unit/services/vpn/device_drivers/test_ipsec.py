@@ -17,8 +17,8 @@ import mock
 
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
-from neutron_vpnaas.services.vpn.device_drivers import ipsec as ipsec_driver
 from neutron.tests import base
+from neutron_vpnaas.services.vpn.device_drivers import ipsec as ipsec_driver
 
 _uuid = uuidutils.generate_uuid
 FAKE_HOST = 'fake_host'
