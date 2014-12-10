@@ -17,8 +17,9 @@ import mock
 from oslo.config import cfg
 
 from neutron.agent.common import config as agent_config
-from neutron.agent import l3_agent
-from neutron.agent import l3_ha_agent
+from neutron.agent.l3 import agent as l3_agent
+from neutron.agent.l3 import ha
+from neutron.agent.l3 import router_info
 from neutron.agent.linux import interface
 from neutron.common import config as base_config
 from neutron.openstack.common import uuidutils
@@ -49,7 +50,7 @@ class TestVPNAgent(base.BaseTestCase):
         self.conf = cfg.CONF
         self.conf.register_opts(base_config.core_opts)
         self.conf.register_opts(l3_agent.L3NATAgent.OPTS)
-        self.conf.register_opts(l3_ha_agent.OPTS)
+        self.conf.register_opts(ha.OPTS)
         self.conf.register_opts(interface.OPTS)
         agent_config.register_interface_driver_opts_helper(self.conf)
         agent_config.register_use_namespaces_opts_helper(self.conf)
@@ -72,7 +73,7 @@ class TestVPNAgent(base.BaseTestCase):
             mock.patch(clazz).start()
 
         l3pluginApi_cls = mock.patch(
-            'neutron.agent.l3_agent.L3PluginApi').start()
+            'neutron.agent.l3.agent.L3PluginApi').start()
         self.plugin_api = mock.MagicMock()
         l3pluginApi_cls.return_value = self.plugin_api
 
@@ -94,8 +95,8 @@ class TestVPNAgent(base.BaseTestCase):
     def test_get_namespace(self):
         router_id = _uuid()
         ns = "ns-" + router_id
-        ri = l3_agent.RouterInfo(router_id, self.conf.root_helper,
-                                 {}, ns_name=ns)
+        ri = router_info.RouterInfo(router_id, self.conf.root_helper, {},
+                                    ns_name=ns)
         self.agent.router_info = {router_id: ri}
         namespace = self.agent.get_namespace(router_id)
         self.assertTrue(namespace.endswith(router_id))
@@ -103,7 +104,7 @@ class TestVPNAgent(base.BaseTestCase):
 
     def test_add_nat_rule(self):
         router_id = _uuid()
-        ri = l3_agent.RouterInfo(router_id, self.conf.root_helper, {})
+        ri = router_info.RouterInfo(router_id, self.conf.root_helper, {})
         iptables = mock.Mock()
         ri.iptables_manager.ipv4['nat'] = iptables
         self.agent.router_info = {router_id: ri}
@@ -122,7 +123,7 @@ class TestVPNAgent(base.BaseTestCase):
 
     def test_remove_rule(self):
         router_id = _uuid()
-        ri = l3_agent.RouterInfo(router_id, self.conf.root_helper, {})
+        ri = router_info.RouterInfo(router_id, self.conf.root_helper, {})
         iptables = mock.Mock()
         ri.iptables_manager.ipv4['nat'] = iptables
         self.agent.router_info = {router_id: ri}
@@ -140,7 +141,7 @@ class TestVPNAgent(base.BaseTestCase):
 
     def test_iptables_apply(self):
         router_id = _uuid()
-        ri = l3_agent.RouterInfo(router_id, self.conf.root_helper, {})
+        ri = router_info.RouterInfo(router_id, self.conf.root_helper, {})
         iptables = mock.Mock()
         ri.iptables_manager = iptables
         self.agent.router_info = {router_id: ri}
@@ -167,8 +168,8 @@ class TestVPNAgent(base.BaseTestCase):
         mock.patch(
             'neutron.agent.linux.iptables_manager.IptablesManager').start()
         router_id = _uuid()
-        ri = l3_agent.RouterInfo(router_id, self.conf.root_helper, {},
-                                 ns_name="qrouter-%s" % router_id)
+        ri = router_info.RouterInfo(router_id, self.conf.root_helper, {},
+                                    ns_name="qrouter-%s" % router_id)
         ri.router = {
             'id': router_id,
             'admin_state_up': True,
