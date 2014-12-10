@@ -22,7 +22,7 @@ from neutron.extensions import vpnaas
 vpn_agent_opts = [
     cfg.MultiStrOpt(
         'vpn_device_driver',
-        default=['neutron.services.vpn.device_drivers.'
+        default=['neutron_vpnaas.services.vpn.device_drivers.'
                  'ipsec.OpenSwanDriver'],
         help=_("The vpn device drivers Neutron will use")),
 ]
@@ -144,4 +144,4 @@ class VPNAgent(l3_agent.L3NATAgentWithStateReport):
 
 def main():
     l3_agent.main(
-        manager='neutron.services.vpn.agent.VPNAgent')
+        manager='neutron_vpnaas.services.vpn.agent.VPNAgent')
