@@ -16,7 +16,7 @@
 from oslo.config import cfg
 from oslo.utils import importutils
 
-from neutron.agent import l3_agent
+from neutron.agent.l3 import agent
 from neutron.extensions import vpnaas
 
 vpn_agent_opts = [
@@ -29,7 +29,7 @@ vpn_agent_opts = [
 cfg.CONF.register_opts(vpn_agent_opts, 'vpnagent')
 
 
-class VPNAgent(l3_agent.L3NATAgentWithStateReport):
+class VPNAgent(agent.L3NATAgentWithStateReport):
     """VPNAgent class which can handle vpn service drivers."""
     def __init__(self, host, conf=None):
         super(VPNAgent, self).__init__(host=host, conf=conf)
@@ -143,5 +143,5 @@ class VPNAgent(l3_agent.L3NATAgentWithStateReport):
 
 
 def main():
-    l3_agent.main(
+    agent.main(
         manager='neutron_vpnaas.services.vpn.agent.VPNAgent')
