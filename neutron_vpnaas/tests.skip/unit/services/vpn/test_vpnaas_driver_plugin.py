@@ -35,7 +35,6 @@ class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
                           test_agent_ext_plugin.AgentDBTestMixIn):
 
     def setUp(self):
-        self.adminContext = context.get_admin_context()
         driver_cls_p = mock.patch(
             'neutron.services.vpn.'
             'service_drivers.ipsec.IPsecVPNDriver')
@@ -46,6 +45,7 @@ class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
         driver_cls.return_value = self.driver
         super(TestVPNDriverPlugin, self).setUp(
             vpnaas_plugin=VPN_DRIVER_CLASS)
+        self.adminContext = context.get_admin_context()
 
     def test_create_ipsec_site_connection(self, **extras):
         super(TestVPNDriverPlugin, self).test_create_ipsec_site_connection()
