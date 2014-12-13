@@ -50,7 +50,7 @@ FAKE_VPN_SERVICE = {
 FAKE_HOST = 'fake_host'
 IPV4 = 4
 
-CISCO_IPSEC_SERVICE_DRIVER = ('neutron.services.vpn.service_drivers.'
+CISCO_IPSEC_SERVICE_DRIVER = ('neutron_vpnaas.services.vpn.service_drivers.'
                               'cisco_ipsec.CiscoCsrIPsecVPNDriver')
 
 

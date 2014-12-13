@@ -29,7 +29,7 @@ from neutron_vpnaas.services.vpn import device_drivers
 
 _uuid = uuidutils.generate_uuid
 NOOP_DEVICE_CLASS = 'NoopDeviceDriver'
-NOOP_DEVICE = ('neutron.tests.unit.services.'
+NOOP_DEVICE = ('neutron_vpnaas.tests.unit.services.'
                'vpn.test_vpn_agent.%s' % NOOP_DEVICE_CLASS)
 
 

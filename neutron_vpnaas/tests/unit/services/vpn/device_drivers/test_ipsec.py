@@ -46,7 +46,7 @@ class TestIPsecDeviceDriver(base.BaseTestCase):
             'os.path.isdir',
             'neutron.agent.linux.utils.replace_file',
             'neutron.common.rpc.create_connection',
-            'neutron.services.vpn.device_drivers.ipsec.'
+            'neutron_vpnaas.services.vpn.device_drivers.ipsec.'
                 'OpenSwanProcess._gen_config_content',
             'shutil.rmtree',
         ]:

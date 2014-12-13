@@ -28,6 +28,7 @@ from neutron.tests import base
 from neutron_vpnaas.db.vpn import vpn_validator
 from neutron_vpnaas.services.vpn import plugin as vpn_plugin
 from neutron_vpnaas.services.vpn.service_drivers import ipsec as ipsec_driver
+from neutron_vpnaas import tests
 
 _uuid = uuidutils.generate_uuid
 
@@ -45,7 +46,7 @@ FAKE_SUBNET_ID = _uuid()
 IPV4 = 4
 IPV6 = 6
 
-IPSEC_SERVICE_DRIVER = ('neutron.services.vpn.service_drivers.'
+IPSEC_SERVICE_DRIVER = ('neutron_vpnaas.services.vpn.service_drivers.'
                         'ipsec.IPsecVPNDriver')
 
 
@@ -72,6 +73,7 @@ class TestValidatorSelection(base.BaseTestCase):
 class TestIPsecDriverValidation(base.BaseTestCase):
 
     def setUp(self):
+        tests.override_nvalues()
         super(TestIPsecDriverValidation, self).setUp()
         self.l3_plugin = mock.Mock()
         mock.patch(
@@ -218,6 +220,7 @@ class TestIPsecDriverValidation(base.BaseTestCase):
 
 class TestIPsecDriver(base.BaseTestCase):
     def setUp(self):
+        tests.override_nvalues()
         super(TestIPsecDriver, self).setUp()
         mock.patch('neutron.common.rpc.create_connection').start()
 

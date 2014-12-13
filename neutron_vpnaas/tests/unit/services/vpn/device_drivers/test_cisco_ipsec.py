@@ -42,7 +42,7 @@ FAKE_VPN_SERVICE = {
         {'peer_cidrs': ['40.0.0.0/24',
                         '50.0.0.0/24']}]
 }
-FIND_CFG_FOR_CSRS = ('neutron.services.vpn.device_drivers.cisco_ipsec.'
+FIND_CFG_FOR_CSRS = ('neutron_vpnaas.services.vpn.device_drivers.cisco_ipsec.'
                      'find_available_csrs_from_config')
 
 

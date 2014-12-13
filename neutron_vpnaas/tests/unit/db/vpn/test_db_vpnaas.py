@@ -35,9 +35,10 @@ from neutron.tests.unit import test_db_plugin
 from neutron.tests.unit import test_l3_plugin
 from neutron_vpnaas.db.vpn import vpn_db
 from neutron_vpnaas.services.vpn import plugin as vpn_plugin
+from neutron_vpnaas import tests
 
 DB_CORE_PLUGIN_KLASS = 'neutron.db.db_base_plugin_v2.NeutronDbPluginV2'
-DB_VPN_PLUGIN_KLASS = "neutron.services.vpn.plugin.VPNPlugin"
+DB_VPN_PLUGIN_KLASS = "neutron_vpnaas.services.vpn.plugin.VPNPlugin"
 ROOTDIR = os.path.normpath(os.path.join(
     os.path.dirname(__file__),
     '..', '..', '..', '..'))
@@ -413,10 +414,11 @@ class VPNPluginDbTestCase(VPNTestMixin,
                           test_db_plugin.NeutronDbPluginV2TestCase):
     def setUp(self, core_plugin=None, vpnaas_plugin=DB_VPN_PLUGIN_KLASS,
               vpnaas_provider=None):
+        tests.override_nvalues()
         if not vpnaas_provider:
             vpnaas_provider = (
                 constants.VPN +
-                ':vpnaas:neutron.services.vpn.'
+                ':vpnaas:neutron_vpnaas.services.vpn.'
                 'service_drivers.ipsec.IPsecVPNDriver:default')
 
         cfg.CONF.set_override('service_provider',
@@ -426,7 +428,7 @@ class VPNPluginDbTestCase(VPNTestMixin,
         sdb.ServiceTypeManager._instance = None
 
         service_plugins = {'vpnaas_plugin': vpnaas_plugin}
-        plugin_str = ('neutron.tests.unit.db.vpn.'
+        plugin_str = ('neutron_vpnaas.tests.unit.db.vpn.'
                       'test_db_vpnaas.TestVpnCorePlugin')
 
         super(VPNPluginDbTestCase, self).setUp(
