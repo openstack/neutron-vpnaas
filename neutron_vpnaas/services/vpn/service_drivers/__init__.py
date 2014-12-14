@@ -107,5 +107,6 @@ class BaseIPsecVpnAgentApi(object):
 
     def vpnservice_updated(self, context, router_id, **kwargs):
         """Send update event of vpnservices."""
+        kwargs['router'] = {'id': router_id}
         self._agent_notification(context, 'vpnservice_updated', router_id,
                                  **kwargs)

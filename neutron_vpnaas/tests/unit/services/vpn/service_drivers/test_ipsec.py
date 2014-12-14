@@ -235,15 +235,15 @@ class TestIPsecDriver(base.BaseTestCase):
             'neutron.manager.NeutronManager.get_service_plugins')
         get_service_plugin = service_plugin_p.start()
         get_service_plugin.return_value = {constants.L3_ROUTER_NAT: plugin}
-
         service_plugin = mock.Mock()
         service_plugin.get_l3_agents_hosting_routers.return_value = [l3_agent]
+        self._fake_vpn_router_id = _uuid()
         service_plugin._get_vpnservice.return_value = {
-            'router_id': _uuid()
+            'router_id': self._fake_vpn_router_id
         }
         self.driver = ipsec_driver.IPsecVPNDriver(service_plugin)
 
-    def _test_update(self, func, args):
+    def _test_update(self, func, args, additional_info=None):
         ctxt = n_ctx.Context('', 'somebody')
         with contextlib.nested(
             mock.patch.object(self.driver.agent_rpc.client, 'cast'),
@@ -257,24 +257,30 @@ class TestIPsecDriver(base.BaseTestCase):
         prepare_args = {'server': 'fake_host', 'version': '1.0'}
         prepare_mock.assert_called_once_with(**prepare_args)
 
-        rpc_mock.assert_called_once_with(ctxt, 'vpnservice_updated')
+        rpc_mock.assert_called_once_with(ctxt, 'vpnservice_updated',
+                                         **additional_info)
 
     def test_create_ipsec_site_connection(self):
         self._test_update(self.driver.create_ipsec_site_connection,
-                          [FAKE_VPN_CONNECTION])
+                          [FAKE_VPN_CONNECTION],
+                          {'router': {'id': self._fake_vpn_router_id}})
 
     def test_update_ipsec_site_connection(self):
         self._test_update(self.driver.update_ipsec_site_connection,
-                          [FAKE_VPN_CONNECTION, FAKE_VPN_CONNECTION])
+                          [FAKE_VPN_CONNECTION, FAKE_VPN_CONNECTION],
+                          {'router': {'id': self._fake_vpn_router_id}})
 
     def test_delete_ipsec_site_connection(self):
         self._test_update(self.driver.delete_ipsec_site_connection,
-                          [FAKE_VPN_CONNECTION])
+                          [FAKE_VPN_CONNECTION],
+                          {'router': {'id': self._fake_vpn_router_id}})
 
     def test_update_vpnservice(self):
         self._test_update(self.driver.update_vpnservice,
-                          [FAKE_VPN_SERVICE, FAKE_VPN_SERVICE])
+                          [FAKE_VPN_SERVICE, FAKE_VPN_SERVICE],
+                          {'router': {'id': FAKE_VPN_SERVICE['router_id']}})
 
     def test_delete_vpnservice(self):
         self._test_update(self.driver.delete_vpnservice,
-                          [FAKE_VPN_SERVICE])
+                          [FAKE_VPN_SERVICE],
+                          {'router': {'id': FAKE_VPN_SERVICE['router_id']}})

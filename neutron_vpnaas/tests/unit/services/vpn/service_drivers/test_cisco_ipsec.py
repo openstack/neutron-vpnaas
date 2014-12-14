@@ -335,10 +335,10 @@ class TestCiscoIPsecDriver(testlib_api.SqlTestCase):
     def setUp(self):
         super(TestCiscoIPsecDriver, self).setUp()
         mock.patch('neutron.common.rpc.create_connection').start()
-
+        self._fake_vpn_router_id = _uuid()
         service_plugin = mock.Mock()
         service_plugin._get_vpnservice.return_value = {
-            'router_id': _uuid()
+            'router_id': self._fake_vpn_router_id
         }
 
         l3_plugin = mock.Mock()
@@ -369,32 +369,37 @@ class TestCiscoIPsecDriver(testlib_api.SqlTestCase):
         prepare_mock.assert_called_once_with(**prepare_args)
 
         rpc_mock.assert_called_once_with(self.context, 'vpnservice_updated',
-                                         reason=mock.ANY)
+                                         **additional_info)
 
     def test_create_ipsec_site_connection(self):
         self._test_update(self.driver.create_ipsec_site_connection,
                           [FAKE_VPN_CONNECTION],
-                          {'reason': 'ipsec-conn-create'})
+                          {'reason': 'ipsec-conn-create',
+                           'router': {'id': self._fake_vpn_router_id}})
 
     def test_update_ipsec_site_connection(self):
         self._test_update(self.driver.update_ipsec_site_connection,
                           [FAKE_VPN_CONNECTION, FAKE_VPN_CONNECTION],
-                          {'reason': 'ipsec-conn-update'})
+                          {'reason': 'ipsec-conn-update',
+                           'router': {'id': self._fake_vpn_router_id}})
 
     def test_delete_ipsec_site_connection(self):
         self._test_update(self.driver.delete_ipsec_site_connection,
                           [FAKE_VPN_CONNECTION],
-                          {'reason': 'ipsec-conn-delete'})
+                          {'reason': 'ipsec-conn-delete',
+                           'router': {'id': self._fake_vpn_router_id}})
 
     def test_update_vpnservice(self):
         self._test_update(self.driver.update_vpnservice,
                           [FAKE_VPN_SERVICE, FAKE_VPN_SERVICE],
-                          {'reason': 'vpn-service-update'})
+                          {'reason': 'vpn-service-update',
+                           'router': {'id': FAKE_VPN_SERVICE['router_id']}})
 
     def test_delete_vpnservice(self):
         self._test_update(self.driver.delete_vpnservice,
                           [FAKE_VPN_SERVICE],
-                          {'reason': 'vpn-service-delete'})
+                          {'reason': 'vpn-service-delete',
+                           'router': {'id': FAKE_VPN_SERVICE['router_id']}})
 
 
 class TestCiscoIPsecDriverRequests(base.BaseTestCase):
