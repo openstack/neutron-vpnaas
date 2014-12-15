@@ -22,18 +22,18 @@ from neutron.extensions import vpnaas
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 from neutron.tests.unit import test_api_v2
-from neutron.tests.unit import test_api_v2_extension
-from neutron_vpnaas import tests
+
+from neutron_vpnaas.tests import base
+
 
 _uuid = uuidutils.generate_uuid
 _get_path = test_api_v2._get_path
 
 
-class VpnaasExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
+class VpnaasExtensionTestCase(base.ExtensionTestCase):
     fmt = 'json'
 
     def setUp(self):
-        tests.override_nvalues()
         super(VpnaasExtensionTestCase, self).setUp()
         plural_mappings = {'ipsecpolicy': 'ipsecpolicies',
                            'ikepolicy': 'ikepolicies',

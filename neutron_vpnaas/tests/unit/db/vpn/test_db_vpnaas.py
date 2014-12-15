@@ -35,7 +35,7 @@ from neutron.tests.unit import test_db_plugin
 from neutron.tests.unit import test_l3_plugin
 from neutron_vpnaas.db.vpn import vpn_db
 from neutron_vpnaas.services.vpn import plugin as vpn_plugin
-from neutron_vpnaas import tests
+from neutron_vpnaas.tests import base
 
 DB_CORE_PLUGIN_KLASS = 'neutron.db.db_base_plugin_v2.NeutronDbPluginV2'
 DB_VPN_PLUGIN_KLASS = "neutron_vpnaas.services.vpn.plugin.VPNPlugin"
@@ -411,10 +411,9 @@ class VPNTestMixin(object):
 
 class VPNPluginDbTestCase(VPNTestMixin,
                           test_l3_plugin.L3NatTestCaseMixin,
-                          test_db_plugin.NeutronDbPluginV2TestCase):
+                          base.NeutronDbPluginV2TestCase):
     def setUp(self, core_plugin=None, vpnaas_plugin=DB_VPN_PLUGIN_KLASS,
               vpnaas_provider=None):
-        tests.override_nvalues()
         if not vpnaas_provider:
             vpnaas_provider = (
                 constants.VPN +

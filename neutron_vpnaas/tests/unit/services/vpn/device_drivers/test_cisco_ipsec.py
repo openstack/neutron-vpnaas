@@ -21,11 +21,11 @@ import mock
 from neutron import context
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
-from neutron.tests import base
 from neutron_vpnaas.services.vpn.device_drivers import (
     cisco_csr_rest_client as csr_client)
 from neutron_vpnaas.services.vpn.device_drivers \
     import cisco_ipsec as ipsec_driver
+from neutron_vpnaas.tests import base
 
 _uuid = uuidutils.generate_uuid
 FAKE_HOST = 'fake_host'

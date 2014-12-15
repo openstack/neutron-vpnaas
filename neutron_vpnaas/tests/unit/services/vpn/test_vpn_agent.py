@@ -23,9 +23,9 @@ from neutron.agent.l3 import router_info
 from neutron.agent.linux import interface
 from neutron.common import config as base_config
 from neutron.openstack.common import uuidutils
-from neutron.tests import base
 from neutron_vpnaas.services.vpn import agent
 from neutron_vpnaas.services.vpn import device_drivers
+from neutron_vpnaas.tests import base
 
 _uuid = uuidutils.generate_uuid
 NOOP_DEVICE_CLASS = 'NoopDeviceDriver'
