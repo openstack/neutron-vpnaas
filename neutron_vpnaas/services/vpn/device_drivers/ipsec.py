@@ -531,7 +531,8 @@ class IPsecDriver(device_drivers.DeviceDriver):
         when vpnservices updated.
         Then this method start sync with server.
         """
-        self.sync(context, [])
+        router = kwargs.get('router', None)
+        self.sync(context, [router] if router else [])
 
     @abc.abstractmethod
     def create_process(self, process_id, vpnservice, namespace):
@@ -668,28 +669,41 @@ class IPsecDriver(device_drivers.DeviceDriver):
         vpnservices = self.agent_rpc.get_vpn_services_on_host(
             context, self.host)
         router_ids = [vpnservice['router_id'] for vpnservice in vpnservices]
-        # Ensure the ipsec process is enabled
-        for vpnservice in vpnservices:
-            process = self.ensure_process(vpnservice['router_id'],
-                                          vpnservice=vpnservice)
-            self._update_nat(vpnservice, self.agent.add_nat_rule)
-            process.update()
+        sync_router_ids = [router['id'] for router in routers]
 
+        self._sync_vpn_processes(vpnservices, sync_router_ids)
+        self._delete_vpn_processes(sync_router_ids, router_ids)
+        self._cleanup_stale_vpn_processes(router_ids)
+
+        self.report_status(context)
+
+    def _sync_vpn_processes(self, vpnservices, sync_router_ids):
+        # Ensure the ipsec process is enabled only for
+        # - the vpn services which are not yet in self.processes
+        # - vpn services whose router id is in 'sync_router_ids'
+        for vpnservice in vpnservices:
+            if vpnservice['router_id'] not in self.processes or (
+                    vpnservice['router_id'] in sync_router_ids):
+                process = self.ensure_process(vpnservice['router_id'],
+                                              vpnservice=vpnservice)
+                self._update_nat(vpnservice, self.agent.add_nat_rule)
+                process.update()
+
+    def _delete_vpn_processes(self, sync_router_ids, vpn_router_ids):
         # Delete any IPSec processes that are
         # associated with routers, but are not running the VPN service.
-        for router in routers:
-            #We are using router id as process_id
-            process_id = router['id']
-            if process_id not in router_ids:
-                process = self.ensure_process(process_id)
+        for process_id in sync_router_ids:
+            if process_id not in vpn_router_ids:
+                self.ensure_process(process_id)
                 self.destroy_router(process_id)
 
+    def _cleanup_stale_vpn_processes(self, vpn_router_ids):
         # Delete any IPSec processes running
         # VPN that do not have an associated router.
-        process_ids = [pid for pid in self.processes if pid not in router_ids]
+        process_ids = [pid for pid in self.processes
+                       if pid not in vpn_router_ids]
         for process_id in process_ids:
             self.destroy_router(process_id)
-        self.report_status(context)
 
 
 class OpenSwanDriver(IPsecDriver):
