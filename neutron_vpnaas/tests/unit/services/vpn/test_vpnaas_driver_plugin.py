@@ -15,13 +15,13 @@
 import contextlib
 
 import mock
-
 from neutron.common import constants
 from neutron import context
 from neutron import manager
 from neutron.plugins.common import constants as p_constants
 from neutron.tests.unit.openvswitch import test_agent_scheduler
 from neutron.tests.unit import test_agent_ext_plugin
+
 from neutron_vpnaas.db.vpn import vpn_validator
 from neutron_vpnaas.services.vpn.service_drivers import ipsec as ipsec_driver
 from neutron_vpnaas.tests.unit.db.vpn import test_db_vpnaas

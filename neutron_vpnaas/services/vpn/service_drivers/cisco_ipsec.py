@@ -12,12 +12,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import oslo_messaging
-
 from neutron.common import rpc as n_rpc
 from neutron.openstack.common import log as logging
 from neutron.plugins.cisco.l3.plugging_drivers import (
     n1kv_plugging_constants as n1kv_constants)
+import oslo_messaging
+
 from neutron_vpnaas.db.vpn import vpn_db
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import service_drivers

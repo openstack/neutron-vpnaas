@@ -13,10 +13,6 @@
 #    under the License.
 
 import collections
-
-from oslo_concurrency import lockutils
-from oslo_config import cfg
-import oslo_messaging
 import requests
 
 from neutron.common import exceptions
@@ -27,6 +23,10 @@ from neutron.openstack.common import log as logging
 from neutron.openstack.common import loopingcall
 from neutron.plugins.common import constants
 from neutron.plugins.common import utils as plugin_utils
+from oslo_concurrency import lockutils
+from oslo_config import cfg
+import oslo_messaging
+
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import device_drivers
 from neutron_vpnaas.services.vpn.device_drivers import (

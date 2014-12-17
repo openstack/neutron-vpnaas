@@ -18,7 +18,6 @@ import netaddr
 from oslo_serialization import jsonutils
 import requests
 from requests import exceptions as r_exc
-
 from neutron.i18n import _LE, _LW
 from neutron.openstack.common import log as logging
 

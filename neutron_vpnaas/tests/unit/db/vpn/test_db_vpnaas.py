@@ -16,9 +16,6 @@
 import contextlib
 import os
 
-from oslo_config import cfg
-import webob.exc
-
 from neutron.api import extensions as api_extensions
 from neutron.common import config
 from neutron import context
@@ -33,6 +30,9 @@ from neutron.plugins.common import constants
 from neutron.scheduler import l3_agent_scheduler
 from neutron.tests.unit import test_db_plugin
 from neutron.tests.unit import test_l3_plugin
+from oslo_config import cfg
+import webob.exc
+
 from neutron_vpnaas.db.vpn import vpn_db
 from neutron_vpnaas.services.vpn import plugin as vpn_plugin
 from neutron_vpnaas.tests import base

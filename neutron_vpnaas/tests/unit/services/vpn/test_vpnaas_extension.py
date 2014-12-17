@@ -14,7 +14,6 @@
 #    under the License.
 
 import copy
-
 import mock
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
@@ -23,7 +22,6 @@ from webob import exc
 
 from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.tests import base
-
 
 _uuid = uuidutils.generate_uuid
 _get_path = test_api_v2._get_path

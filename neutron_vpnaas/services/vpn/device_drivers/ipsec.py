@@ -14,16 +14,13 @@
 #    under the License.
 import abc
 import copy
+import jinja2
+import netaddr
 import os
 import re
 import shutil
-
-import jinja2
-import netaddr
-from oslo_concurrency import lockutils
-from oslo_config import cfg
-import oslo_messaging
 import six
+
 
 from neutron.agent.linux import ip_lib
 from neutron.agent.linux import utils
@@ -34,6 +31,10 @@ from neutron.openstack.common import log as logging
 from neutron.openstack.common import loopingcall
 from neutron.plugins.common import constants
 from neutron.plugins.common import utils as plugin_utils
+from oslo_concurrency import lockutils
+from oslo_config import cfg
+import oslo_messaging
+
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import device_drivers
 

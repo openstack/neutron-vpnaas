@@ -13,15 +13,15 @@
 #    under the License.
 
 import contextlib
-
 import mock
-from oslo_config import cfg
 
 from neutron import context as n_ctx
 from neutron.db import servicetype_db as st_db
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 from neutron.tests.unit import testlib_api
+from oslo_config import cfg
+
 from neutron_vpnaas.services.vpn import plugin as vpn_plugin
 from neutron_vpnaas.services.vpn.service_drivers import cisco_csr_db as csr_db
 from neutron_vpnaas.services.vpn.service_drivers \

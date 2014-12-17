@@ -14,10 +14,10 @@
 #    under the License.
 import netaddr
 
-import oslo_messaging
-
 from neutron.common import rpc as n_rpc
 from neutron.openstack.common import log as logging
+import oslo_messaging
+
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import service_drivers
 

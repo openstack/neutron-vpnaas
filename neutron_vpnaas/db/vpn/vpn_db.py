@@ -14,10 +14,6 @@
 #    under the License.
 
 import netaddr
-from oslo_utils import excutils
-import sqlalchemy as sa
-from sqlalchemy import orm
-from sqlalchemy.orm import exc
 
 from neutron.common import constants as n_constants
 from neutron.db import common_db_mixin as base_db
@@ -32,6 +28,10 @@ from neutron.openstack.common import log as logging
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 from neutron.plugins.common import utils
+from oslo_utils import excutils
+import sqlalchemy as sa
+from sqlalchemy import orm
+from sqlalchemy.orm import exc
 
 from neutron_vpnaas.db.vpn import vpn_validator
 from neutron_vpnaas.extensions import vpnaas
