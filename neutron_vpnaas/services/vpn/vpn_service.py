@@ -20,8 +20,11 @@ from neutron import context as n_context
 from neutron.extensions import vpnaas
 from neutron.openstack.common import log as logging
 from neutron.services import advanced_service
+from neutron.services import provider_configuration as provconfig
 
 LOG = logging.getLogger(__name__)
+
+DEVICE_DRIVERS = 'device_drivers'
 
 
 class VPNService(advanced_service.AdvancedService):
@@ -40,6 +43,8 @@ class VPNService(advanced_service.AdvancedService):
         """Loads one or more device drivers for VPNaaS."""
         self.devices = []
         for device_driver in cfg.CONF.vpnagent.vpn_device_driver:
+            device_driver = provconfig.get_provider_driver_class(
+                device_driver, DEVICE_DRIVERS)
             try:
                 self.devices.append(importutils.import_object(device_driver,
                                                               self,
