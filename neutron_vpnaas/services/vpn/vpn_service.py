@@ -84,7 +84,30 @@ class VPNService(advanced_service.AdvancedService):
         router_info = self.l3_agent.router_info.get(router_id)
         if not router_info:
             return
-        return router_info.ns_name
+        # Added for handling the distributed Routers within SNAT namespace
+        if router_info.router['distributed']:
+            #return self.get_snat_ns_name(router_id)
+            return self.l3_agent.get_snat_ns_name(router_id)
+        else:
+            return router_info.ns_name
+
+    def get_router_based_iptables_manager(self, router_info):
+        """Returns router based iptables manager
+
+        In DVR routers the IPsec VPN service should run inside
+        the snat namespace. So the iptables manager used for
+        snat namespace is different from the iptables manager
+        used for the qr namespace in a non dvr based router.
+
+        This function will check the router type and then will
+        return the right iptables manager. If DVR enabled router
+        it will return the snat_iptables_manager otherwise it will
+        return the legacy iptables_manager.
+        """
+        if router_info.router['distributed']:
+            return router_info.snat_iptables_manager
+        else:
+            return router_info.iptables_manager
 
     def add_nat_rule(self, router_id, chain, rule, top=False):
         """Add nat rule in namespace.
@@ -99,8 +122,8 @@ class VPNService(advanced_service.AdvancedService):
         router_info = self.l3_agent.router_info.get(router_id)
         if not router_info:
             return
-        router_info.iptables_manager.ipv4['nat'].add_rule(
-            chain, rule, top=top)
+        iptables_manager = self.get_router_based_iptables_manager(router_info)
+        iptables_manager.ipv4['nat'].add_rule(chain, rule, top=top)
 
     def remove_nat_rule(self, router_id, chain, rule, top=False):
         """Remove nat rule in namespace.
@@ -114,8 +137,8 @@ class VPNService(advanced_service.AdvancedService):
         router_info = self.l3_agent.router_info.get(router_id)
         if not router_info:
             return
-        router_info.iptables_manager.ipv4['nat'].remove_rule(
-            chain, rule, top=top)
+        iptables_manager = self.get_router_based_iptables_manager(router_info)
+        iptables_manager.ipv4['nat'].remove_rule(chain, rule, top=top)
 
     def iptables_apply(self, router_id):
         """Apply IPtables.
@@ -126,4 +149,5 @@ class VPNService(advanced_service.AdvancedService):
         router_info = self.l3_agent.router_info.get(router_id)
         if not router_info:
             return
-        router_info.iptables_manager.apply()
+        iptables_manager = self.get_router_based_iptables_manager(router_info)
+        iptables_manager.apply()
