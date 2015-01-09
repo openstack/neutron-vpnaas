@@ -14,6 +14,7 @@
 #    under the License.
 
 from neutron.agent.l3 import agent as l3_agent
+from neutron.agent import l3_agent as entry
 from oslo.config import cfg
 
 from neutron_vpnaas.services.vpn import vpn_service
@@ -39,4 +40,4 @@ class VPNAgent(l3_agent.L3NATAgentWithStateReport):
 
 
 def main():
-    l3_agent.main(manager='neutron_vpnaas.services.vpn.agent.VPNAgent')
+    entry.main(manager='neutron_vpnaas.services.vpn.agent.VPNAgent')
