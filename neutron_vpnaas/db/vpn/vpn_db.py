@@ -14,7 +14,7 @@
 #    under the License.
 
 import netaddr
-from oslo.utils import excutils
+from oslo_utils import excutils
 import sqlalchemy as sa
 from sqlalchemy import orm
 from sqlalchemy.orm import exc

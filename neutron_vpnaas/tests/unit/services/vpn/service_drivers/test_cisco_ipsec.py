@@ -15,7 +15,7 @@
 import contextlib
 
 import mock
-from oslo.config import cfg
+from oslo_config import cfg
 
 from neutron import context as n_ctx
 from neutron.db import servicetype_db as st_db

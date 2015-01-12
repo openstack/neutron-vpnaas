@@ -18,7 +18,7 @@ from neutron.agent.common import config as agent_config
 from neutron.agent.l3 import router_info
 from neutron.agent.linux import iptables_manager
 from neutron.openstack.common import uuidutils
-from oslo.config import cfg
+from oslo_config import cfg
 
 from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn import agent as vpn_agent

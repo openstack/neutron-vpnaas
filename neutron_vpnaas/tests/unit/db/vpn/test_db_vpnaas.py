@@ -16,7 +16,7 @@
 import contextlib
 import os
 
-from oslo.config import cfg
+from oslo_config import cfg
 import webob.exc
 
 from neutron.api import extensions as api_extensions
