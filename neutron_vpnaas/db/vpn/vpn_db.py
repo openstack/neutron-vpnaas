@@ -613,7 +613,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
                     vpnservice_id=vpnservices['id'])
 
 
-class VPNPluginRpcDbMixin():
+class VPNPluginRpcDbMixin(object):
     def _get_agent_hosting_vpn_services(self, context, host):
 
         plugin = manager.NeutronManager.get_plugin()

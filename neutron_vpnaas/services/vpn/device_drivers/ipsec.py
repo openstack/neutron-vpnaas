@@ -87,7 +87,7 @@ def _get_template(template_file):
 
 
 @six.add_metaclass(abc.ABCMeta)
-class BaseSwanProcess():
+class BaseSwanProcess(object):
     """Swan Family Process Manager
 
     This class manages start/restart/stop ipsec process.
