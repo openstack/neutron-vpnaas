@@ -12,13 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import abc
 import collections
 import requests
 
 from oslo.config import cfg
 from oslo import messaging
-import six
 
 from neutron.common import exceptions
 from neutron.common import rpc as n_rpc
@@ -89,7 +87,6 @@ class CiscoCsrIPsecVpnDriverApi(object):
         return cctxt.call(context, 'update_status', status=status)
 
 
-@six.add_metaclass(abc.ABCMeta)
 class CiscoCsrIPsecDriver(device_drivers.DeviceDriver):
     """Cisco CSR VPN Device Driver for IPSec.
 
