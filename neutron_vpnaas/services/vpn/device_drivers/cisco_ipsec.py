@@ -17,12 +17,12 @@ import requests
 
 from oslo.config import cfg
 from oslo import messaging
+from oslo_concurrency import lockutils
 
 from neutron.common import exceptions
 from neutron.common import rpc as n_rpc
 from neutron import context as ctx
 from neutron.i18n import _LE, _LI, _LW
-from neutron.openstack.common import lockutils
 from neutron.openstack.common import log as logging
 from neutron.openstack.common import loopingcall
 from neutron.plugins.common import constants

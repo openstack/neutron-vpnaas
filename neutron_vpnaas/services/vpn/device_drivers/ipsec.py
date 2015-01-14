@@ -22,6 +22,7 @@ import jinja2
 import netaddr
 from oslo.config import cfg
 from oslo import messaging
+from oslo_concurrency import lockutils
 import six
 
 from neutron.agent.linux import ip_lib
@@ -29,7 +30,6 @@ from neutron.agent.linux import utils
 from neutron.common import rpc as n_rpc
 from neutron import context
 from neutron.i18n import _LE
-from neutron.openstack.common import lockutils
 from neutron.openstack.common import log as logging
 from neutron.openstack.common import loopingcall
 from neutron.plugins.common import constants
