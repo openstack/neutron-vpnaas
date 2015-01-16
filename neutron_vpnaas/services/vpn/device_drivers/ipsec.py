@@ -309,7 +309,8 @@ class OpenSwanProcess(BaseSwanProcess):
 
     def _execute(self, cmd, check_exit_code=True):
         """Execute command on namespace."""
-        ip_wrapper = ip_lib.IPWrapper(self.root_helper, self.namespace)
+        ip_wrapper = ip_lib.IPWrapper(root_helper=self.root_helper,
+                                      namespace=self.namespace)
         return ip_wrapper.netns.execute(
             cmd,
             check_exit_code=check_exit_code)
