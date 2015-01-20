@@ -619,7 +619,13 @@ class VPNPluginRpcDbMixin(object):
         plugin = manager.NeutronManager.get_plugin()
         agent = plugin._get_agent_by_type_and_host(
             context, n_constants.AGENT_TYPE_L3, host)
-        if not agent.admin_state_up:
+        agent_conf = plugin.get_configuration_dict(agent)
+        # Retreive the agent_mode to check if this is the
+        # right agent to deploy the vpn service. In the
+        # case of distributed the vpn service should reside
+        # only on a dvr_snat node.
+        agent_mode = agent_conf.get('agent_mode', 'legacy')
+        if not agent.admin_state_up or agent_mode == 'dvr':
             return []
         query = context.session.query(VPNService)
         query = query.join(IPsecSiteConnection)
