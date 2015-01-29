@@ -47,7 +47,18 @@ class NoopDeviceDriver(device_drivers.DeviceDriver):
         pass
 
 
-class TestVirtualPrivateNetworkDeviceDriverLoading(base.BaseTestCase):
+class VPNBaseTestCase(base.BaseTestCase):
+
+    def setUp(self):
+        super(VPNBaseTestCase, self).setUp()
+        self.conf = cfg.CONF
+        agent_config.register_root_helper(self.conf)
+        self.ri_kwargs = {'root_helper': self.conf.root_helper,
+                          'agent_conf': self.conf,
+                          'interface_driver': mock.sentinel.interface_driver}
+
+
+class TestVirtualPrivateNetworkDeviceDriverLoading(VPNBaseTestCase):
 
     def setUp(self):
         super(TestVirtualPrivateNetworkDeviceDriverLoading, self).setUp()
@@ -81,19 +92,17 @@ class TestVirtualPrivateNetworkDeviceDriverLoading(base.BaseTestCase):
                           self.service.load_device_drivers, 'host')
 
 
-class TestVPNDeviceDriverCallsToService(base.BaseTestCase):
+class TestVPNDeviceDriverCallsToService(VPNBaseTestCase):
 
     def setUp(self):
         super(TestVPNDeviceDriverCallsToService, self).setUp()
-        self.conf = cfg.CONF
-        agent_config.register_root_helper(self.conf)
         self.service = vpn_service.VPNService.instance(mock.Mock())
         self.iptables = mock.Mock()
         self.apply_mock = mock.Mock()
 
     def _make_router_info_for_test(self, ns_name=None, iptables=None):
-        ri = router_info.RouterInfo(FAKE_ROUTER_ID, {}, self.conf.root_helper,
-                                    mock.ANY, mock.ANY, ns_name=ns_name)
+        ri = router_info.RouterInfo(FAKE_ROUTER_ID, {}, ns_name=ns_name,
+                                    **self.ri_kwargs)
         ri.router['distributed'] = False
         if iptables:
             ri.iptables_manager.ipv4['nat'] = iptables
@@ -101,8 +110,8 @@ class TestVPNDeviceDriverCallsToService(base.BaseTestCase):
         self.service.l3_agent.router_info = {FAKE_ROUTER_ID: ri}
 
     def _make_dvr_router_info_for_test(self, ns_name=None, iptables=None):
-        ri = router_info.RouterInfo(FAKE_ROUTER_ID, {}, self.conf.root_helper,
-                                    mock.ANY, mock.ANY, ns_name=ns_name)
+        ri = router_info.RouterInfo(FAKE_ROUTER_ID, {}, ns_name=ns_name,
+                                    **self.ri_kwargs)
         ri.router['distributed'] = True
         if iptables:
             ri.snat_iptables_manager = iptables_manager.IptablesManager(
@@ -191,34 +200,30 @@ class TestVPNDeviceDriverCallsToService(base.BaseTestCase):
         self.assertFalse(self.apply_mock.called)
 
 
-class TestVPNServiceEventHandlers(base.BaseTestCase):
+class TestVPNServiceEventHandlers(VPNBaseTestCase):
 
     def setUp(self):
         super(TestVPNServiceEventHandlers, self).setUp()
-        self.conf = cfg.CONF
-        agent_config.register_root_helper(self.conf)
         self.service = vpn_service.VPNService.instance(mock.Mock())
         self.device = mock.Mock()
         self.service.devices = [self.device]
 
     def test_actions_after_router_added(self):
-        ri = router_info.RouterInfo(FAKE_ROUTER_ID, {}, self.conf.root_helper,
-                                    mock.ANY, mock.ANY)
+        ri = router_info.RouterInfo(FAKE_ROUTER_ID, {}, **self.ri_kwargs)
         self.service.after_router_added(ri)
         self.device.create_router.assert_called_once_with(FAKE_ROUTER_ID)
         self.device.sync.assert_called_once_with(self.service.context,
                                                  [ri.router])
 
     def test_actions_after_router_removed(self):
-        ri = router_info.RouterInfo(FAKE_ROUTER_ID, {}, self.conf.root_helper,
-                                    mock.ANY, mock.ANY,
-                                    ns_name="qrouter-%s" % FAKE_ROUTER_ID)
+        ri = router_info.RouterInfo(FAKE_ROUTER_ID, {},
+                                    ns_name="qrouter-%s" % FAKE_ROUTER_ID,
+                                    **self.ri_kwargs)
         self.service.after_router_removed(ri)
         self.device.destroy_router.assert_called_once_with(FAKE_ROUTER_ID)
 
     def test_actions_after_router_updated(self):
-        ri = router_info.RouterInfo(FAKE_ROUTER_ID, {}, self.conf.root_helper,
-                                    mock.ANY, mock.ANY)
+        ri = router_info.RouterInfo(FAKE_ROUTER_ID, {}, **self.ri_kwargs)
         self.service.after_router_updated(ri)
         self.device.sync.assert_called_once_with(self.service.context,
                                                  [ri.router])
