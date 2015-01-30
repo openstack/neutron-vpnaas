@@ -17,10 +17,11 @@ from oslo.config import cfg
 from oslo.utils import importutils
 
 from neutron import context as n_context
-from neutron.extensions import vpnaas
 from neutron.openstack.common import log as logging
 from neutron.services import advanced_service
 from neutron.services import provider_configuration as provconfig
+
+from neutron_vpnaas.extensions import vpnaas
 
 LOG = logging.getLogger(__name__)
 

@@ -16,15 +16,15 @@
 import contextlib
 
 import mock
-from oslo.config import cfg
-
 from neutron import context as n_ctx
 from neutron.db import l3_db
 from neutron.db import servicetype_db as st_db
-from neutron.extensions import vpnaas
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
+from oslo.config import cfg
+
 from neutron_vpnaas.db.vpn import vpn_validator
+from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn import plugin as vpn_plugin
 from neutron_vpnaas.services.vpn.service_drivers import ipsec as ipsec_driver
 from neutron_vpnaas.tests import base
