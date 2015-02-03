@@ -16,13 +16,12 @@
 import copy
 
 import mock
-from webob import exc
-
-from neutron.extensions import vpnaas
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 from neutron.tests.unit import test_api_v2
+from webob import exc
 
+from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.tests import base
 
 
@@ -39,7 +38,7 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
                            'ikepolicy': 'ikepolicies',
                            'ipsec_site_connection': 'ipsec-site-connections'}
         self._setUpExtension(
-            'neutron.extensions.vpnaas.VPNPluginBase', constants.VPN,
+            'neutron_vpnaas.extensions.vpnaas.VPNPluginBase', constants.VPN,
             vpnaas.RESOURCE_ATTRIBUTE_MAP, vpnaas.Vpnaas,
             'vpn', plural_mappings=plural_mappings,
             use_quota=True)

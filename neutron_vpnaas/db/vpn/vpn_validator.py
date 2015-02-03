@@ -13,9 +13,10 @@
 #    under the License.
 
 from neutron.db import l3_db
-from neutron.extensions import vpnaas
 from neutron import manager
 from neutron.plugins.common import constants
+
+from neutron_vpnaas.extensions import vpnaas
 
 
 class VpnReferenceValidator(object):
