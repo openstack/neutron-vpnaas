@@ -60,12 +60,6 @@ class VPNServiceInUse(nexception.InUse):
     message = _("VPNService %(vpnservice_id)s is still in use")
 
 
-# TODO(dougwig) - once this exception is out of neutron, restore this
-#class RouterInUseByVPNService(nexception.InUse):
-#  message = _("Router %(router_id)s is used by VPNService %(vpnservice_id)s")
-RouterInUseByVPNService = nexception.RouterInUseByVPNService
-
-
 class SubnetInUseByVPNService(nexception.InUse):
     message = _("Subnet %(subnet_id)s is used by VPNService %(vpnservice_id)s")
 

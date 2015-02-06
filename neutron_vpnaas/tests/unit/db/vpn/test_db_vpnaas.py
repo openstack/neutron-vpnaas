@@ -26,6 +26,7 @@ from neutron.db import agentschedulers_db
 from neutron.db import l3_agentschedulers_db
 from neutron.db import servicetype_db as sdb
 from neutron import extensions as nextensions
+from neutron.extensions import l3 as l3_exception
 from neutron import manager
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
@@ -1599,3 +1600,25 @@ class TestVpnaas(VPNPluginDbTestCase):
                         )
                         delete_res = delete_req.get_response(self.ext_api)
                         self.assertEqual(409, delete_res.status_int)
+
+    def test_router_in_use_by_vpnaas(self):
+        """Check that exception raised, if router in use by VPNaaS."""
+        with contextlib.nested(self.subnet(cidr='10.2.0.0/24'),
+                               self.router()) as (subnet, router):
+            with self.vpnservice(subnet=subnet,
+                                 router=router):
+                self.assertRaises(l3_exception.RouterInUse,
+                                  self.plugin.check_router_in_use,
+                                  context.get_admin_context(),
+                                  router['router']['id'])
+
+    def test_subnet_in_use_by_vpnaas(self):
+        """Check that exception raised, if subnet in use by VPNaaS."""
+        with contextlib.nested(self.subnet(cidr='10.2.0.0/24'),
+                               self.router()) as (subnet, router):
+            with self.vpnservice(subnet=subnet,
+                                 router=router):
+                self.assertRaises(vpnaas.SubnetInUseByVPNService,
+                                  self.plugin.check_subnet_in_use,
+                                  context.get_admin_context(),
+                                  subnet['subnet']['id'])
