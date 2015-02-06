@@ -15,7 +15,7 @@
 
 import abc
 
-from oslo import messaging
+import oslo_messaging
 import six
 
 from neutron.common import rpc as n_rpc
@@ -78,7 +78,7 @@ class BaseIPsecVpnAgentApi(object):
     def __init__(self, topic, default_version, driver):
         self.topic = topic
         self.driver = driver
-        target = messaging.Target(topic=topic, version=default_version)
+        target = oslo_messaging.Target(topic=topic, version=default_version)
         self.client = n_rpc.get_client(target)
 
     def _agent_notification(self, context, method, router_id,

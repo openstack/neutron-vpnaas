@@ -19,8 +19,8 @@ import os
 import sys
 
 from eventlet.green import subprocess
-from oslo.config import cfg
-from oslo.rootwrap import wrapper
+from oslo_config import cfg
+from oslo_rootwrap import wrapper
 
 from neutron.common import config
 from neutron.common import utils

@@ -20,9 +20,9 @@ import shutil
 
 import jinja2
 import netaddr
-from oslo.config import cfg
-from oslo import messaging
 from oslo_concurrency import lockutils
+from oslo_config import cfg
+import oslo_messaging
 import six
 
 from neutron.agent.linux import ip_lib
@@ -447,7 +447,7 @@ class IPsecVpnDriverApi(object):
     """IPSecVpnDriver RPC api."""
 
     def __init__(self, topic):
-        target = messaging.Target(topic=topic, version='1.0')
+        target = oslo_messaging.Target(topic=topic, version='1.0')
         self.client = n_rpc.get_client(target)
 
     def get_vpn_services_on_host(self, context, host):
@@ -481,7 +481,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
 
     # history
     #   1.0 Initial version
-    target = messaging.Target(version='1.0')
+    target = oslo_messaging.Target(version='1.0')
 
     def __init__(self, agent, host):
         self.agent = agent

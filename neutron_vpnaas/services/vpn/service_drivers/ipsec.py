@@ -14,7 +14,7 @@
 #    under the License.
 import netaddr
 
-from oslo import messaging
+import oslo_messaging
 
 from neutron.common import rpc as n_rpc
 from neutron.openstack.common import log as logging
@@ -34,7 +34,7 @@ class IPsecVpnDriverCallBack(object):
     # history
     #   1.0 Initial version
 
-    target = messaging.Target(version=BASE_IPSEC_VERSION)
+    target = oslo_messaging.Target(version=BASE_IPSEC_VERSION)
 
     def __init__(self, driver):
         super(IPsecVpnDriverCallBack, self).__init__()
@@ -57,7 +57,7 @@ class IPsecVpnDriverCallBack(object):
 class IPsecVpnAgentApi(service_drivers.BaseIPsecVpnAgentApi):
     """Agent RPC API for IPsecVPNAgent."""
 
-    target = messaging.Target(version=BASE_IPSEC_VERSION)
+    target = oslo_messaging.Target(version=BASE_IPSEC_VERSION)
 
     def __init__(self, topic, default_version, driver):
         super(IPsecVpnAgentApi, self).__init__(

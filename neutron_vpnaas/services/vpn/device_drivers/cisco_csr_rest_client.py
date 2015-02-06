@@ -15,7 +15,7 @@
 import time
 
 import netaddr
-from oslo.serialization import jsonutils
+from oslo_serialization import jsonutils
 import requests
 from requests import exceptions as r_exc
 

@@ -12,7 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo import messaging
+import oslo_messaging
 
 from neutron.common import rpc as n_rpc
 from neutron.openstack.common import log as logging
@@ -43,7 +43,7 @@ class CiscoCsrIPsecVpnDriverCallBack(object):
     # history
     #   1.0 Initial version
 
-    target = messaging.Target(version=BASE_IPSEC_VERSION)
+    target = oslo_messaging.Target(version=BASE_IPSEC_VERSION)
 
     def __init__(self, driver):
         super(CiscoCsrIPsecVpnDriverCallBack, self).__init__()
@@ -84,7 +84,7 @@ class CiscoCsrIPsecVpnAgentApi(service_drivers.BaseIPsecVpnAgentApi):
 
     """API and handler for Cisco IPSec plugin to agent RPC messaging."""
 
-    target = messaging.Target(version=BASE_IPSEC_VERSION)
+    target = oslo_messaging.Target(version=BASE_IPSEC_VERSION)
 
     def __init__(self, topic, default_version, driver):
         super(CiscoCsrIPsecVpnAgentApi, self).__init__(

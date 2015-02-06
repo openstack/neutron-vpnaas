@@ -15,7 +15,7 @@
 
 from neutron.agent.l3 import agent as l3_agent
 from neutron.agent import l3_agent as entry
-from oslo.config import cfg
+from oslo_config import cfg
 
 from neutron_vpnaas.services.vpn import vpn_service
 
