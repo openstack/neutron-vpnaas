@@ -20,10 +20,12 @@ import os
 import re
 import shutil
 import six
+import socket
 
 
 from neutron.agent.linux import ip_lib
 from neutron.agent.linux import utils
+from neutron.api.v2 import attributes
 from neutron.common import rpc as n_rpc
 from neutron import context
 from neutron.i18n import _LE
@@ -35,6 +37,7 @@ from oslo_concurrency import lockutils
 from oslo_config import cfg
 import oslo_messaging
 
+from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import device_drivers
 
@@ -338,9 +341,25 @@ class OpenSwanProcess(BaseSwanProcess):
         self.start()
         return
 
+    def _resolve_fqdn(self, fqdn):
+        # The first addrinfo member from the list returned by
+        # socket.getaddrinfo is used for the address resolution.
+        # The code doesn't filter for ipv4 or ipv6 address.
+        try:
+            addrinfo = socket.getaddrinfo(fqdn, None)[0]
+            return addrinfo[-1][0]
+        except socket.gaierror:
+            LOG.exception(_LE("Peer address %s cannot be resolved"), fqdn)
+            raise vpnaas.VPNPeerAddressNotResolved(peer_address=fqdn)
+
     def _get_nexthop(self, address):
-        routes = self._execute(
-            ['ip', 'route', 'get', address])
+        # check if address is an ip address or fqdn
+        invalid_ip_address = attributes._validate_ip_address(address)
+        if invalid_ip_address:
+            ip_addr = self._resolve_fqdn(address)
+        else:
+            ip_addr = address
+        routes = self._execute(['ip', 'route', 'get', ip_addr])
         if routes.find('via') >= 0:
             return routes.split(' ')[2]
         return address

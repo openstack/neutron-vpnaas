@@ -15,10 +15,12 @@
 import contextlib
 import copy
 import mock
+import socket
 
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 
+from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.device_drivers import ipsec as ipsec_driver
 from neutron_vpnaas.tests import base
 
@@ -195,7 +197,7 @@ class TestIPsecDeviceDriver(base.BaseTestCase):
             self.assertEqual(ensure_p.call_count, 0)
 
     def test__sync_vpn_processes_router_with_no_vpn_and_no_vpn_services(self):
-        """No vpn services running and router not hosting vpn svc"""
+        """No vpn services running and router not hosting vpn svc."""
         router_id_no_vpn = _uuid()
         self.driver.process_status_cache = {}
         self.driver.processes = {}
@@ -384,3 +386,71 @@ class TestIPsecDeviceDriver(base.BaseTestCase):
         missing_conn = new_status['ipsec_site_connections'].get('20')
         self.assertIsNotNone(missing_conn)
         self.assertEqual(constants.DOWN, missing_conn['status'])
+
+
+class TestOpenSwanProcess(base.BaseTestCase):
+    def setUp(self):
+        super(TestOpenSwanProcess, self).setUp()
+        self.driver = ipsec_driver.OpenSwanProcess(mock.ANY, 'foo-process-id',
+                                                   FAKE_VPN_SERVICE, mock.ANY)
+
+    def test__resolve_fqdn(self):
+        with mock.patch.object(socket, 'getaddrinfo') as mock_getaddr_info:
+            mock_getaddr_info.return_value = [(2, 1, 6, '',
+                                              ('172.168.1.2', 0))]
+            resolved_ip_addr = self.driver._resolve_fqdn('fqdn.foo.addr')
+            self.assertEqual('172.168.1.2', resolved_ip_addr)
+
+    def _test_get_nexthop_helper(self, address, _resolve_fqdn_side_effect,
+                                 _execute_ret_val, expected_ip_cmd,
+                                 expected_nexthop):
+        with contextlib.nested(
+            mock.patch.object(self.driver, '_execute'),
+            mock.patch.object(self.driver, '_resolve_fqdn')
+        ) as (fake_execute, fake_resolve_fqdn):
+            fake_resolve_fqdn.side_effect = _resolve_fqdn_side_effect
+            fake_execute.return_value = _execute_ret_val
+
+            returned_next_hop = self.driver._get_nexthop(address)
+            _resolve_fqdn_expected_call_count = (
+                1 if _resolve_fqdn_side_effect else 0)
+
+            self.assertEqual(_resolve_fqdn_expected_call_count,
+                             fake_resolve_fqdn.call_count)
+            fake_execute.assert_called_once_with(expected_ip_cmd)
+            self.assertEqual(expected_nexthop, returned_next_hop)
+
+    def test__get_nexthop_peer_addr_is_ipaddr(self):
+        gw_addr = '10.0.0.1'
+        _fake_execute_ret_val = '172.168.1.2 via %s' % gw_addr
+        peer_address = '172.168.1.2'
+        expected_ip_cmd = ['ip', 'route', 'get', peer_address]
+        self._test_get_nexthop_helper(peer_address, None,
+                                      _fake_execute_ret_val, expected_ip_cmd,
+                                      gw_addr)
+
+    def test__get_nexthop_peer_addr_is_valid_fqdn(self):
+        peer_address = 'foo.peer.addr'
+        expected_ip_cmd = ['ip', 'route', 'get', '172.168.1.2']
+        gw_addr = '10.0.0.1'
+        _fake_execute_ret_val = '172.168.1.2 via %s' % gw_addr
+
+        def _fake_resolve_fqdn(address):
+            return '172.168.1.2'
+
+        self._test_get_nexthop_helper(peer_address, _fake_resolve_fqdn,
+                                      _fake_execute_ret_val, expected_ip_cmd,
+                                      gw_addr)
+
+    def test__get_nexthop_gw_not_present(self):
+        peer_address = '172.168.1.2'
+        expected_ip_cmd = ['ip', 'route', 'get', '172.168.1.2']
+        _fake_execute_ret_val = ' '
+
+        self._test_get_nexthop_helper(peer_address, None,
+                                      _fake_execute_ret_val, expected_ip_cmd,
+                                      peer_address)
+
+    def test__get_nexthop_fqdn_peer_addr_is_not_resolved(self):
+        self.assertRaises(vpnaas.VPNPeerAddressNotResolved,
+                          self.driver._get_nexthop, 'foo.peer.addr')

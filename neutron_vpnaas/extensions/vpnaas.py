@@ -87,6 +87,10 @@ class RouterIsNotExternal(nexception.BadRequest):
     message = _("Router %(router_id)s has no external network gateway set")
 
 
+class VPNPeerAddressNotResolved(nexception.InvalidInput):
+    message = _("Peer address %(peer_address)s cannot be resolved")
+
+
 vpn_supported_initiators = ['bi-directional', 'response-only']
 vpn_supported_encryption_algorithms = ['3des', 'aes-128',
                                        'aes-192', 'aes-256']
