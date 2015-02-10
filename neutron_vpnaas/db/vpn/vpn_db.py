@@ -25,6 +25,7 @@ from neutron.db import l3_agentschedulers_db as l3_agent_db
 from neutron.db import l3_db
 from neutron.db import model_base
 from neutron.db import models_v2
+from neutron.extensions import l3 as l3_exception
 from neutron.i18n import _LW
 from neutron import manager
 from neutron.openstack.common import log as logging
@@ -599,9 +600,8 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
         vpnservices = self.get_vpnservices(
             context, filters={'router_id': [router_id]})
         if vpnservices:
-            raise vpnaas.RouterInUseByVPNService(
-                router_id=router_id,
-                vpnservice_id=vpnservices[0]['id'])
+            raise l3_exception.RouterInUse(router_id=router_id)
+            # TODO(pcm) add reason, once exception updated.
 
     def check_subnet_in_use(self, context, subnet_id):
         with context.session.begin(subtransactions=True):
