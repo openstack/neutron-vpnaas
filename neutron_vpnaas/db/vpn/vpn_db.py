@@ -600,8 +600,13 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
         vpnservices = self.get_vpnservices(
             context, filters={'router_id': [router_id]})
         if vpnservices:
-            raise l3_exception.RouterInUse(router_id=router_id)
-            # TODO(pcm) add reason, once exception updated.
+            plural = "s" if len(vpnservices) > 1 else ""
+            services = ",".join([v['id'] for v in vpnservices])
+            raise l3_exception.RouterInUse(
+                router_id=router_id,
+                reason="is currently used by VPN service%(plural)s "
+                       "(%(services)s)" % {'plural': plural,
+                                           'services': services})
 
     def check_subnet_in_use(self, context, subnet_id):
         with context.session.begin(subtransactions=True):
