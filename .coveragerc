@@ -1,7 +1,7 @@
 [run]
 branch = True
-source = neutron
-omit = neutron/tests/*,neutron/plugins/cisco/test/*,neutron/openstack/*
+source = neutron_vpnaas
+# omit = neutron_vpnaas/tests/*
 
 [report]
 ignore-errors = True
