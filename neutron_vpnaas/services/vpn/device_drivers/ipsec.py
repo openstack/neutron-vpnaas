@@ -127,11 +127,9 @@ class BaseSwanProcess(object):
         "v1": "never"
     }
 
-    def __init__(self, conf, root_helper, process_id,
-                 vpnservice, namespace):
+    def __init__(self, conf, process_id, vpnservice, namespace):
         self.conf = conf
         self.id = process_id
-        self.root_helper = root_helper
         self.updated_pending_status = False
         self.namespace = namespace
         self.connection_status = {}
@@ -296,11 +294,9 @@ class OpenSwanProcess(BaseSwanProcess):
     (2) ipsec addconn: Adds new ipsec addconn
     (3) ipsec whack:  control interface for IPSEC keying daemon
     """
-    def __init__(self, conf, root_helper, process_id,
-                 vpnservice, namespace):
-        super(OpenSwanProcess, self).__init__(
-            conf, root_helper, process_id,
-            vpnservice, namespace)
+    def __init__(self, conf, process_id, vpnservice, namespace):
+        super(OpenSwanProcess, self).__init__(conf, process_id,
+                                              vpnservice, namespace)
         self.secrets_file = os.path.join(
             self.etc_dir, 'ipsec.secrets')
         self.config_file = os.path.join(
@@ -310,11 +306,8 @@ class OpenSwanProcess(BaseSwanProcess):
 
     def _execute(self, cmd, check_exit_code=True):
         """Execute command on namespace."""
-        ip_wrapper = ip_lib.IPWrapper(root_helper=self.root_helper,
-                                      namespace=self.namespace)
-        return ip_wrapper.netns.execute(
-            cmd,
-            check_exit_code=check_exit_code)
+        ip_wrapper = ip_lib.IPWrapper(namespace=self.namespace)
+        return ip_wrapper.netns.execute(cmd, check_exit_code=check_exit_code)
 
     def ensure_configs(self):
         """Generate config files which are needed for OpenSwan.
@@ -487,7 +480,6 @@ class IPsecDriver(device_drivers.DeviceDriver):
     def __init__(self, agent, host):
         self.agent = agent
         self.conf = self.agent.conf
-        self.root_helper = self.agent.root_helper
         self.host = host
         self.conn = n_rpc.create_connection(new=True)
         self.context = context.get_admin_context_without_session()
@@ -712,7 +704,6 @@ class OpenSwanDriver(IPsecDriver):
     def create_process(self, process_id, vpnservice, namespace):
         return OpenSwanProcess(
             self.conf,
-            self.root_helper,
             process_id,
             vpnservice,
             namespace)

@@ -115,7 +115,6 @@ class TestVPNDeviceDriverCallsToService(VPNBaseTestCase):
         ri.router['distributed'] = True
         if iptables:
             ri.snat_iptables_manager = iptables_manager.IptablesManager(
-                root_helper=mock.ANY,
                 namespace='snat-' + FAKE_ROUTER_ID,
                 use_ipv6=mock.ANY)
             ri.snat_iptables_manager.ipv4['nat'] = iptables
