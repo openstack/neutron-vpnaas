@@ -14,7 +14,6 @@
 #    under the License.
 
 import mock
-from neutron.agent.common import config as agent_config
 from neutron.agent.l3 import router_info
 from neutron.agent.linux import iptables_manager
 from neutron.openstack.common import uuidutils
@@ -52,9 +51,7 @@ class VPNBaseTestCase(base.BaseTestCase):
     def setUp(self):
         super(VPNBaseTestCase, self).setUp()
         self.conf = cfg.CONF
-        agent_config.register_root_helper(self.conf)
-        self.ri_kwargs = {'root_helper': self.conf.AGENT.root_helper,
-                          'agent_conf': self.conf,
+        self.ri_kwargs = {'agent_conf': self.conf,
                           'interface_driver': mock.sentinel.interface_driver}
 
 
