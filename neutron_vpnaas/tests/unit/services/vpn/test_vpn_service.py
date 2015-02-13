@@ -53,7 +53,7 @@ class VPNBaseTestCase(base.BaseTestCase):
         super(VPNBaseTestCase, self).setUp()
         self.conf = cfg.CONF
         agent_config.register_root_helper(self.conf)
-        self.ri_kwargs = {'root_helper': self.conf.root_helper,
+        self.ri_kwargs = {'root_helper': self.conf.AGENT.root_helper,
                           'agent_conf': self.conf,
                           'interface_driver': mock.sentinel.interface_driver}
 
