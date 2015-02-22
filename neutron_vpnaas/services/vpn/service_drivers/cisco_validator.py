@@ -89,6 +89,14 @@ class CiscoCsrVpnValidator(vpn_validator.VpnReferenceValidator):
             raise CsrValidationFailure(resource='IPSec Connection',
                                        key='peer_id', value=peer_id)
 
+    def validate_ipsec_encap_mode(self, ipsec_policy):
+        """Ensure IPSec policy encap mode is tunnel for current REST API."""
+        mode = ipsec_policy['encapsulation_mode']
+        if mode != 'tunnel':
+            raise CsrValidationFailure(resource='IPsec Policy',
+                                       key='encapsulation_mode',
+                                       value=mode)
+
     def validate_ipsec_site_connection(self, context, ipsec_sitecon,
                                        ip_version):
         """Validate IPSec site connection for Cisco CSR.
@@ -111,4 +119,5 @@ class CiscoCsrVpnValidator(vpn_validator.VpnReferenceValidator):
         self.validate_mtu(ipsec_sitecon)
         self.validate_public_ip_present(router)
         self.validate_peer_id(ipsec_sitecon)
+        self.validate_ipsec_encap_mode(ipsec_policy)
         LOG.debug("IPSec connection validated for Cisco CSR")

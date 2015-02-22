@@ -206,7 +206,8 @@ class TestCiscoIPsecDriverValidation(base.BaseTestCase):
             return_value={'ike_version': 'v1',
                           'lifetime': {'units': 'seconds', 'value': 60}})
         self.service_plugin.get_ipsecpolicy = mock.Mock(
-            return_value={'lifetime': {'units': 'seconds', 'value': 120}})
+            return_value={'lifetime': {'units': 'seconds', 'value': 120},
+                          'encapsulation_mode': 'tunnel'})
         self.service_plugin.get_vpnservice = mock.Mock(
             return_value=self.vpn_service)
         self.l3_plugin._get_router = mock.Mock(return_value=self.router)
@@ -226,6 +227,13 @@ class TestCiscoIPsecDriverValidation(base.BaseTestCase):
         self.validator.validate_ipsec_site_connection(self.context,
                                                       ipsec_sitecon, IPV4)
         self.assertEqual(expected, ipsec_sitecon)
+
+    def test_ipsec_encap_mode_unsupported(self):
+        """Failure test for unsupported encap mode for IPsec policy."""
+        policy_info = {'encapsulation_mode': 'transport'}
+        self.assertRaises(validator.CsrValidationFailure,
+                          self.validator.validate_ipsec_encap_mode,
+                          policy_info)
 
 
 class TestCiscoIPsecDriverMapping(base.BaseTestCase):
