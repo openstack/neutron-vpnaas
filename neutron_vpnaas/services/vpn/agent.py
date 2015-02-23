@@ -35,7 +35,7 @@ class VPNAgent(l3_agent.L3NATAgentWithStateReport):
     def __init__(self, host, conf=None):
         super(VPNAgent, self).__init__(host=host, conf=conf)
         # NOTE: Temp location for creating service and loading drivers
-        self.service = vpn_service.VPNService.instance(self)
+        self.service = vpn_service.VPNService(self)
         self.event_observers.add(self.service)
         self.devices = self.service.load_device_drivers(host)
 

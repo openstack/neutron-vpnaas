@@ -37,7 +37,7 @@ cfg.CONF.register_opts(vpn_agent_opts, 'vpnagent')
 class VyattaVPNAgent(vyatta_l3.L3AgentMiddleware):
     def __init__(self, host, conf=None):
         super(VyattaVPNAgent, self).__init__(host, conf)
-        self.service = vyatta_vpn_service.VyattaVPNService.instance(self)
+        self.service = vyatta_vpn_service.VyattaVPNService(self)
         self.event_observers.add(self.service)
         self.devices = self.service.load_device_drivers(host)
 

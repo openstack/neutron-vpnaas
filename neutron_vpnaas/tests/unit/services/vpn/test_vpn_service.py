@@ -61,7 +61,7 @@ class TestVirtualPrivateNetworkDeviceDriverLoading(VPNBaseTestCase):
         super(TestVirtualPrivateNetworkDeviceDriverLoading, self).setUp()
         cfg.CONF.register_opts(vpn_agent.vpn_agent_opts, 'vpnagent')
         self.agent = mock.Mock()
-        self.service = vpn_service.VPNService.instance(self.agent)
+        self.service = vpn_service.VPNService(self.agent)
 
     def test_loading_vpn_device_drivers(self):
         """Get two device drivers (in a list) for VPNaaS."""
@@ -93,7 +93,7 @@ class TestVPNDeviceDriverCallsToService(VPNBaseTestCase):
 
     def setUp(self):
         super(TestVPNDeviceDriverCallsToService, self).setUp()
-        self.service = vpn_service.VPNService.instance(mock.Mock())
+        self.service = vpn_service.VPNService(mock.Mock())
         self.iptables = mock.Mock()
         self.apply_mock = mock.Mock()
 
@@ -200,7 +200,7 @@ class TestVPNServiceEventHandlers(VPNBaseTestCase):
 
     def setUp(self):
         super(TestVPNServiceEventHandlers, self).setUp()
-        self.service = vpn_service.VPNService.instance(mock.Mock())
+        self.service = vpn_service.VPNService(mock.Mock())
         self.device = mock.Mock()
         self.service.devices = [self.device]
 
