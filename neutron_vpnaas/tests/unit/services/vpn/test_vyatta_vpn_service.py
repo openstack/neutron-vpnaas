@@ -37,7 +37,7 @@ class TestVyattaVPNService(base.BaseTestCase):
                           'agent_conf': self.conf,
                           'interface_driver': mock.sentinel.interface_driver}
         self.agent = mock.Mock()
-        self.vyatta_service = vyatta_vpn_service.VyattaVPNService.instance(
+        self.vyatta_service = vyatta_vpn_service.VyattaVPNService(
             self.agent)
         self.l3_agent = self.vyatta_service.l3_agent
 

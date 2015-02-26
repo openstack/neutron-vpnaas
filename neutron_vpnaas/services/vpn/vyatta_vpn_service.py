@@ -20,13 +20,8 @@ from neutron_vpnaas.services.vpn import vpn_service
 class VyattaVPNService(vpn_service.VPNService):
     """Vyatta VPN Service handler."""
 
-    _instance = None
-
     def __init__(self, l3_agent):
         """Creates a Vyatta VPN Service instance.
-
-        DO NOT CALL THIS DIRECTLY! Use the instance() class method to Create
-        a singleton instance of the service.
 
         NOTE: Directly accessing l3_agent here is an interim solution
         until we move to have a router object given down to device drivers

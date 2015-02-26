@@ -34,8 +34,6 @@ class VPNService(advanced_service.AdvancedService):
     def __init__(self, l3_agent):
         """Creates a VPN Service instance with context.
 
-        DO NOT CALL THIS DIRECTLY! Use the instance() class method to Creates
-        a singleton instance of the service.
         """
         self.context = n_context.get_admin_context_without_session()
         super(VPNService, self).__init__(l3_agent)
