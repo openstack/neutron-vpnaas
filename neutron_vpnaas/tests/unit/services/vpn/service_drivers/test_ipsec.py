@@ -216,6 +216,14 @@ class TestIPsecDriverValidation(base.BaseTestCase):
                 self.context, ipsec_sitecon, version)
 
 
+class FakeSqlQueryObject(dict):
+    """To fake SqlAlchemy query object and access keys as attributes."""
+
+    def __init__(self, **entries):
+        self.__dict__.update(entries)
+        super(FakeSqlQueryObject, self).__init__(**entries)
+
+
 class TestIPsecDriver(base.BaseTestCase):
     def setUp(self):
         super(TestIPsecDriver, self).setUp()
@@ -281,3 +289,62 @@ class TestIPsecDriver(base.BaseTestCase):
         self._test_update(self.driver.delete_vpnservice,
                           [FAKE_VPN_SERVICE],
                           {'router': {'id': FAKE_VPN_SERVICE['router_id']}})
+
+    def _test_make_vpnservice_dict_helper(self, peer_id, expected_peer_id):
+        fake_subnet = FakeSqlQueryObject(id='foo-subnet-id',
+                                         name='foo-subnet',
+                                         network_id='foo-net-id')
+
+        fake_ikepolicy = FakeSqlQueryObject(id='foo-ike', name='ike-name')
+        fake_ipsecpolicy = FakeSqlQueryObject(id='foo-ipsec')
+
+        fake_ipsec_conn = FakeSqlQueryObject(peer_id=peer_id,
+                                             ikepolicy=fake_ikepolicy,
+                                             ipsecpolicy=fake_ipsecpolicy,
+                                             peer_cidrs=[])
+
+        fake_gw_port = {'fixed_ips': [{'ip_address': 'foo-external-ip'}]}
+        fake_router = FakeSqlQueryObject(gw_port=fake_gw_port)
+        fake_vpnservice = FakeSqlQueryObject(id='foo-vpn-id', name='foo-vpn',
+                                             description='foo-vpn-service',
+                                             admin_state_up=True,
+                                             status='active',
+                                             subnet_id='foo-subnet-id',
+                                             router_id='foo-router-id')
+        fake_vpnservice.subnet = fake_subnet
+        fake_vpnservice.router = fake_router
+        fake_vpnservice.ipsec_site_connections = [fake_ipsec_conn]
+
+        expected_vpnservice_dict = {'name': 'foo-vpn',
+                                    'id': 'foo-vpn-id',
+                                    'description': 'foo-vpn-service',
+                                    'admin_state_up': True,
+                                    'status': 'active',
+                                    'subnet_id': 'foo-subnet-id',
+                                    'router_id': 'foo-router-id',
+                                    'subnet': {'id': 'foo-subnet-id',
+                                               'name': 'foo-subnet',
+                                               'network_id': 'foo-net-id'},
+                                    'external_ip': 'foo-external-ip',
+                                    'ipsec_site_connections': [
+                                        {'peer_id': expected_peer_id,
+                                         'ikepolicy': {'id': 'foo-ike',
+                                                       'name': 'ike-name'},
+                                         'ipsecpolicy': {'id': 'foo-ipsec'},
+                                         'peer_cidrs': []}]}
+
+        actual_vpnservice_dict = self.driver.make_vpnservice_dict(
+            fake_vpnservice)
+
+        self.assertEqual(expected_vpnservice_dict, actual_vpnservice_dict)
+
+        # make sure that ipsec_site_conn peer_id is not updated by
+        # _make_vpnservice_dict (bug #1423244)
+        self.assertEqual(peer_id,
+                         fake_vpnservice.ipsec_site_connections[0].peer_id)
+
+    def test_make_vpnservice_dict_peer_id_is_ipaddr(self):
+        self._test_make_vpnservice_dict_helper('10.0.0.2', '10.0.0.2')
+
+    def test_make_vpnservice_dict_peer_id_is_string(self):
+        self._test_make_vpnservice_dict_helper('foo.peer.id', '@foo.peer.id')
