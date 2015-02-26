@@ -21,9 +21,11 @@ import oslo_messaging
 from neutron_vpnaas.db.vpn import vpn_db
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import service_drivers
+from neutron_vpnaas.services.vpn.service_drivers import base_ipsec
 from neutron_vpnaas.services.vpn.service_drivers \
     import cisco_csr_db as csr_id_map
 from neutron_vpnaas.services.vpn.service_drivers import cisco_validator
+
 
 LOG = logging.getLogger(__name__)
 
@@ -70,8 +72,8 @@ class CiscoCsrIPsecVpnDriverCallBack(object):
             vpn_services = self.get_vpn_services_using(context, router['id'])
             for vpn_service in vpn_services:
                 host_vpn_services.append(
-                    self.driver._make_vpnservice_dict(context, vpn_service,
-                                                      router))
+                    self.driver.make_vpnservice_dict(context, vpn_service,
+                                                     router))
         return host_vpn_services
 
     def update_status(self, context, status):
@@ -113,7 +115,7 @@ class CiscoCsrIPsecVpnAgentApi(service_drivers.BaseIPsecVpnAgentApi):
         cctxt.cast(context, method, **kwargs)
 
 
-class CiscoCsrIPsecVPNDriver(service_drivers.VpnDriver):
+class CiscoCsrIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
 
     """Cisco CSR VPN Service Driver class for IPsec."""
 
@@ -121,6 +123,8 @@ class CiscoCsrIPsecVPNDriver(service_drivers.VpnDriver):
         super(CiscoCsrIPsecVPNDriver, self).__init__(
             service_plugin,
             cisco_validator.CiscoCsrVpnValidator(service_plugin))
+
+    def create_rpc_conn(self):
         self.endpoints = [CiscoCsrIPsecVpnDriverCallBack(self)]
         self.conn = n_rpc.create_connection(new=True)
         self.conn.create_consumer(
@@ -128,10 +132,6 @@ class CiscoCsrIPsecVPNDriver(service_drivers.VpnDriver):
         self.conn.consume_in_threads()
         self.agent_rpc = CiscoCsrIPsecVpnAgentApi(
             topics.CISCO_IPSEC_AGENT_TOPIC, BASE_IPSEC_VERSION, self)
-
-    @property
-    def service_type(self):
-        return IPSEC
 
     def create_ipsec_site_connection(self, context, ipsec_site_connection):
         vpnservice = self.service_plugin._get_vpnservice(
@@ -153,27 +153,6 @@ class CiscoCsrIPsecVPNDriver(service_drivers.VpnDriver):
             context, ipsec_site_connection['vpnservice_id'])
         self.agent_rpc.vpnservice_updated(context, vpnservice['router_id'],
                                           reason='ipsec-conn-delete')
-
-    def create_ikepolicy(self, context, ikepolicy):
-        pass
-
-    def delete_ikepolicy(self, context, ikepolicy):
-        pass
-
-    def update_ikepolicy(self, context, old_ikepolicy, ikepolicy):
-        pass
-
-    def create_ipsecpolicy(self, context, ipsecpolicy):
-        pass
-
-    def delete_ipsecpolicy(self, context, ipsecpolicy):
-        pass
-
-    def update_ipsecpolicy(self, context, old_ipsec_policy, ipsecpolicy):
-        pass
-
-    def create_vpnservice(self, context, vpnservice):
-        pass
 
     def update_vpnservice(self, context, old_vpnservice, vpnservice):
         self.agent_rpc.vpnservice_updated(context, vpnservice['router_id'],
@@ -214,7 +193,7 @@ class CiscoCsrIPsecVPNDriver(service_drivers.VpnDriver):
                 'vrf': 'nrouter-' + router_info['id'][:VRF_SUFFIX_LEN],
                 'timeout': 30}  # Hard-coded for now
 
-    def _make_vpnservice_dict(self, context, vpnservice, router_info):
+    def make_vpnservice_dict(self, context, vpnservice, router_info):
         """Collect all service info, including Cisco info for IPSec conn."""
         vpnservice_dict = dict(vpnservice)
         vpnservice_dict['ipsec_conns'] = []
