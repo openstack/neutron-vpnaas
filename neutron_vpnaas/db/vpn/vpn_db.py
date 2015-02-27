@@ -14,6 +14,10 @@
 #    under the License.
 
 import netaddr
+
+from neutron.callbacks import events
+from neutron.callbacks import registry
+from neutron.callbacks import resources
 from neutron.common import constants as n_constants
 from neutron.db import common_db_mixin as base_db
 from neutron.db import l3_agentschedulers_db as l3_agent_db
@@ -680,3 +684,34 @@ class VPNPluginRpcDbMixin(object):
                     self._update_connection_status(
                         context, conn_id, conn['status'],
                         conn['updated_pending_status'])
+
+
+def vpn_callback(resource, event, trigger, **kwargs):
+    vpnservice = manager.NeutronManager.get_service_plugins().get(
+        constants.VPN)
+    if vpnservice:
+        context = kwargs.get('context')
+        if resource == resources.ROUTER_GATEWAY:
+            check_func = vpnservice.check_router_in_use
+            resource_id = kwargs.get('router_id')
+        elif resource == resources.ROUTER_INTERFACE:
+            check_func = vpnservice.check_subnet_in_use
+            resource_id = kwargs.get('subnet_id')
+        check_func(context, resource_id)
+
+
+def subscribe():
+    registry.subscribe(
+        vpn_callback, resources.ROUTER_GATEWAY, events.BEFORE_DELETE)
+    registry.subscribe(
+        vpn_callback, resources.ROUTER_INTERFACE, events.BEFORE_DELETE)
+
+# NOTE(armax): multiple VPN service plugins (potentially out of tree) may
+# inherit from vpn_db and may need the callbacks to be processed. Having an
+# implicit subscription (through the module import) preserves the existing
+# behavior, and at the same time it avoids fixing it manually in each and
+# every vpn plugin outta there. That said, The subscription is also made
+# explicitly in the reference vpn plugin. The subscription operation is
+# idempotent so there is no harm in registering the same callback multiple
+# times.
+subscribe()

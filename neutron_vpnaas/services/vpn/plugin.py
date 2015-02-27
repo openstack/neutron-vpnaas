@@ -45,6 +45,7 @@ class VPNDriverPlugin(VPNPlugin, vpn_db.VPNPluginRpcDbMixin):
             constants.VPN, self)
         LOG.info(_LI("VPN plugin using service driver: %s"), default_provider)
         self.ipsec_driver = drivers[default_provider]
+        vpn_db.subscribe()
 
     def _get_driver_for_vpnservice(self, vpnservice):
         return self.ipsec_driver
