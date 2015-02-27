@@ -15,13 +15,13 @@
 
 import abc
 
+from neutron.common import rpc as n_rpc
+from neutron import manager
+from neutron.plugins.common import constants
+from oslo_log import log as logging
 import oslo_messaging
 import six
 
-from neutron.common import rpc as n_rpc
-from neutron import manager
-from neutron.openstack.common import log as logging
-from neutron.plugins.common import constants
 from neutron_vpnaas.db.vpn import vpn_validator
 
 LOG = logging.getLogger(__name__)

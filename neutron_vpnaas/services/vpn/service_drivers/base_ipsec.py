@@ -13,9 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import abc
-import netaddr
 
-from neutron.openstack.common import log as logging
+import netaddr
+from oslo_log import log as logging
 import oslo_messaging
 import six
 

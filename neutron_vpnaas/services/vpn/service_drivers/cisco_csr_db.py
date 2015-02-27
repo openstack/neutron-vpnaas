@@ -16,8 +16,8 @@ from neutron.common import exceptions
 from neutron.db import model_base
 from neutron.db import models_v2
 from neutron.i18n import _LI
-from neutron.openstack.common import log as logging
 from oslo_db import exception as db_exc
+from oslo_log import log as logging
 import sqlalchemy as sa
 from sqlalchemy.orm import exc as sql_exc
 
