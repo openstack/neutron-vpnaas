@@ -13,9 +13,9 @@
 #    under the License.
 
 from neutron.common import rpc as n_rpc
-from neutron.openstack.common import log as logging
 from neutron.plugins.cisco.l3.plugging_drivers import (
     n1kv_plugging_constants as n1kv_constants)
+from oslo_log import log as logging
 import oslo_messaging
 
 from neutron_vpnaas.db.vpn import vpn_db

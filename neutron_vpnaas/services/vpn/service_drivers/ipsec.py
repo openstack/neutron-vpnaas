@@ -14,7 +14,7 @@
 #    under the License.
 
 from neutron.common import rpc as n_rpc
-from neutron.openstack.common import log as logging
+from oslo_log import log as logging
 
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn.service_drivers import base_ipsec

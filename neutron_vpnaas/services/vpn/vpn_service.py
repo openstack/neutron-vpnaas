@@ -13,13 +13,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_config import cfg
-from oslo_utils import importutils
-
 from neutron import context as n_context
-from neutron.openstack.common import log as logging
 from neutron.services import advanced_service
 from neutron.services import provider_configuration as provconfig
+from oslo_config import cfg
+from oslo_log import log as logging
+from oslo_utils import importutils
 
 from neutron_vpnaas.extensions import vpnaas
 

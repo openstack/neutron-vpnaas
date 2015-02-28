@@ -15,9 +15,9 @@
 #    under the License.
 
 from neutron.i18n import _LI
-from neutron.openstack.common import log as logging
 from neutron.plugins.common import constants
 from neutron.services import service_base
+from oslo_log import log as logging
 
 from neutron_vpnaas.db.vpn import vpn_db
 

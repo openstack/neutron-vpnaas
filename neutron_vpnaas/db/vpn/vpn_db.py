@@ -14,7 +14,6 @@
 #    under the License.
 
 import netaddr
-
 from neutron.common import constants as n_constants
 from neutron.db import common_db_mixin as base_db
 from neutron.db import l3_agentschedulers_db as l3_agent_db
@@ -24,10 +23,10 @@ from neutron.db import models_v2
 from neutron.extensions import l3 as l3_exception
 from neutron.i18n import _LW
 from neutron import manager
-from neutron.openstack.common import log as logging
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 from neutron.plugins.common import utils
+from oslo_log import log as logging
 from oslo_utils import excutils
 import sqlalchemy as sa
 from sqlalchemy import orm

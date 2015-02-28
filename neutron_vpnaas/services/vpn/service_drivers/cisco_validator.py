@@ -15,7 +15,7 @@
 import netaddr
 from netaddr import core as net_exc
 from neutron.common import exceptions
-from neutron.openstack.common import log as logging
+from oslo_log import log as logging
 
 from neutron_vpnaas.db.vpn import vpn_validator
 

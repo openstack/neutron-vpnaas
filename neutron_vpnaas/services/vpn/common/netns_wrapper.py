@@ -19,13 +19,12 @@ import os
 import sys
 
 from eventlet.green import subprocess
-from oslo_config import cfg
-from oslo_rootwrap import wrapper
-
 from neutron.common import config
 from neutron.common import utils
 from neutron.i18n import _LE, _LI
-from neutron.openstack.common import log as logging
+from oslo_config import cfg
+from oslo_log import log as logging
+from oslo_rootwrap import wrapper
 
 LOG = logging.getLogger(__name__)
 
