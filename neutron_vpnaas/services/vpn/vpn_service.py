@@ -57,7 +57,7 @@ class VPNService(advanced_service.AdvancedService):
     def after_router_added(self, ri):
         """Create the router and sync for each loaded device driver."""
         for device in self.devices:
-            device.create_router(ri.router_id)
+            device.create_router(ri)
             device.sync(self.context, [ri.router])
 
     def after_router_removed(self, ri):
@@ -69,82 +69,3 @@ class VPNService(advanced_service.AdvancedService):
         """Perform a sync on each loaded device driver."""
         for device in self.devices:
             device.sync(self.context, [ri.router])
-
-    # Device driver methods calling back to L3 agent
-    def get_namespace(self, router_id):
-        """Get namespace of router.
-
-        :router_id: router_id
-        :returns: namespace string.
-            Note if the router is not exist, this function
-            returns None
-        """
-        router_info = self.l3_agent.router_info.get(router_id)
-        if not router_info:
-            return
-        # For distributed Routers use SNAT namespace
-        if router_info.router['distributed']:
-            return router_info.snat_namespace.name
-        else:
-            return router_info.ns_name
-
-    def get_router_based_iptables_manager(self, router_info):
-        """Returns router based iptables manager
-
-        In DVR routers the IPsec VPN service should run inside
-        the snat namespace. So the iptables manager used for
-        snat namespace is different from the iptables manager
-        used for the qr namespace in a non dvr based router.
-
-        This function will check the router type and then will
-        return the right iptables manager. If DVR enabled router
-        it will return the snat_iptables_manager otherwise it will
-        return the legacy iptables_manager.
-        """
-        if router_info.router['distributed']:
-            return router_info.snat_iptables_manager
-        else:
-            return router_info.iptables_manager
-
-    def add_nat_rule(self, router_id, chain, rule, top=False):
-        """Add nat rule in namespace.
-
-        :param router_id: router_id
-        :param chain: a string of chain name
-        :param rule: a string of rule
-        :param top: if top is true, the rule
-            will be placed on the top of chain
-            Note if there is no rotuer, this method do nothing
-        """
-        router_info = self.l3_agent.router_info.get(router_id)
-        if not router_info:
-            return
-        iptables_manager = self.get_router_based_iptables_manager(router_info)
-        iptables_manager.ipv4['nat'].add_rule(chain, rule, top=top)
-
-    def remove_nat_rule(self, router_id, chain, rule, top=False):
-        """Remove nat rule in namespace.
-
-        :param router_id: router_id
-        :param chain: a string of chain name
-        :param rule: a string of rule
-        :param top: unused
-            needed to have same argument with add_nat_rule
-        """
-        router_info = self.l3_agent.router_info.get(router_id)
-        if not router_info:
-            return
-        iptables_manager = self.get_router_based_iptables_manager(router_info)
-        iptables_manager.ipv4['nat'].remove_rule(chain, rule, top=top)
-
-    def iptables_apply(self, router_id):
-        """Apply IPtables.
-
-        :param router_id: router_id
-        This method do nothing if there is no router
-        """
-        router_info = self.l3_agent.router_info.get(router_id)
-        if not router_info:
-            return
-        iptables_manager = self.get_router_based_iptables_manager(router_info)
-        iptables_manager.apply()

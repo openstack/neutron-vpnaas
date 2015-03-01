@@ -19,6 +19,7 @@ import sys
 
 import mock
 
+from neutron.agent.l3 import legacy_router
 from neutron.openstack.common import uuidutils
 from neutron_vpnaas.tests import base
 
@@ -122,6 +123,8 @@ class TestVyattaDeviceDriver(base.BaseTestCase):
 
     def test_create_router(self):
         router_id = _uuid()
+        router = mock.Mock(legacy_router.LegacyRouter)
+        router.router_id = router_id
 
         vrouter_svc_list = [self._make_vrouter_svc()]
 
@@ -135,7 +138,7 @@ class TestVyattaDeviceDriver(base.BaseTestCase):
             mock.patch.object(self.driver, 'get_router_resources',
                               mock.MagicMock())
         ):
-            self.driver.create_router(router_id)
+            self.driver.create_router(router)
 
         svc_cache = self.driver._svc_cache
         self.assertEqual(len(svc_cache), 1)

@@ -17,8 +17,12 @@ import copy
 import mock
 import socket
 
+from neutron.agent.l3 import dvr_router
+from neutron.agent.l3 import legacy_router
+from neutron.agent.linux import iptables_manager
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
+from oslo_config import cfg
 
 from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.device_drivers import ipsec as ipsec_driver
@@ -86,7 +90,14 @@ class TestIPsecDeviceDriver(base.BaseTestCase):
         self.driver = driver(
             self.agent,
             FAKE_HOST)
+        self.conf = cfg.CONF
+        self.conf.use_namespaces = True
         self.driver.agent_rpc = mock.Mock()
+        self.ri_kwargs = {'router': {'id': FAKE_ROUTER_ID},
+                          'agent_conf': self.conf,
+                          'interface_driver': mock.sentinel.interface_driver}
+        self.iptables = mock.Mock()
+        self.apply_mock = mock.Mock()
 
     def _test_vpnservice_updated(self, expected_param, **kwargs):
         with mock.patch.object(self.driver, 'sync') as sync:
@@ -103,12 +114,14 @@ class TestIPsecDeviceDriver(base.BaseTestCase):
         self._test_vpnservice_updated([router_info], **kwargs)
 
     def test_create_router(self):
-        process_id = _uuid()
-        process = mock.Mock()
+        router = mock.Mock(legacy_router.LegacyRouter)
+        router.router_id = FAKE_ROUTER_ID
+        process = mock.Mock(ipsec_driver.OpenSwanProcess)
         process.vpnservice = FAKE_VPN_SERVICE
         self.driver.processes = {
-            process_id: process}
-        self.driver.create_router(process_id)
+            FAKE_ROUTER_ID: process}
+        self.driver.create_router(router)
+        self._test_add_nat_rule_helper(FAKE_ROUTER_ID)
         process.enable.assert_called_once_with()
 
     def test_destroy_router(self):
@@ -121,7 +134,7 @@ class TestIPsecDeviceDriver(base.BaseTestCase):
         process.disable.assert_called_once_with()
         self.assertNotIn(process_id, self.driver.processes)
 
-    def _test_sync_check_service_helper(self, router_id):
+    def _test_add_nat_rule_helper(self, router_id):
         self.agent.assert_has_calls([
             mock.call.add_nat_rule(
                 router_id,
@@ -149,7 +162,6 @@ class TestIPsecDeviceDriver(base.BaseTestCase):
                 top=True),
             mock.call.iptables_apply(router_id)
         ])
-        self.driver.processes[router_id].update.assert_called_once_with()
 
     def test_sync(self):
         fake_vpn_service = FAKE_VPN_SERVICE
@@ -171,12 +183,13 @@ class TestIPsecDeviceDriver(base.BaseTestCase):
 
     def test__sync_vpn_processes_new_vpn_service(self):
         new_vpnservice = FAKE_VPN_SERVICE
-        sync_router_id = new_vpnservice['router_id']
+        router_id = new_vpnservice['router_id']
         self.driver.processes = {}
         with mock.patch.object(self.driver, 'ensure_process') as ensure_p:
             ensure_p.side_effect = self.fake_ensure_process
-            self.driver._sync_vpn_processes([new_vpnservice], sync_router_id)
-            self._test_sync_check_service_helper(new_vpnservice['router_id'])
+            self.driver._sync_vpn_processes([new_vpnservice], router_id)
+            self._test_add_nat_rule_helper(router_id)
+            self.driver.processes[router_id].update.assert_called_once_with()
 
     def test__sync_vpn_processes_router_with_no_vpn(self):
         """Test _sync_vpn_processes with a router not hosting vpnservice.
@@ -214,13 +227,14 @@ class TestIPsecDeviceDriver(base.BaseTestCase):
         which are not yet stored in driver.processes.
         """
         vpnservice = FAKE_VPN_SERVICE
-        router_id_no_vpn = _uuid()
+        router_id = FAKE_ROUTER_ID
         self.driver.process_status_cache = {}
         self.driver.processes = {}
         with mock.patch.object(self.driver, 'ensure_process') as ensure_p:
             ensure_p.side_effect = self.fake_ensure_process
-            self.driver._sync_vpn_processes([vpnservice], [router_id_no_vpn])
-            self._test_sync_check_service_helper(vpnservice['router_id'])
+            self.driver._sync_vpn_processes([vpnservice], [router_id])
+            self._test_add_nat_rule_helper(vpnservice['router_id'])
+            self.driver.processes[router_id].update.assert_called_once_with()
 
     def test_delete_vpn_processes(self):
         router_id_no_vpn = _uuid()
@@ -386,6 +400,105 @@ class TestIPsecDeviceDriver(base.BaseTestCase):
         missing_conn = new_status['ipsec_site_connections'].get('20')
         self.assertIsNotNone(missing_conn)
         self.assertEqual(constants.DOWN, missing_conn['status'])
+
+    def _make_router_info_for_test(self, iptables=None):
+        ri = legacy_router.LegacyRouter(FAKE_ROUTER_ID,
+                                        **self.ri_kwargs)
+
+        ri.router['distributed'] = False
+        if iptables:
+            ri.iptables_manager.ipv4['nat'] = iptables
+            ri.iptables_manager.apply = self.apply_mock
+        self.driver.routers[FAKE_ROUTER_ID] = ri
+
+    def _make_dvr_router_info_for_test(self, iptables=None):
+        ri = dvr_router.DvrRouter(mock.sentinel.agent,
+                                  mock.sentinel.myhost,
+                                  FAKE_ROUTER_ID,
+                                  **self.ri_kwargs)
+        ri.router['distributed'] = True
+        ri.create_snat_namespace()
+        if iptables:
+            ri.snat_iptables_manager = iptables_manager.IptablesManager(
+                namespace='snat-' + FAKE_ROUTER_ID,
+                use_ipv6=mock.ANY)
+            ri.snat_iptables_manager.ipv4['nat'] = iptables
+            ri.snat_iptables_manager.apply = self.apply_mock
+        self.driver.routers[FAKE_ROUTER_ID] = ri
+
+    def test_get_namespace_for_router(self):
+        self._make_router_info_for_test()
+        namespace = self.driver.get_namespace(FAKE_ROUTER_ID)
+        self.assertEqual('qrouter-' + FAKE_ROUTER_ID, namespace)
+
+    def test_get_namespace_for_dvr_router(self):
+        self._make_dvr_router_info_for_test()
+        namespace = self.driver.get_namespace(FAKE_ROUTER_ID)
+        self.assertEqual('snat-' + FAKE_ROUTER_ID, namespace)
+
+    def test_fail_getting_namespace_for_unknown_router(self):
+        self._make_router_info_for_test()
+        self.assertFalse(self.driver.get_namespace('bogus_id'))
+
+    def test_add_nat_rule(self):
+        self._make_router_info_for_test(iptables=self.iptables)
+        self.driver.add_nat_rule(FAKE_ROUTER_ID, 'fake_chain',
+                                 'fake_rule', True)
+        self.iptables.add_rule.assert_called_once_with(
+            'fake_chain', 'fake_rule', top=True)
+
+    def test_add_nat_rule_with_dvr_router(self):
+        self._make_dvr_router_info_for_test(iptables=self.iptables)
+        self.driver.add_nat_rule(FAKE_ROUTER_ID, 'fake_chain',
+                                 'fake_rule', True)
+        self.iptables.add_rule.assert_called_once_with(
+            'fake_chain', 'fake_rule', top=True)
+
+    def test_add_nat_rule_with_no_router(self):
+        self._make_router_info_for_test(iptables=self.iptables)
+        self.driver.add_nat_rule(
+            'bogus_router_id',
+            'fake_chain',
+            'fake_rule',
+            True)
+        self.assertFalse(self.iptables.add_rule.called)
+
+    def test_remove_rule(self):
+        self._make_router_info_for_test(iptables=self.iptables)
+        self.driver.remove_nat_rule(FAKE_ROUTER_ID, 'fake_chain',
+                                    'fake_rule', True)
+        self.iptables.remove_rule.assert_called_once_with(
+            'fake_chain', 'fake_rule', top=True)
+
+    def test_remove_rule_with_dvr_router(self):
+        self._make_dvr_router_info_for_test(iptables=self.iptables)
+        self.driver.remove_nat_rule(FAKE_ROUTER_ID, 'fake_chain',
+                                    'fake_rule', True)
+        self.iptables.remove_rule.assert_called_once_with(
+            'fake_chain', 'fake_rule', top=True)
+
+    def test_remove_rule_with_no_router(self):
+        self._make_router_info_for_test(iptables=self.iptables)
+        self.driver.remove_nat_rule(
+            'bogus_router_id',
+            'fake_chain',
+            'fake_rule')
+        self.assertFalse(self.iptables.remove_rule.called)
+
+    def test_iptables_apply(self):
+        self._make_router_info_for_test(iptables=self.iptables)
+        self.driver.iptables_apply(FAKE_ROUTER_ID)
+        self.apply_mock.assert_called_once_with()
+
+    def test_iptables_apply_with_dvr_router(self):
+        self._make_dvr_router_info_for_test(iptables=self.iptables)
+        self.driver.iptables_apply(FAKE_ROUTER_ID)
+        self.apply_mock.assert_called_once_with()
+
+    def test_iptables_apply_with_no_router(self):
+        self._make_router_info_for_test(iptables=self.iptables)
+        self.driver.iptables_apply('bogus_router_id')
+        self.assertFalse(self.apply_mock.called)
 
 
 class TestOpenSwanProcess(base.BaseTestCase):
