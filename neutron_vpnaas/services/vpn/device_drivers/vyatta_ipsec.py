@@ -20,14 +20,14 @@ import oslo_messaging as messaging
 import pprint
 import six
 
+from networking_brocade.vyatta.common import exceptions as v_exc
+from networking_brocade.vyatta.common import vrouter_config
+from networking_brocade.vyatta.vpn import config as vyatta_vpn_config
 from neutron.common import rpc as n_rpc
 from neutron import context as n_ctx
 from neutron.i18n import _LE, _LW
 from neutron.openstack.common import loopingcall
 from neutron.openstack.common import periodic_task
-from vyatta.common import exceptions as v_exc
-from vyatta.common import vrouter_config
-from vyatta.vpn import config as vyatta_vpn_config
 
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import device_drivers

@@ -23,14 +23,15 @@ from neutron.openstack.common import uuidutils
 from neutron_vpnaas.tests import base
 
 with mock.patch.dict(sys.modules, {
-    'vyatta': mock.Mock(),
-    'vyatta.common': mock.Mock(),
-    'vyatta.vrouter': mock.Mock(),
-    'vyatta.vpn': mock.Mock(),
+    'networking_brocade': mock.Mock(),
+    'networking_brocade.vyatta': mock.Mock(),
+    'networking_brocade.vyatta.common': mock.Mock(),
+    'networking_brocade.vyatta.vrouter': mock.Mock(),
+    'networking_brocade.vyatta.vpn': mock.Mock(),
 }):
+    from networking_brocade.vyatta.common import vrouter_config
+    from networking_brocade.vyatta.vpn import config as vyatta_vpn_config
     from neutron_vpnaas.services.vpn.device_drivers import vyatta_ipsec
-    from vyatta.common import vrouter_config
-    from vyatta.vpn import config as vyatta_vpn_config
 
 
 _uuid = uuidutils.generate_uuid

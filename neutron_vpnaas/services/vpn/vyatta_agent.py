@@ -14,10 +14,10 @@
 #    under the License.
 #
 
+from networking_brocade.vyatta.common import l3_agent as vyatta_l3
 from neutron.agent import l3_agent as entry
 from oslo_config import cfg
 from oslo_log import log as logging
-from vyatta.common import l3_agent as vyatta_l3
 
 from neutron_vpnaas.services.vpn import vyatta_vpn_service
 
