@@ -82,10 +82,9 @@ class VPNService(advanced_service.AdvancedService):
         router_info = self.l3_agent.router_info.get(router_id)
         if not router_info:
             return
-        # Added for handling the distributed Routers within SNAT namespace
+        # For distributed Routers use SNAT namespace
         if router_info.router['distributed']:
-            #return self.get_snat_ns_name(router_id)
-            return self.l3_agent.get_snat_ns_name(router_id)
+            return router_info.snat_namespace.name
         else:
             return router_info.ns_name
 
