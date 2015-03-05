@@ -10,20 +10,22 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-# NOTE: The purpose of this module is to provide a nop test to verify that
-# the functional gate is working for the StrongSwan device driver.
-
-# TODO(pcm): In the future, this module will be replace, in whole, with
-# actual StrongSwan driver test classes/cases.
+import unittest
 
 
-from neutron.tests.functional.agent.linux import base
+def _discover(loader, path, pattern):
+    return loader.discover(path, pattern=pattern, top_level_dir=".")
 
 
-class TestStrongSwanDeviceDriver(base.BaseLinuxTestCase):
+def load_tests(_, tests, pattern):
+    suite = unittest.TestSuite()
+    suite.addTests(tests)
 
-    """Test the StrongSwan reference implmentation of the device driver."""
-
-    def test_dummy(self):
-        """Placeholder test for verifying the functional job."""
-        pass
+    loader = unittest.loader.TestLoader()
+    suite.addTests(_discover(loader,
+                             "./neutron_vpnaas/tests/functional/strongswan",
+                             pattern))
+    suite.addTests(_discover(loader,
+                             "./neutron_vpnaas/tests/functional/common",
+                             pattern))
+    return suite

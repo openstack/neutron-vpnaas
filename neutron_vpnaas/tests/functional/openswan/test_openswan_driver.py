@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-# NOTE: The purpose of this module is to provide a nop test to verify that
+# NOTE: The purpose of this module is to provide nop tests to verify that
 # the functional gate is working.
 
 # TODO(pcm): In the future, repurpose this module for use in a "real"

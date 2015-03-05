@@ -4,6 +4,13 @@ set -ex
 
 CONTRIB_DIR="$BASE/new/neutron-vpnaas/neutron_vpnaas/tests/contrib"
 
+# Have DevStack use StrongSwan (instead of OpenSwan) for VPNaaS
+if [[ "$1" == "dsvm-functional-sswan" ]]; then
+    DEVSTACK_LOCAL_CONFIG=$'IPSEC_PACKAGE=strongswan\n'
+    export DEVSTACK_LOCAL_CONFIG
+    export KEEP_LOCALRC=1
+fi
+
 $BASE/new/devstack-gate/devstack-vm-gate.sh
 
 # Add a rootwrap filter to support test-only
@@ -51,3 +58,4 @@ EOF
 # User/group postgres needs to be given access to tmp_dir
 setfacl -m g:postgres:rwx $tmp_dir
 sudo -u postgres /usr/bin/psql --file=$tmp_dir/postgresql.sql
+

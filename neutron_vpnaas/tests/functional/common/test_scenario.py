@@ -10,20 +10,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-# NOTE: The purpose of this module is to provide a nop test to verify that
-# the functional gate is working for the StrongSwan device driver.
+# NOTE: The purpose of this module is to provide nop tests to verify that
+# the functional gate is working.
 
-# TODO(pcm): In the future, this module will be replace, in whole, with
-# actual StrongSwan driver test classes/cases.
-
+# TODO(pcm): In the future, this will be replaced with a real scenario test.
 
 from neutron.tests.functional.agent.linux import base
 
 
-class TestStrongSwanDeviceDriver(base.BaseLinuxTestCase):
+class TestIPSecScenario(base.BaseLinuxTestCase):
 
-    """Test the StrongSwan reference implmentation of the device driver."""
+    """Test end-to-end IPSec connection."""
 
     def test_dummy(self):
-        """Placeholder test for verifying the functional job."""
         pass

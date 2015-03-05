@@ -1,0 +1,2 @@
+This area holds tests for the StrongSwan implementation (only). It will also
+run tests in neutron_vpnaas/tests/functional/common.
