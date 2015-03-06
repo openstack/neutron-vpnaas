@@ -110,7 +110,8 @@ class TestVPNDeviceDriverCallsToService(VPNBaseTestCase):
         self.service.l3_agent.router_info = {FAKE_ROUTER_ID: ri}
 
     def _make_dvr_router_info_for_test(self, iptables=None):
-        ri = dvr_router.DvrRouter(mock.sentinel.myhost,
+        ri = dvr_router.DvrRouter(mock.sentinel.agent,
+                                  mock.sentinel.myhost,
                                   FAKE_ROUTER_ID,
                                   **self.ri_kwargs)
         ri.router['distributed'] = True
