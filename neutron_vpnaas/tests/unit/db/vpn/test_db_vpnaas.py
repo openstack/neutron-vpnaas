@@ -16,6 +16,8 @@
 import contextlib
 import os
 
+import mock
+
 from neutron.api import extensions as api_extensions
 from neutron.common import config
 from neutron import context
@@ -1622,3 +1624,14 @@ class TestVpnaas(VPNPluginDbTestCase):
                                   self.plugin.check_subnet_in_use,
                                   context.get_admin_context(),
                                   subnet['subnet']['id'])
+
+    def test_check_router_has_no_vpn(self):
+        with mock.patch.object(
+            manager.NeutronManager, 'get_service_plugins') as sp:
+            vpn_plugin = mock.Mock()
+            sp.return_value = {'VPN': vpn_plugin}
+            kwargs = {'context': mock.ANY, 'router': {'id': 'foo_id'}}
+            self.assertTrue(vpn_db.migration_callback(
+                mock.ANY, mock.ANY, mock.ANY, **kwargs))
+            vpn_plugin.check_router_in_use.assert_called_once_with(
+                mock.ANY, 'foo_id')
