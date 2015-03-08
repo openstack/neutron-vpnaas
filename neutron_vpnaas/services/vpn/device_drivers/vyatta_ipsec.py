@@ -148,7 +148,8 @@ class VyattaIPSecDriver(device_drivers.DeviceDriver):
 
         self._svc_cache = svc_update
 
-    def create_router(self, router_id):
+    def create_router(self, router):
+        router_id = router.router_id
         vrouter = self.vpn_service.get_router_client(router_id)
         config_raw = vrouter.get_vrouter_configuration()
 
@@ -243,14 +244,14 @@ class VyattaIPSecDriver(device_drivers.DeviceDriver):
         self.server_api.update_status(ctx, stat)
 
     def _get_router_gw_iface(self, vrouter, router_id):
-        router_info = self.vpn_service.get_router(router_id)
+        router = self.vpn_service.get_router(router_id)
         try:
             gw_interface = vrouter.get_ethernet_if_id(
-                router_info['gw_port']['mac_address'])
+                router['gw_port']['mac_address'])
         except KeyError:
             raise v_exc.InvalidL3AgentStateError(description=_(
                 'Router id={0} have no external gateway.').format(
-                    router_info['id']))
+                    router['id']))
         return gw_interface
 
 

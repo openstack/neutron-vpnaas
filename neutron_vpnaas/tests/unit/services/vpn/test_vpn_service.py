@@ -14,9 +14,7 @@
 #    under the License.
 
 import mock
-from neutron.agent.l3 import dvr_router
 from neutron.agent.l3 import legacy_router
-from neutron.agent.linux import iptables_manager
 from neutron.openstack.common import uuidutils
 from oslo_config import cfg
 
@@ -40,7 +38,7 @@ class NoopDeviceDriver(device_drivers.DeviceDriver):
     def sync(self, context, processes):
         pass
 
-    def create_router(self, process_id):
+    def create_router(self, router_info):
         pass
 
     def destroy_router(self, process_id):
@@ -52,8 +50,6 @@ class VPNBaseTestCase(base.BaseTestCase):
     def setUp(self):
         super(VPNBaseTestCase, self).setUp()
         self.conf = cfg.CONF
-        # TODO(pcm): Remove, when namespaces become the default(non-selectable)
-        self.conf.use_namespaces = True
         self.ri_kwargs = {'router': {'id': FAKE_ROUTER_ID},
                           'agent_conf': self.conf,
                           'interface_driver': mock.sentinel.interface_driver}
@@ -93,113 +89,6 @@ class TestVirtualPrivateNetworkDeviceDriverLoading(VPNBaseTestCase):
                           self.service.load_device_drivers, 'host')
 
 
-class TestVPNDeviceDriverCallsToService(VPNBaseTestCase):
-
-    def setUp(self):
-        super(TestVPNDeviceDriverCallsToService, self).setUp()
-        self.service = vpn_service.VPNService(mock.Mock())
-        self.iptables = mock.Mock()
-        self.apply_mock = mock.Mock()
-
-    def _make_router_info_for_test(self, iptables=None):
-        ri = legacy_router.LegacyRouter(FAKE_ROUTER_ID, **self.ri_kwargs)
-        ri.router['distributed'] = False
-        if iptables:
-            ri.iptables_manager.ipv4['nat'] = iptables
-            ri.iptables_manager.apply = self.apply_mock
-        self.service.l3_agent.router_info = {FAKE_ROUTER_ID: ri}
-
-    def _make_dvr_router_info_for_test(self, iptables=None):
-        ri = dvr_router.DvrRouter(mock.sentinel.agent,
-                                  mock.sentinel.myhost,
-                                  FAKE_ROUTER_ID,
-                                  **self.ri_kwargs)
-        ri.router['distributed'] = True
-        mock.patch('neutron.agent.linux.utils.execute').start()
-        ri.create_snat_namespace()
-        if iptables:
-            ri.snat_iptables_manager = iptables_manager.IptablesManager(
-                namespace='snat-' + FAKE_ROUTER_ID,
-                use_ipv6=mock.ANY)
-            ri.snat_iptables_manager.ipv4['nat'] = iptables
-            ri.snat_iptables_manager.apply = self.apply_mock
-        self.service.l3_agent.router_info = {FAKE_ROUTER_ID: ri}
-
-    def test_get_namespace_for_router(self):
-        self._make_router_info_for_test()
-        namespace = self.service.get_namespace(FAKE_ROUTER_ID)
-        self.assertEqual('qrouter-' + FAKE_ROUTER_ID, namespace)
-
-    def test_get_namespace_for_dvr_router(self):
-        self._make_dvr_router_info_for_test()
-        namespace = self.service.get_namespace(FAKE_ROUTER_ID)
-        self.assertEqual('snat-' + FAKE_ROUTER_ID, namespace)
-
-    def test_fail_getting_namespace_for_unknown_router(self):
-        self._make_router_info_for_test()
-        self.assertFalse(self.service.get_namespace('bogus_id'))
-
-    def test_add_nat_rule(self):
-        self._make_router_info_for_test(iptables=self.iptables)
-        self.service.add_nat_rule(FAKE_ROUTER_ID, 'fake_chain',
-                                  'fake_rule', True)
-        self.iptables.add_rule.assert_called_once_with(
-            'fake_chain', 'fake_rule', top=True)
-
-    def test_add_nat_rule_with_dvr_router(self):
-        self._make_dvr_router_info_for_test(iptables=self.iptables)
-        self.service.add_nat_rule(FAKE_ROUTER_ID, 'fake_chain',
-                                  'fake_rule', True)
-        self.iptables.add_rule.assert_called_once_with(
-            'fake_chain', 'fake_rule', top=True)
-
-    def test_add_nat_rule_with_no_router(self):
-        self._make_router_info_for_test(iptables=self.iptables)
-        self.service.add_nat_rule(
-            'bogus_router_id',
-            'fake_chain',
-            'fake_rule',
-            True)
-        self.assertFalse(self.iptables.add_rule.called)
-
-    def test_remove_rule(self):
-        self._make_router_info_for_test(iptables=self.iptables)
-        self.service.remove_nat_rule(FAKE_ROUTER_ID, 'fake_chain',
-                                     'fake_rule', True)
-        self.iptables.remove_rule.assert_called_once_with(
-            'fake_chain', 'fake_rule', top=True)
-
-    def test_remove_rule_with_dvr_router(self):
-        self._make_dvr_router_info_for_test(iptables=self.iptables)
-        self.service.remove_nat_rule(FAKE_ROUTER_ID, 'fake_chain',
-                                     'fake_rule', True)
-        self.iptables.remove_rule.assert_called_once_with(
-            'fake_chain', 'fake_rule', top=True)
-
-    def test_remove_rule_with_no_router(self):
-        self._make_router_info_for_test(iptables=self.iptables)
-        self.service.remove_nat_rule(
-            'bogus_router_id',
-            'fake_chain',
-            'fake_rule')
-        self.assertFalse(self.iptables.remove_rule.called)
-
-    def test_iptables_apply(self):
-        self._make_router_info_for_test(iptables=self.iptables)
-        self.service.iptables_apply(FAKE_ROUTER_ID)
-        self.apply_mock.assert_called_once_with()
-
-    def test_iptables_apply_with_dvr_router(self):
-        self._make_dvr_router_info_for_test(iptables=self.iptables)
-        self.service.iptables_apply(FAKE_ROUTER_ID)
-        self.apply_mock.assert_called_once_with()
-
-    def test_iptables_apply_with_no_router(self):
-        self._make_router_info_for_test(iptables=self.iptables)
-        self.service.iptables_apply('bogus_router_id')
-        self.assertFalse(self.apply_mock.called)
-
-
 class TestVPNServiceEventHandlers(VPNBaseTestCase):
 
     def setUp(self):
@@ -211,7 +100,7 @@ class TestVPNServiceEventHandlers(VPNBaseTestCase):
     def test_actions_after_router_added(self):
         ri = legacy_router.LegacyRouter(FAKE_ROUTER_ID, **self.ri_kwargs)
         self.service.after_router_added(ri)
-        self.device.create_router.assert_called_once_with(FAKE_ROUTER_ID)
+        self.device.create_router.assert_called_once_with(ri)
         self.device.sync.assert_called_once_with(self.service.context,
                                                  [ri.router])
 

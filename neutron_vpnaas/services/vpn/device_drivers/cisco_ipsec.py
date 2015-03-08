@@ -351,7 +351,7 @@ class CiscoCsrIPsecDriver(device_drivers.DeviceDriver):
         self.remove_unknown_connections(context)
         self.report_status_internal(context)
 
-    def create_router(self, process_id):
+    def create_router(self, router):
         """Actions taken when router created."""
         # Note: Since Cisco CSR is running out-of-band, nothing to do here
         pass

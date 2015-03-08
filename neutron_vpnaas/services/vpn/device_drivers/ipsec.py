@@ -506,6 +506,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
         node_topic = '%s.%s' % (self.topic, self.host)
 
         self.processes = {}
+        self.routers = {}
         self.process_status_cache = {}
 
         self.endpoints = [self]
@@ -516,6 +517,86 @@ class IPsecDriver(device_drivers.DeviceDriver):
             self.report_status, self.context)
         self.process_status_cache_check.start(
             interval=self.conf.ipsec.ipsec_status_check_interval)
+
+    def get_namespace(self, router_id):
+        """Get namespace of router.
+
+        :router_id: router_id
+        :returns: namespace string.
+            Note: If the router is a DVR, then the SNAT namespace will be
+                  provided. If the router does not exist, return None.
+        """
+        router = self.routers.get(router_id)
+        if not router:
+            return
+        # For DVR, use SNAT namespace
+        # TODO(pcm): Use router object method to tell if DVR, when available
+        if router.router['distributed']:
+            return router.snat_namespace.name
+        else:
+            return router.ns_name
+
+    def get_router_based_iptables_manager(self, router):
+        """Returns router based iptables manager
+
+        In DVR routers the IPsec VPN service should run inside
+        the snat namespace. So the iptables manager used for
+        snat namespace is different from the iptables manager
+        used for the qr namespace in a non dvr based router.
+
+        This function will check the router type and then will
+        return the right iptables manager. If DVR enabled router
+        it will return the snat_iptables_manager otherwise it will
+        return the legacy iptables_manager.
+        """
+        # TODO(pcm): Use router object method to tell if DVR, when available
+        if router.router['distributed']:
+            return router.snat_iptables_manager
+        else:
+            return router.iptables_manager
+
+    def add_nat_rule(self, router_id, chain, rule, top=False):
+        """Add nat rule in namespace.
+
+        :param router_id: router_id
+        :param chain: a string of chain name
+        :param rule: a string of rule
+        :param top: if top is true, the rule
+            will be placed on the top of chain
+            Note if there is no rotuer, this method do nothing
+        """
+        router = self.routers.get(router_id)
+        if not router:
+            return
+        iptables_manager = self.get_router_based_iptables_manager(router)
+        iptables_manager.ipv4['nat'].add_rule(chain, rule, top=top)
+
+    def remove_nat_rule(self, router_id, chain, rule, top=False):
+        """Remove nat rule in namespace.
+
+        :param router_id: router_id
+        :param chain: a string of chain name
+        :param rule: a string of rule
+        :param top: unused
+            needed to have same argument with add_nat_rule
+        """
+        router = self.routers.get(router_id)
+        if not router:
+            return
+        iptables_manager = self.get_router_based_iptables_manager(router)
+        iptables_manager.ipv4['nat'].remove_rule(chain, rule, top=top)
+
+    def iptables_apply(self, router_id):
+        """Apply IPtables.
+
+        :param router_id: router_id
+        This method do nothing if there is no router
+        """
+        router = self.routers.get(router_id)
+        if not router:
+            return
+        iptables_manager = self.get_router_based_iptables_manager(router)
+        iptables_manager.apply()
 
     def _update_nat(self, vpnservice, func):
         """Setting up nat rule in iptables.
@@ -559,7 +640,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
         """
         process = self.processes.get(process_id)
         if not process or not process.namespace:
-            namespace = self.agent.get_namespace(process_id)
+            namespace = self.get_namespace(process_id)
             process = self.create_process(
                 process_id,
                 vpnservice,
@@ -569,12 +650,14 @@ class IPsecDriver(device_drivers.DeviceDriver):
             process.update_vpnservice(vpnservice)
         return process
 
-    def create_router(self, process_id):
+    def create_router(self, router):
         """Handling create router event.
 
-        Agent calls this method, when the process namespace
-        is ready.
+        Agent calls this method, when the process namespace is ready.
+        Note: process_id == router_id == vpnservice_id
         """
+        process_id = router.router_id
+        self.routers[process_id] = router
         if process_id in self.processes:
             # In case of vpnservice is created
             # before router's namespace
@@ -595,6 +678,8 @@ class IPsecDriver(device_drivers.DeviceDriver):
             if vpnservice:
                 self._update_nat(vpnservice, self.agent.remove_nat_rule)
             del self.processes[process_id]
+        if process_id in self.routers:
+            del self.routers[process_id]
 
     def get_process_status_cache(self, process):
         if not self.process_status_cache.get(process.id):
