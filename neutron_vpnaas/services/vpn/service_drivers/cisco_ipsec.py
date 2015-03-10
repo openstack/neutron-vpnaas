@@ -13,8 +13,6 @@
 #    under the License.
 
 from neutron.common import rpc as n_rpc
-from neutron.plugins.cisco.l3.plugging_drivers import (
-    n1kv_plugging_constants as n1kv_constants)
 from oslo_log import log as logging
 import oslo_messaging
 
@@ -36,6 +34,8 @@ LIFETIME_LIMITS = {'IKE Policy': {'min': 60, 'max': 86400},
 MIN_CSR_MTU = 1500
 MAX_CSR_MTU = 9192
 VRF_SUFFIX_LEN = 6
+
+T2_PORT_NAME = 't2_p:'
 
 
 class CiscoCsrIPsecVpnDriverCallBack(object):
@@ -177,7 +177,7 @@ class CiscoCsrIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
         # but will keep a semi-generic algorithm
         port_name = hosting_info['hosting_port_name']
         name, sep, num = port_name.partition(':')
-        offset = 1 if name in n1kv_constants.T2_PORT_NAME else 0
+        offset = 1 if name in T2_PORT_NAME else 0
         if_num = int(num) * 2 + offset
         return 'GigabitEthernet%d.%d' % (if_num, vlan)
 
