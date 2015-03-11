@@ -700,11 +700,23 @@ def vpn_callback(resource, event, trigger, **kwargs):
         check_func(context, resource_id)
 
 
+def migration_callback(resource, event, trigger, **kwargs):
+    context = kwargs['context']
+    router = kwargs['router']
+    vpnservice = manager.NeutronManager.get_service_plugins().get(
+        constants.VPN)
+    if vpnservice:
+        vpnservice.check_router_in_use(context, router['id'])
+    return True
+
+
 def subscribe():
     registry.subscribe(
         vpn_callback, resources.ROUTER_GATEWAY, events.BEFORE_DELETE)
     registry.subscribe(
         vpn_callback, resources.ROUTER_INTERFACE, events.BEFORE_DELETE)
+    registry.subscribe(
+        migration_callback, resources.ROUTER, events.BEFORE_UPDATE)
 
 # NOTE(armax): multiple VPN service plugins (potentially out of tree) may
 # inherit from vpn_db and may need the callbacks to be processed. Having an
