@@ -23,7 +23,7 @@ sed -e "s+\$BASE_PATH+$BASE/new/neutron-vpnaas/.tox/dsvm-functional+" \
 # Use devstack functions to install mysql and psql servers
 TOP_DIR=$BASE/new/devstack
 source $TOP_DIR/functions
-source $TOP_DIR/lib/config
+source $TOP_DIR/inc/meta-config
 source $TOP_DIR/stackrc
 source $TOP_DIR/lib/database
 source $TOP_DIR/localrc
