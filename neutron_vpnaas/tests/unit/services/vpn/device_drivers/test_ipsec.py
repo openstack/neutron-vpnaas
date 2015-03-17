@@ -32,6 +32,8 @@ from neutron_vpnaas.tests import base
 _uuid = uuidutils.generate_uuid
 FAKE_HOST = 'fake_host'
 FAKE_ROUTER_ID = _uuid()
+FAKE_IPSEC_SITE_CONNECTION1_ID = _uuid()
+FAKE_IPSEC_SITE_CONNECTION2_ID = _uuid()
 FAKE_IKE_POLICY = {
     'ike_version': 'v1',
     'encryption_algorithm': 'aes-128',
@@ -48,14 +50,18 @@ FAKE_IPSEC_POLICY = {
 FAKE_VPN_SERVICE = {
     'id': _uuid(),
     'router_id': FAKE_ROUTER_ID,
+    'name': 'myvpn',
     'admin_state_up': True,
     'status': constants.PENDING_CREATE,
+    'external_ip': '50.0.0.4',
     'subnet': {'cidr': '10.0.0.0/24'},
     'ipsec_site_connections': [
         {'peer_cidrs': ['20.0.0.0/24',
                         '30.0.0.0/24'],
-         'id': _uuid(),
+         'id': FAKE_IPSEC_SITE_CONNECTION1_ID,
          'peer_address': '30.0.0.5',
+         'peer_id': '30.0.0.5',
+         'psk': 'password',
          'initiator': 'bi-directional',
          'ikepolicy': FAKE_IKE_POLICY,
          'ipsecpolicy': FAKE_IPSEC_POLICY,
@@ -63,12 +69,75 @@ FAKE_VPN_SERVICE = {
         {'peer_cidrs': ['40.0.0.0/24',
                         '50.0.0.0/24'],
          'peer_address': '50.0.0.5',
-         'id': _uuid(),
+         'peer_id': '50.0.0.5',
+         'psk': 'password',
+         'id': FAKE_IPSEC_SITE_CONNECTION2_ID,
          'initiator': 'bi-directional',
          'ikepolicy': FAKE_IKE_POLICY,
          'ipsecpolicy': FAKE_IPSEC_POLICY,
          'status': constants.PENDING_CREATE}]
 }
+
+EXPECTED_IPSEC_STRONGSWAN_CONF = '''
+# Configuration for myvpn
+config setup
+
+conn %(default_id)s
+        ikelifetime=60m
+        keylife=20m
+        rekeymargin=3m
+        keyingtries=1
+        authby=psk
+        mobike=no
+
+conn %(conn1_id)s
+    keyexchange=ikev1
+    left=50.0.0.4
+    leftsubnet=10.0.0.0/24
+    leftid=50.0.0.4
+    leftfirewall=yes
+    right=30.0.0.5
+    rightsubnet=20.0.0.0/24,30.0.0.0/24
+    rightid=30.0.0.5
+    auto=route
+
+conn %(conn2_id)s
+    keyexchange=ikev1
+    left=50.0.0.4
+    leftsubnet=10.0.0.0/24
+    leftid=50.0.0.4
+    leftfirewall=yes
+    right=50.0.0.5
+    rightsubnet=40.0.0.0/24,50.0.0.0/24
+    rightid=50.0.0.5
+    auto=route
+''' % {'default_id': '%default',
+       'conn1_id': FAKE_IPSEC_SITE_CONNECTION1_ID,
+       'conn2_id': FAKE_IPSEC_SITE_CONNECTION2_ID}
+
+EXPECTED_STRONGSWAN_DEFAULT_CONF = '''
+charon {
+        load_modular = yes
+        plugins {
+                include strongswan.d/charon/*.conf
+        }
+}
+
+include strongswan.d/*.conf
+'''
+
+EXPECTED_IPSEC_STRONGSWAN_SECRET_CONF = '''
+# Configuration for myvpn
+50.0.0.4 30.0.0.5 : PSK "password"
+
+50.0.0.4 50.0.0.5 : PSK "password"
+'''
+
+ACTIVE_STATUS = "%(conn_id)s{1}:  INSTALLED, TUNNEL" % {'conn_id':
+    FAKE_IPSEC_SITE_CONNECTION2_ID}
+DOWN_STATUS = "%(conn_id)s{1}:  ROUTED, TUNNEL" % {'conn_id':
+    FAKE_IPSEC_SITE_CONNECTION2_ID}
+NOT_RUNNING_STATUS = "Command: ['ipsec', 'status'] Exit code: 3 Stdout:"
 
 
 class BaseIPsecDeviceDriver(base.BaseTestCase):
@@ -76,13 +145,8 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
               ipsec_process='ipsec.OpenSwanProcess'):
         super(BaseIPsecDeviceDriver, self).setUp()
         for klass in [
-            'os.makedirs',
-            'os.path.isdir',
-            'neutron.agent.linux.utils.replace_file',
             'neutron.common.rpc.create_connection',
-            'neutron_vpnaas.services.vpn.device_drivers.'
-                '%s._gen_config_content' % ipsec_process,
-            'shutil.rmtree',
+            'neutron.openstack.common.loopingcall.FixedIntervalLoopingCall'
         ]:
             mock.patch(klass).start()
         self.execute = mock.patch(
@@ -564,7 +628,90 @@ class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
     def setUp(self, driver=strongswan_ipsec.StrongSwanDriver,
               ipsec_process='strongswan_ipsec.StrongSwanProcess'):
         super(IPsecStrongswanDeviceDriverLegacy, self).setUp(driver,
-                                                             ipsec_process)
+                                                       ipsec_process)
+        self.conf.register_opts(strongswan_ipsec.strongswan_opts,
+            'strongswan')
+        self.conf.set_override('state_path', '/tmp')
+        self.driver.agent_rpc.get_vpn_services_on_host.return_value = [
+            FAKE_VPN_SERVICE]
+        mock.patch.object(strongswan_ipsec.StrongSwanProcess,
+                          'copy_and_overwrite').start()
+
+    def test_config_files_on_create(self):
+        """Verify that the content of config files are correct on create."""
+        router_id = self.router.router_id
+        self.driver.sync(mock.Mock(), [{'id': router_id}])
+        process = self.driver.processes[router_id]
+        content = process._gen_config_content(
+            self.conf.strongswan.ipsec_config_template,
+            FAKE_VPN_SERVICE)
+        self.assertEqual(EXPECTED_IPSEC_STRONGSWAN_CONF.strip(),
+                         str(content.strip()))
+        content = process._gen_config_content(
+            self.conf.strongswan.strongswan_config_template,
+            FAKE_VPN_SERVICE)
+        self.assertEqual(EXPECTED_STRONGSWAN_DEFAULT_CONF.strip(),
+                         str(content.strip()))
+        content = process._gen_config_content(
+            self.conf.strongswan.ipsec_secret_template,
+            FAKE_VPN_SERVICE)
+        self.assertEqual(EXPECTED_IPSEC_STRONGSWAN_SECRET_CONF.strip(),
+                         str(content.strip()))
+
+    def test_status_handling_for_downed_connection(self):
+        """Test status handling for downed connection."""
+        router_id = self.router.router_id
+        connection_id = FAKE_IPSEC_SITE_CONNECTION2_ID
+        self.driver.ensure_process(router_id, FAKE_VPN_SERVICE)
+        self.execute.return_value = DOWN_STATUS
+        self.driver.report_status(mock.Mock())
+        process_status = self.driver.process_status_cache[router_id]
+        ipsec_site_conn = process_status['ipsec_site_connections']
+        self.assertEqual(constants.ACTIVE, process_status['status'])
+        self.assertEqual(constants.DOWN,
+                         ipsec_site_conn[connection_id]['status'])
+
+    def test_status_handling_for_active_connection(self):
+        """Test status handling for actived connection."""
+        router_id = self.router.router_id
+        connection_id = FAKE_IPSEC_SITE_CONNECTION2_ID
+        self.driver.ensure_process(router_id, FAKE_VPN_SERVICE)
+        self.execute.return_value = ACTIVE_STATUS
+        self.driver.report_status(mock.Mock())
+        process_status = self.driver.process_status_cache[
+            router_id]
+        ipsec_site_conn = process_status['ipsec_site_connections']
+        self.assertEqual(constants.ACTIVE, process_status['status'])
+        self.assertEqual(constants.ACTIVE,
+                         ipsec_site_conn[connection_id]['status'])
+
+    def test_status_handling_for_deleted_connection(self):
+        """Test status handling for deleted connection."""
+        router_id = self.router.router_id
+        self.driver.ensure_process(router_id, FAKE_VPN_SERVICE)
+        self.execute.return_value = NOT_RUNNING_STATUS
+        self.driver.report_status(mock.Mock())
+        process_status = self.driver.process_status_cache[router_id]
+        ipsec_site_conn = process_status['ipsec_site_connections']
+        self.assertEqual(constants.DOWN, process_status['status'])
+        self.assertFalse(ipsec_site_conn)
+
+    def test_update_connection_status(self):
+        """Test the status of ipsec-site-connection parsed correctly."""
+        router_id = self.router.router_id
+        self.driver.sync(mock.Mock(), [{'id': router_id}])
+        process = self.driver.processes[router_id]
+        self.assertIn(router_id, self.driver.processes)
+        self.execute.return_value = NOT_RUNNING_STATUS
+        self.assertFalse(process.active)
+        # An empty return value to simulate that the StrongSwan process
+        # does not have any status to report.
+        self.execute.return_value = ''
+        self.assertFalse(process.active)
+        self.execute.return_value = ACTIVE_STATUS
+        self.assertTrue(process.active)
+        self.execute.return_value = DOWN_STATUS
+        self.assertTrue(process.active)
 
 
 class IPsecStrongswanDeviceDriverDVR(IPSecDeviceDVR):
