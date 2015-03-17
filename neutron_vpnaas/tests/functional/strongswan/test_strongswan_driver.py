@@ -108,7 +108,7 @@ class TestStrongSwanDeviceDriver(base.BaseSudoTestCase):
         looping_call_p.start()
 
         self.driver = strongswan_ipsec.StrongSwanDriver(
-            agent=mock.Mock(), host=mock.sentinel.host)
+            vpn_service=mock.Mock(), host=mock.sentinel.host)
         self.driver.routers[FAKE_ROUTER_ID] = self.router
         self.driver.agent_rpc = mock.Mock()
         self.driver._update_nat = mock.Mock()

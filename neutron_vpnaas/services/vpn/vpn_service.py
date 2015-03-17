@@ -13,8 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from neutron import context as n_context
-from neutron.services import advanced_service
+from neutron.callbacks import events
+from neutron.callbacks import registry
+from neutron.callbacks import resources
 from neutron.services import provider_configuration as provconfig
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -27,45 +28,55 @@ LOG = logging.getLogger(__name__)
 DEVICE_DRIVERS = 'device_drivers'
 
 
-class VPNService(advanced_service.AdvancedService):
+class VPNService(object):
     """VPN Service observer."""
 
     def __init__(self, l3_agent):
-        """Creates a VPN Service instance with context.
-
-        """
-        self.context = n_context.get_admin_context_without_session()
-        super(VPNService, self).__init__(l3_agent)
+        """Creates a VPN Service instance with context."""
+        # TODO(pc_m): Replace l3_agent argument with config, once none of the
+        # device driver implementations need the L3 agent.
+        self.conf = l3_agent.conf
+        registry.subscribe(
+            router_added_actions, resources.ROUTER, events.AFTER_CREATE)
+        registry.subscribe(
+            router_removed_actions, resources.ROUTER, events.AFTER_DELETE)
+        registry.subscribe(
+            router_updated_actions, resources.ROUTER, events.AFTER_UPDATE)
 
     def load_device_drivers(self, host):
         """Loads one or more device drivers for VPNaaS."""
-        self.devices = []
+        drivers = []
         for device_driver in cfg.CONF.vpnagent.vpn_device_driver:
             device_driver = provconfig.get_provider_driver_class(
                 device_driver, DEVICE_DRIVERS)
             try:
-                self.devices.append(importutils.import_object(device_driver,
-                                                              self,
-                                                              host))
+                drivers.append(importutils.import_object(device_driver,
+                                                         self,
+                                                         host))
                 LOG.debug('Loaded VPNaaS device driver: %s', device_driver)
             except ImportError:
                 raise vpnaas.DeviceDriverImportError(
                     device_driver=device_driver)
-        return self.devices
+        return drivers
 
-    # Overridden handlers for L3 agent events.
-    def after_router_added(self, ri):
-        """Create the router and sync for each loaded device driver."""
-        for device in self.devices:
-            device.create_router(ri)
-            device.sync(self.context, [ri.router])
 
-    def after_router_removed(self, ri):
-        """Remove the router from each loaded device driver."""
-        for device in self.devices:
-            device.destroy_router(ri.router_id)
+def router_added_actions(resource, event, l3_agent, **kwargs):
+    """Create the router and sync for each loaded device driver."""
+    router = kwargs['router']
+    for device_driver in l3_agent.device_drivers:
+        device_driver.create_router(router)
+        device_driver.sync(l3_agent.context, [router.router])
 
-    def after_router_updated(self, ri):
-        """Perform a sync on each loaded device driver."""
-        for device in self.devices:
-            device.sync(self.context, [ri.router])
+
+def router_removed_actions(resource, event, l3_agent, **kwargs):
+    """Remove the router from each loaded device driver."""
+    router = kwargs['router']
+    for device_driver in l3_agent.device_drivers:
+        device_driver.destroy_router(router.router_id)
+
+
+def router_updated_actions(resource, event, l3_agent, **kwargs):
+    """Perform a sync on each loaded device driver."""
+    router = kwargs['router']
+    for device_driver in l3_agent.device_drivers:
+        device_driver.sync(l3_agent.context, [router.router])

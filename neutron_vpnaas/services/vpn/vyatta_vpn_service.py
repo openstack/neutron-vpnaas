@@ -28,6 +28,7 @@ class VyattaVPNService(vpn_service.VPNService):
         to access router related methods
         """
         super(VyattaVPNService, self).__init__(l3_agent)
+        self.l3_agent = l3_agent
 
     def get_router_client(self, router_id):
         """

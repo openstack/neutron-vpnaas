@@ -100,7 +100,9 @@ class CiscoCsrIPsecDriver(device_drivers.DeviceDriver):
     #   1.0 Initial version
     target = oslo_messaging.Target(version='1.0')
 
-    def __init__(self, agent, host):
+    def __init__(self, vpn_service, host):
+        # TODO(pc_m): Once all driver implementations no longer need
+        # vpn_service argument, replace with just config argument.
         self.host = host
         self.conn = n_rpc.create_connection(new=True)
         context = ctx.get_admin_context_without_session()
@@ -116,7 +118,7 @@ class CiscoCsrIPsecDriver(device_drivers.DeviceDriver):
         self.periodic_report = loopingcall.FixedIntervalLoopingCall(
             self.report_status, context)
         self.periodic_report.start(
-            interval=agent.conf.cisco_csr_ipsec.status_check_interval)
+            interval=vpn_service.conf.cisco_csr_ipsec.status_check_interval)
         LOG.debug("Device driver initialized for %s", node_topic)
 
     def vpnservice_updated(self, context, **kwargs):

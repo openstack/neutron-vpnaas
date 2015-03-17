@@ -15,6 +15,7 @@
 
 import mock
 from neutron.agent.l3 import legacy_router
+from neutron.callbacks import registry
 from neutron.openstack.common import uuidutils
 from oslo_config import cfg
 
@@ -50,6 +51,7 @@ class VPNBaseTestCase(base.BaseTestCase):
     def setUp(self):
         super(VPNBaseTestCase, self).setUp()
         self.conf = cfg.CONF
+        self.conf.use_namespaces = True
         self.ri_kwargs = {'router': {'id': FAKE_ROUTER_ID},
                           'agent_conf': self.conf,
                           'interface_driver': mock.sentinel.interface_driver}
@@ -61,6 +63,7 @@ class TestVirtualPrivateNetworkDeviceDriverLoading(VPNBaseTestCase):
         super(TestVirtualPrivateNetworkDeviceDriverLoading, self).setUp()
         cfg.CONF.register_opts(vpn_agent.vpn_agent_opts, 'vpnagent')
         self.agent = mock.Mock()
+        mock.patch.object(registry, 'subscribe').start()
         self.service = vpn_service.VPNService(self.agent)
 
     def test_loading_vpn_device_drivers(self):
@@ -93,24 +96,31 @@ class TestVPNServiceEventHandlers(VPNBaseTestCase):
 
     def setUp(self):
         super(TestVPNServiceEventHandlers, self).setUp()
+        self.l3_agent = mock.Mock()
+        self.l3_agent.context = mock.sentinel.context
+        mock.patch.object(registry, 'subscribe').start()
         self.service = vpn_service.VPNService(mock.Mock())
-        self.device = mock.Mock()
-        self.service.devices = [self.device]
+        self.device_driver = mock.Mock()
+        self.l3_agent.device_drivers = [self.device_driver]
 
-    def test_actions_after_router_added(self):
+    def test_router_added_actions(self):
         ri = legacy_router.LegacyRouter(FAKE_ROUTER_ID, **self.ri_kwargs)
-        self.service.after_router_added(ri)
-        self.device.create_router.assert_called_once_with(ri)
-        self.device.sync.assert_called_once_with(self.service.context,
-                                                 [ri.router])
+        vpn_service.router_added_actions(mock.Mock(), mock.Mock(),
+                                         self.l3_agent, router=ri)
+        self.device_driver.create_router.assert_called_once_with(ri)
+        self.device_driver.sync.assert_called_once_with(self.l3_agent.context,
+                                                        [ri.router])
 
-    def test_actions_after_router_removed(self):
+    def test_router_removed_actions(self):
         ri = legacy_router.LegacyRouter(FAKE_ROUTER_ID, **self.ri_kwargs)
-        self.service.after_router_removed(ri)
-        self.device.destroy_router.assert_called_once_with(FAKE_ROUTER_ID)
+        vpn_service.router_removed_actions(mock.Mock(), mock.Mock(),
+                                           self.l3_agent, router=ri)
+        self.device_driver.destroy_router.assert_called_once_with(
+            FAKE_ROUTER_ID)
 
-    def test_actions_after_router_updated(self):
+    def test_router_updated_actions(self):
         ri = legacy_router.LegacyRouter(FAKE_ROUTER_ID, **self.ri_kwargs)
-        self.service.after_router_updated(ri)
-        self.device.sync.assert_called_once_with(self.service.context,
-                                                 [ri.router])
+        vpn_service.router_updated_actions(mock.Mock(), mock.Mock(),
+                                           self.l3_agent, router=ri)
+        self.device_driver.sync.assert_called_once_with(self.l3_agent.context,
+                                                        [ri.router])

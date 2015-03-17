@@ -478,7 +478,6 @@ class OpenSwanProcess(BaseSwanProcess):
                        '--ctlbase', self.pid_path,
                        '--shutdown',
                        ])
-        #clean connection_status info
         self.connection_status = {}
 
 
@@ -522,9 +521,10 @@ class IPsecDriver(device_drivers.DeviceDriver):
     #   1.0 Initial version
     target = oslo_messaging.Target(version='1.0')
 
-    def __init__(self, agent, host):
-        self.agent = agent
-        self.conf = self.agent.conf
+    def __init__(self, vpn_service, host):
+        # TODO(pc_m) Replace vpn_service with config arg, once all driver
+        # implemenations no longer need vpn_service.
+        self.conf = vpn_service.conf
         self.host = host
         self.conn = n_rpc.create_connection(new=True)
         self.context = context.get_admin_context_without_session()
