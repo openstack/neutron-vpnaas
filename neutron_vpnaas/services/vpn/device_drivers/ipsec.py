@@ -616,7 +616,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
                     '--dir out --pol ipsec '
                     '-j ACCEPT ' % (local_cidr, peer_cidr),
                     top=True)
-        self.agent.iptables_apply(router_id)
+        self.iptables_apply(router_id)
 
     def vpnservice_updated(self, context, **kwargs):
         """Vpnservice updated rpc handler
@@ -662,8 +662,22 @@ class IPsecDriver(device_drivers.DeviceDriver):
             # In case of vpnservice is created
             # before router's namespace
             process = self.processes[process_id]
-            self._update_nat(process.vpnservice, self.agent.add_nat_rule)
+            self._update_nat(process.vpnservice, self.add_nat_rule)
             process.enable()
+
+    def destroy_process(self, process_id):
+        """Destroy process.
+
+        Disable the process, remove the nat rule, and remove the process
+        manager for the processes that no longer are running vpn service.
+        """
+        if process_id in self.processes:
+            process = self.processes[process_id]
+            process.disable()
+            vpnservice = process.vpnservice
+            if vpnservice:
+                self._update_nat(vpnservice, self.remove_nat_rule)
+            del self.processes[process_id]
 
     def destroy_router(self, process_id):
         """Handling destroy_router event.
@@ -671,13 +685,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
         Agent calls this method, when the process namespace
         is deleted.
         """
-        if process_id in self.processes:
-            process = self.processes[process_id]
-            process.disable()
-            vpnservice = process.vpnservice
-            if vpnservice:
-                self._update_nat(vpnservice, self.agent.remove_nat_rule)
-            del self.processes[process_id]
+        self.destroy_process(process_id)
         if process_id in self.routers:
             del self.routers[process_id]
 
@@ -784,7 +792,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
                     vpnservice['router_id'] in sync_router_ids):
                 process = self.ensure_process(vpnservice['router_id'],
                                               vpnservice=vpnservice)
-                self._update_nat(vpnservice, self.agent.add_nat_rule)
+                self._update_nat(vpnservice, self.add_nat_rule)
                 process.update()
 
     def _delete_vpn_processes(self, sync_router_ids, vpn_router_ids):
@@ -792,8 +800,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
         # associated with routers, but are not running the VPN service.
         for process_id in sync_router_ids:
             if process_id not in vpn_router_ids:
-                self.ensure_process(process_id)
-                self.destroy_router(process_id)
+                self.destroy_process(process_id)
 
     def _cleanup_stale_vpn_processes(self, vpn_router_ids):
         # Delete any IPSec processes running
@@ -801,7 +808,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
         process_ids = [pid for pid in self.processes
                        if pid not in vpn_router_ids]
         for process_id in process_ids:
-            self.destroy_router(process_id)
+            self.destroy_process(process_id)
 
 
 class OpenSwanDriver(IPsecDriver):
