@@ -42,7 +42,7 @@ from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import device_drivers
 
 LOG = logging.getLogger(__name__)
-TEMPLATE_PATH = os.path.dirname(__file__)
+TEMPLATE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 ipsec_opts = [
     cfg.StrOpt(
@@ -73,11 +73,6 @@ openswan_opts = [
 cfg.CONF.register_opts(openswan_opts, 'openswan')
 
 JINJA_ENV = None
-
-STATUS_MAP = {
-    'erouted': constants.ACTIVE,
-    'unrouted': constants.DOWN
-}
 
 IPSEC_CONNS = 'ipsec_site_connections'
 
@@ -130,6 +125,13 @@ class BaseSwanProcess(object):
         "v1": "never"
     }
 
+    STATUS_DICT = {
+        'erouted': constants.ACTIVE,
+        'unrouted': constants.DOWN
+    }
+    STATUS_RE = '\d\d\d "([a-f0-9\-]+).* (unrouted|erouted);'
+    STATUS_NOT_RUNNING_RE = 'Command:.*ipsec.*status.*Exit code: [1|3]$'
+
     def __init__(self, conf, process_id, vpnservice, namespace):
         self.conf = conf
         self.id = process_id
@@ -140,6 +142,10 @@ class BaseSwanProcess(object):
             cfg.CONF.ipsec.config_base_dir, self.id)
         self.etc_dir = os.path.join(self.config_dir, 'etc')
         self.update_vpnservice(vpnservice)
+        self.STATUS_PATTERN = re.compile(self.STATUS_RE)
+        self.STATUS_NOT_RUNNING_PATTERN = re.compile(
+            self.STATUS_NOT_RUNNING_RE)
+        self.STATUS_MAP = self.STATUS_DICT
 
     def translate_dialect(self):
         if not self.vpnservice:
@@ -213,6 +219,8 @@ class BaseSwanProcess(object):
         try:
             status = self.get_status()
             self._update_connection_status(status)
+            if not self.connection_status:
+                return False
         except RuntimeError:
             return False
         return True
@@ -274,8 +282,14 @@ class BaseSwanProcess(object):
         """Stop process."""
 
     def _update_connection_status(self, status_output):
+        if not status_output:
+            self.connection_status = {}
+            return
         for line in status_output.split('\n'):
-            m = re.search('\d\d\d "([a-f0-9\-]+).* (unrouted|erouted);', line)
+            if self.STATUS_NOT_RUNNING_PATTERN.search(line):
+                self.connection_status = {}
+                break
+            m = self.STATUS_PATTERN.search(line)
             if not m:
                 continue
             connection_id = m.group(1)
@@ -286,7 +300,7 @@ class BaseSwanProcess(object):
                     'updated_pending_status': False
                 }
             self.connection_status[
-                connection_id]['status'] = STATUS_MAP[status]
+                connection_id]['status'] = self.STATUS_MAP[status]
 
 
 class OpenSwanProcess(BaseSwanProcess):
@@ -307,10 +321,11 @@ class OpenSwanProcess(BaseSwanProcess):
         self.pid_path = os.path.join(
             self.config_dir, 'var', 'run', 'pluto')
 
-    def _execute(self, cmd, check_exit_code=True):
+    def _execute(self, cmd, check_exit_code=True, extra_ok_codes=None):
         """Execute command on namespace."""
         ip_wrapper = ip_lib.IPWrapper(namespace=self.namespace)
-        return ip_wrapper.netns.execute(cmd, check_exit_code=check_exit_code)
+        return ip_wrapper.netns.execute(cmd, check_exit_code=check_exit_code,
+                                        extra_ok_codes=extra_ok_codes)
 
     def ensure_configs(self):
         """Generate config files which are needed for OpenSwan.
@@ -333,7 +348,7 @@ class OpenSwanProcess(BaseSwanProcess):
                               'whack',
                               '--ctlbase',
                               self.pid_path,
-                              '--status'])
+                              '--status'], extra_ok_codes=[1, 3])
 
     def restart(self):
         """Restart the process."""

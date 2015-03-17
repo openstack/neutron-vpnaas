@@ -26,6 +26,7 @@ from oslo_config import cfg
 
 from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.device_drivers import ipsec as ipsec_driver
+from neutron_vpnaas.services.vpn.device_drivers import strongswan_ipsec
 from neutron_vpnaas.tests import base
 
 _uuid = uuidutils.generate_uuid
@@ -71,15 +72,16 @@ FAKE_VPN_SERVICE = {
 
 
 class BaseIPsecDeviceDriver(base.BaseTestCase):
-    def setUp(self, driver=ipsec_driver.OpenSwanDriver):
+    def setUp(self, driver=ipsec_driver.OpenSwanDriver,
+              ipsec_process='ipsec.OpenSwanProcess'):
         super(BaseIPsecDeviceDriver, self).setUp()
         for klass in [
             'os.makedirs',
             'os.path.isdir',
             'neutron.agent.linux.utils.replace_file',
             'neutron.common.rpc.create_connection',
-            'neutron_vpnaas.services.vpn.device_drivers.ipsec.'
-                'OpenSwanProcess._gen_config_content',
+            'neutron_vpnaas.services.vpn.device_drivers.'
+                '%s._gen_config_content' % ipsec_process,
             'shutil.rmtree',
         ]:
             mock.patch(klass).start()
@@ -101,8 +103,9 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
 
 class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
 
-    def setUp(self, driver=ipsec_driver.OpenSwanDriver):
-        super(IPSecDeviceLegacy, self).setUp(driver)
+    def setUp(self, driver=ipsec_driver.OpenSwanDriver,
+              ipsec_process='ipsec.OpenSwanProcess'):
+        super(IPSecDeviceLegacy, self).setUp(driver, ipsec_process)
         self._make_router_info_for_test(iptables=self.iptables)
 
     def _make_router_info_for_test(self, iptables=None):
@@ -448,8 +451,9 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
 
 class IPSecDeviceDVR(object):
 
-    def setUp(self, driver=ipsec_driver.OpenSwanDriver):
-        super(IPSecDeviceDVR, self).setUp(driver)
+    def setUp(self, driver=ipsec_driver.OpenSwanDriver,
+              ipsec_process='ipsec.OpenSwanProcess'):
+        super(IPSecDeviceDVR, self).setUp(driver, ipsec_process)
         self._make_dvr_router_info_for_test(iptables=self.iptables)
 
     def _make_dvr_router_info_for_test(self, iptables=None):
@@ -554,3 +558,17 @@ class TestOpenSwanProcess(base.BaseTestCase):
     def test__get_nexthop_fqdn_peer_addr_is_not_resolved(self):
         self.assertRaises(vpnaas.VPNPeerAddressNotResolved,
                           self.driver._get_nexthop, 'foo.peer.addr')
+
+
+class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
+    def setUp(self, driver=strongswan_ipsec.StrongSwanDriver,
+              ipsec_process='strongswan_ipsec.StrongSwanProcess'):
+        super(IPsecStrongswanDeviceDriverLegacy, self).setUp(driver,
+                                                             ipsec_process)
+
+
+class IPsecStrongswanDeviceDriverDVR(IPSecDeviceDVR):
+    def setUp(self, driver=strongswan_ipsec.StrongSwanDriver,
+              ipsec_process='strongswan_ipsec.StrongSwanProcess'):
+        super(IPsecStrongswanDeviceDriverDVR, self).setUp(driver,
+                                                          ipsec_process)

@@ -61,13 +61,17 @@ def execute(cmd):
                                  env=env)
 
     _stdout, _stderr = obj.communicate()
-    LOG.debug('Command: %(cmd)s Exit code: %(returncode)s '
-              'Stdout: %(stdout)s Stderr: %(stderr)s',
-              {'cmd': cmd,
-               'returncode': obj.returncode,
-               'stdout': _stdout,
-               'stderr': _stderr})
+    msg = ('Command: %(cmd)s Exit code: %(returncode)s '
+           'Stdout: %(stdout)s Stderr: %(stderr)s' %
+           {'cmd': cmd,
+            'returncode': obj.returncode,
+            'stdout': _stdout,
+            'stderr': _stderr})
+    LOG.debug(msg)
     obj.stdin.close()
+    # Pass the output to calling process
+    sys.stdout.write(msg)
+    sys.stdout.flush()
     return obj.returncode
 
 
@@ -117,7 +121,7 @@ def execute_with_mount():
 
     # Both sudoers and rootwrap.conf will not exist in the directory /etc
     # after bind-mount, so we can't use utils.execute(conf.cmd,
-    # conf.root_helper). That's why we have to check here if cmd matches
+    # run_as_root=True). That's why we have to check here if cmd matches
     # CommandFilter
     filter_command(conf.cmd, conf.rootwrap_config)
 

@@ -10,6 +10,6 @@
 
 ip: IpFilter, ip, root
 ip_exec: IpNetnsExecFilter, ip, root
-openswan: CommandFilter, ipsec, root
+ipsec: CommandFilter, ipsec, root
 neutron_netns_wrapper: CommandFilter, neutron-vpn-netns-wrapper, root
 neutron_netns_wrapper_local: CommandFilter, /usr/local/bin/neutron-vpn-netns-wrapper, root
