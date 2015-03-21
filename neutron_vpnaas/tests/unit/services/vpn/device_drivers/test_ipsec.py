@@ -515,7 +515,8 @@ class TestOpenSwanProcess(base.BaseTestCase):
             fake_resolve_fqdn.side_effect = _resolve_fqdn_side_effect
             fake_execute.return_value = _execute_ret_val
 
-            returned_next_hop = self.driver._get_nexthop(address)
+            returned_next_hop = self.driver._get_nexthop(address,
+                                                         'fake-conn-id')
             _resolve_fqdn_expected_call_count = (
                 1 if _resolve_fqdn_side_effect else 0)
 
@@ -556,8 +557,26 @@ class TestOpenSwanProcess(base.BaseTestCase):
                                       peer_address)
 
     def test__get_nexthop_fqdn_peer_addr_is_not_resolved(self):
+        self.driver.connection_status = {}
+        expected_connection_status_dict = (
+            {'fake-conn-id': {'status': constants.ERROR,
+                              'updated_pending_status': True}})
+
         self.assertRaises(vpnaas.VPNPeerAddressNotResolved,
-                          self.driver._get_nexthop, 'foo.peer.addr')
+                          self.driver._get_nexthop, 'foo.peer.addr',
+                          'fake-conn-id')
+        self.assertEqual(expected_connection_status_dict,
+                         self.driver.connection_status)
+
+        self.driver.connection_status = (
+            {'fake-conn-id': {'status': constants.PENDING_CREATE,
+                              'updated_pending_status': False}})
+
+        self.assertRaises(vpnaas.VPNPeerAddressNotResolved,
+                          self.driver._get_nexthop, 'foo.peer.addr',
+                          'fake-conn-id')
+        self.assertEqual(expected_connection_status_dict,
+                         self.driver.connection_status)
 
 
 class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
