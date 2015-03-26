@@ -2,7 +2,7 @@
 
 set -xe
 
-NEUTRON_DIR="$BASE/new/neutron-vpnaas"
+NEUTRON_VPNAAS_DIR="$BASE/new/neutron-vpnaas"
 TEMPEST_DIR="$BASE/new/tempest"
 SCRIPTS_DIR="/usr/local/jenkins/slave_scripts"
 
@@ -21,23 +21,25 @@ function generate_testr_results {
     fi
 }
 
-function dsvm_functional_prep_func {
-    :
-}
-
-owner=stack
-prep_func="dsvm_functional_prep_func"
+if [[ "$venv" == "dsvm-functional" || "$venv" == "dsvm-functional-sswan" ]]
+then
+    owner=stack
+    sudo_env=
+elif [ "$venv" == "api" ]
+then
+    owner=tempest
+    # Configure the api tests to use the tempest.conf set by devstack.
+    sudo_env="TEMPEST_CONFIG_DIR=$TEMPEST_DIR/etc"
+fi
 
 # Set owner permissions according to job's requirements.
-cd $NEUTRON_DIR
-sudo chown -R $owner:stack $NEUTRON_DIR
-# Prep the environment according to job's requirements.
-$prep_func
+cd $NEUTRON_VPNAAS_DIR
+sudo chown -R $owner:stack $NEUTRON_VPNAAS_DIR
 
 # Run tests
-echo "Running neutron dsvm-functional test suite"
+echo "Running neutron $venv test suite"
 set +e
-sudo -H -u $owner tox -e $venv
+sudo -H -u $owner $sudo_env tox -e $venv
 testr_exit_code=$?
 set -e
 
