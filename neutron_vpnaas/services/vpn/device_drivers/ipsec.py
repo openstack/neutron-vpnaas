@@ -218,7 +218,7 @@ class BaseSwanProcess(object):
             return False
         try:
             status = self.get_status()
-            self._update_connection_status(status)
+            self._extract_and_record_connection_status(status)
             if not self.connection_status:
                 return False
         except RuntimeError:
@@ -281,7 +281,7 @@ class BaseSwanProcess(object):
     def stop(self):
         """Stop process."""
 
-    def _update_connection_status(self, status_output):
+    def _extract_and_record_connection_status(self, status_output):
         if not status_output:
             self.connection_status = {}
             return
@@ -294,13 +294,20 @@ class BaseSwanProcess(object):
                 continue
             connection_id = m.group(1)
             status = m.group(2)
-            if not self.connection_status.get(connection_id):
-                self.connection_status[connection_id] = {
-                    'status': None,
-                    'updated_pending_status': False
-                }
-            self.connection_status[
-                connection_id]['status'] = self.STATUS_MAP[status]
+            self._record_connection_status(connection_id,
+                                           self.STATUS_MAP[status])
+
+    def _record_connection_status(self, connection_id, status,
+                                  updated_pending_status=False):
+        if not self.connection_status.get(connection_id):
+            self.connection_status[connection_id] = {
+                'status': status,
+                'updated_pending_status': updated_pending_status
+            }
+        else:
+            self.connection_status[connection_id]['status'] = status
+            self.connection_status[connection_id]['updated_pending_status'] = (
+                updated_pending_status)
 
 
 class OpenSwanProcess(BaseSwanProcess):
@@ -365,13 +372,16 @@ class OpenSwanProcess(BaseSwanProcess):
             return addrinfo[-1][0]
         except socket.gaierror:
             LOG.exception(_LE("Peer address %s cannot be resolved"), fqdn)
-            raise vpnaas.VPNPeerAddressNotResolved(peer_address=fqdn)
 
-    def _get_nexthop(self, address):
+    def _get_nexthop(self, address, connection_id):
         # check if address is an ip address or fqdn
         invalid_ip_address = attributes._validate_ip_address(address)
         if invalid_ip_address:
             ip_addr = self._resolve_fqdn(address)
+            if not ip_addr:
+                self._record_connection_status(connection_id, constants.ERROR,
+                                               updated_pending_status=True)
+                raise vpnaas.VPNPeerAddressNotResolved(peer_address=address)
         else:
             ip_addr = address
         routes = self._execute(['ip', 'route', 'get', ip_addr])
@@ -416,7 +426,8 @@ class OpenSwanProcess(BaseSwanProcess):
                        ])
         #add connections
         for ipsec_site_conn in self.vpnservice['ipsec_site_connections']:
-            nexthop = self._get_nexthop(ipsec_site_conn['peer_address'])
+            nexthop = self._get_nexthop(ipsec_site_conn['peer_address'],
+                                        ipsec_site_conn['id'])
             self._execute([self.binary,
                            'addconn',
                            '--ctlbase', '%s.ctl' % self.pid_path,
