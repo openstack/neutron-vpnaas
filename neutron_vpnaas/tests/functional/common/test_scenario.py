@@ -15,10 +15,10 @@
 
 # TODO(pcm): In the future, this will be replaced with a real scenario test.
 
-from neutron.tests.functional.agent.linux import base
+from neutron.tests.functional import base
 
 
-class TestIPSecScenario(base.BaseLinuxTestCase):
+class TestIPSecScenario(base.BaseSudoTestCase):
 
     """Test end-to-end IPSec connection."""
 

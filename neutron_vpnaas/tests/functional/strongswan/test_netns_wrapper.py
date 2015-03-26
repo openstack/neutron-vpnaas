@@ -17,13 +17,14 @@ import re
 
 from neutron.agent.common import config
 from neutron.agent.linux import utils
-from neutron.tests.functional.agent.linux import base
+from neutron.tests.common import net_helpers
+from neutron.tests.functional import base
 
 WRAPPER_SCRIPT = 'neutron-vpn-netns-wrapper'
 STATUS_PATTERN = re.compile('Command:.*ip.*addr.*show.*Exit code: 0')
 
 
-class TestNetnsWrapper(base.BaseLinuxTestCase):
+class TestNetnsWrapper(base.BaseSudoTestCase):
 
     def setUp(self):
         super(TestNetnsWrapper, self).setUp()
@@ -35,7 +36,7 @@ class TestNetnsWrapper(base.BaseLinuxTestCase):
         self.fake_pth = self.mount_paths % {'ns': self.fake_ns}
 
     def test_netns_wrap_success(self):
-        client_ns = self._create_namespace()
+        client_ns = self.useFixture(net_helpers.NamespaceFixture()).ip_wrapper
         ns = client_ns.namespace
         pth = self.mount_paths % {'ns': ns}
         cmd = WRAPPER_SCRIPT, pth, '--cmd=ip,addr,show'

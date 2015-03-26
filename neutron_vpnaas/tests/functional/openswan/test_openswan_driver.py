@@ -20,10 +20,10 @@
 # functional test for the OpenSwan reference implementation. For now, just
 # ignore the test cases herein.
 
-from neutron.tests.functional.agent.linux import base
+from neutron.tests.functional import base
 
 
-class TestOpenSwanDeviceDriver(base.BaseLinuxTestCase):
+class TestOpenSwanDeviceDriver(base.BaseSudoTestCase):
 
     """Test the OpenSwan reference implmentation of the device driver."""
 
