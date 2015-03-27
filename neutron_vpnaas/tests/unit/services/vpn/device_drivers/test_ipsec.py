@@ -150,7 +150,7 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
         ]:
             mock.patch(klass).start()
         self.execute = mock.patch(
-            'neutron.agent.linux.utils.execute').start()
+            'neutron.agent.common.utils.execute').start()
         self.agent = mock.Mock()
         self.driver = driver(
             self.agent,
