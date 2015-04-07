@@ -30,8 +30,8 @@ from neutron import manager
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 from neutron.scheduler import l3_agent_scheduler
-from neutron.tests.unit import test_db_plugin
-from neutron.tests.unit import test_l3_plugin
+from neutron.tests.unit.db import test_db_base_plugin_v2 as test_db_plugin
+from neutron.tests.unit.extensions import test_l3 as test_l3_plugin
 from oslo_config import cfg
 import webob.exc
 
@@ -433,7 +433,7 @@ class VPNPluginDbTestCase(VPNTestMixin,
 
         service_plugins = {'vpnaas_plugin': vpnaas_plugin}
         plugin_str = ('neutron_vpnaas.tests.unit.db.vpn.'
-                      'test_db_vpnaas.TestVpnCorePlugin')
+                      'test_vpn_db.TestVpnCorePlugin')
 
         super(VPNPluginDbTestCase, self).setUp(
             plugin_str,

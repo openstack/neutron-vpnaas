@@ -17,7 +17,7 @@ import copy
 import mock
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
-from neutron.tests.unit import test_api_v2
+from neutron.tests.unit.api.v2 import test_base as test_api_v2
 from webob import exc
 
 from neutron_vpnaas.extensions import vpnaas
