@@ -63,6 +63,7 @@ class TestVirtualPrivateNetworkDeviceDriverLoading(VPNBaseTestCase):
         super(TestVirtualPrivateNetworkDeviceDriverLoading, self).setUp()
         cfg.CONF.register_opts(vpn_agent.vpn_agent_opts, 'vpnagent')
         self.agent = mock.Mock()
+        self.agent.conf = cfg.CONF
         mock.patch.object(registry, 'subscribe').start()
         self.service = vpn_service.VPNService(self.agent)
 

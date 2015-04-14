@@ -17,7 +17,6 @@ from neutron.callbacks import events
 from neutron.callbacks import registry
 from neutron.callbacks import resources
 from neutron.services import provider_configuration as provconfig
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -46,7 +45,7 @@ class VPNService(object):
     def load_device_drivers(self, host):
         """Loads one or more device drivers for VPNaaS."""
         drivers = []
-        for device_driver in cfg.CONF.vpnagent.vpn_device_driver:
+        for device_driver in self.conf.vpnagent.vpn_device_driver:
             device_driver = provconfig.get_provider_driver_class(
                 device_driver, DEVICE_DRIVERS)
             try:
