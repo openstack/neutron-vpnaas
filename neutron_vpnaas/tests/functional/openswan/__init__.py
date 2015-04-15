@@ -10,22 +10,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import unittest
+import os
 
 
-def _discover(loader, path, pattern):
-    return loader.discover(path, pattern=pattern, top_level_dir=".")
+def load_tests(loader, tests, pattern):
+    this_dir = os.path.dirname(__file__)
+    openswan_tests = loader.discover(start_dir=this_dir, pattern=pattern)
+    tests.addTests(openswan_tests)
 
-
-def load_tests(_, tests, pattern):
-    suite = unittest.TestSuite()
-    suite.addTests(tests)
-
-    loader = unittest.loader.TestLoader()
-    suite.addTests(_discover(loader,
-                             "./neutron_vpnaas/tests/functional/openswan",
-                             pattern))
-    suite.addTests(_discover(loader,
-                             "./neutron_vpnaas/tests/functional/common",
-                             pattern))
-    return suite
+    common_dir = os.path.abspath(os.path.join(this_dir, "../common"))
+    common_tests = loader.discover(start_dir=common_dir, pattern=pattern)
+    tests.addTests(common_tests)
+    return tests
