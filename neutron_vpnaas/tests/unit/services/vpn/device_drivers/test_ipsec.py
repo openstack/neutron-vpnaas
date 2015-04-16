@@ -25,6 +25,7 @@ from neutron.plugins.common import constants
 from oslo_config import cfg
 
 from neutron_vpnaas.extensions import vpnaas
+from neutron_vpnaas.services.vpn.device_drivers import fedora_strongswan_ipsec
 from neutron_vpnaas.services.vpn.device_drivers import ipsec as ipsec_driver
 from neutron_vpnaas.services.vpn.device_drivers import strongswan_ipsec
 from neutron_vpnaas.tests import base
@@ -738,3 +739,20 @@ class IPsecStrongswanDeviceDriverDVR(IPSecDeviceDVR):
               ipsec_process='strongswan_ipsec.StrongSwanProcess'):
         super(IPsecStrongswanDeviceDriverDVR, self).setUp(driver,
                                                           ipsec_process)
+
+
+class IPsecFedoraStrongswanDeviceDriverLegacy(
+    IPsecStrongswanDeviceDriverLegacy):
+
+    def setUp(self, driver=fedora_strongswan_ipsec.FedoraStrongSwanDriver,
+              ipsec_process=fedora_strongswan_ipsec.FedoraStrongSwanProcess):
+        super(IPsecFedoraStrongswanDeviceDriverLegacy,
+              self).setUp(driver, ipsec_process)
+
+
+class IPsecFedoraStrongswanDeviceDriverDVR(IPSecDeviceDVR):
+
+    def setUp(self, driver=fedora_strongswan_ipsec.FedoraStrongSwanDriver,
+              ipsec_process=fedora_strongswan_ipsec.FedoraStrongSwanProcess):
+        super(IPsecFedoraStrongswanDeviceDriverDVR, self).setUp(driver,
+                                                                ipsec_process)
