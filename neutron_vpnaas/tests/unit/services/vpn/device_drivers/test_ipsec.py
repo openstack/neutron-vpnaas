@@ -12,12 +12,12 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-import contextlib
 import copy
 import mock
 import socket
 
 from neutron.agent.l3 import dvr_router
+from neutron.agent.l3 import dvr_snat_ns
 from neutron.agent.l3 import legacy_router
 from neutron.agent.linux import iptables_manager
 from neutron.openstack.common import uuidutils
@@ -25,7 +25,7 @@ from neutron.plugins.common import constants
 from oslo_config import cfg
 
 from neutron_vpnaas.extensions import vpnaas
-from neutron_vpnaas.services.vpn.device_drivers import ipsec as ipsec_driver
+from neutron_vpnaas.services.vpn.device_drivers import ipsec as openswan_ipsec
 from neutron_vpnaas.services.vpn.device_drivers import strongswan_ipsec
 from neutron_vpnaas.tests import base
 
@@ -141,16 +141,15 @@ NOT_RUNNING_STATUS = "Command: ['ipsec', 'status'] Exit code: 3 Stdout:"
 
 
 class BaseIPsecDeviceDriver(base.BaseTestCase):
-    def setUp(self, driver=ipsec_driver.OpenSwanDriver,
-              ipsec_process='ipsec.OpenSwanProcess'):
+    def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
+              ipsec_process=openswan_ipsec.OpenSwanProcess):
         super(BaseIPsecDeviceDriver, self).setUp()
         for klass in [
             'neutron.common.rpc.create_connection',
             'neutron.openstack.common.loopingcall.FixedIntervalLoopingCall'
         ]:
             mock.patch(klass).start()
-        self.execute = mock.patch(
-            'neutron.agent.common.utils.execute').start()
+        self._execute = mock.patch.object(ipsec_process, '_execute').start()
         self.agent = mock.Mock()
         self.driver = driver(
             self.agent,
@@ -167,18 +166,17 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
 
 class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
 
-    def setUp(self, driver=ipsec_driver.OpenSwanDriver,
-              ipsec_process='ipsec.OpenSwanProcess'):
+    def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
+              ipsec_process=openswan_ipsec.OpenSwanProcess):
         super(IPSecDeviceLegacy, self).setUp(driver, ipsec_process)
-        self._make_router_info_for_test(iptables=self.iptables)
+        self._make_router_info_for_test()
 
-    def _make_router_info_for_test(self, iptables=None):
+    def _make_router_info_for_test(self):
         self.router = legacy_router.LegacyRouter(FAKE_ROUTER_ID,
                                                  **self.ri_kwargs)
         self.router.router['distributed'] = False
-        if iptables:
-            self.router.iptables_manager.ipv4['nat'] = iptables
-            self.router.iptables_manager.apply = self.apply_mock
+        self.router.iptables_manager.ipv4['nat'] = self.iptables
+        self.router.iptables_manager.apply = self.apply_mock
         self.driver.routers[FAKE_ROUTER_ID] = self.router
 
     def _test_vpnservice_updated(self, expected_param, **kwargs):
@@ -196,7 +194,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         self._test_vpnservice_updated([router_info], **kwargs)
 
     def test_create_router(self):
-        process = mock.Mock(ipsec_driver.OpenSwanProcess)
+        process = mock.Mock(openswan_ipsec.OpenSwanProcess)
         process.vpnservice = FAKE_VPN_SERVICE
         self.driver.processes = {
             FAKE_ROUTER_ID: process}
@@ -513,26 +511,25 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         self.assertFalse(self.apply_mock.called)
 
 
-class IPSecDeviceDVR(object):
+class IPSecDeviceDVR(BaseIPsecDeviceDriver):
 
-    def setUp(self, driver=ipsec_driver.OpenSwanDriver,
-              ipsec_process='ipsec.OpenSwanProcess'):
+    def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
+              ipsec_process=openswan_ipsec.OpenSwanProcess):
         super(IPSecDeviceDVR, self).setUp(driver, ipsec_process)
-        self._make_dvr_router_info_for_test(iptables=self.iptables)
+        mock.patch.object(dvr_snat_ns.SnatNamespace, 'create').start()
+        self._make_dvr_router_info_for_test()
 
-    def _make_dvr_router_info_for_test(self, iptables=None):
+    def _make_dvr_router_info_for_test(self):
         router = dvr_router.DvrRouter(mock.sentinel.agent,
                                   mock.sentinel.myhost,
                                   FAKE_ROUTER_ID,
                                   **self.ri_kwargs)
         router.router['distributed'] = True
         router.create_snat_namespace()
-        if iptables:
-            router.snat_iptables_manager = iptables_manager.IptablesManager(
-                namespace='snat-' + FAKE_ROUTER_ID,
-                use_ipv6=mock.ANY)
-            router.snat_iptables_manager.ipv4['nat'] = iptables
-            router.snat_iptables_manager.apply = self.apply_mock
+        router.snat_iptables_manager = iptables_manager.IptablesManager(
+            namespace='snat-' + FAKE_ROUTER_ID, use_ipv6=mock.ANY)
+        router.snat_iptables_manager.ipv4['nat'] = self.iptables
+        router.snat_iptables_manager.apply = self.apply_mock
         self.driver.routers[FAKE_ROUTER_ID] = router
 
     def test_get_namespace_for_dvr_router(self):
@@ -559,93 +556,90 @@ class IPSecDeviceDVR(object):
 class TestOpenSwanProcess(base.BaseTestCase):
     def setUp(self):
         super(TestOpenSwanProcess, self).setUp()
-        self.driver = ipsec_driver.OpenSwanProcess(mock.ANY, 'foo-process-id',
-                                                   FAKE_VPN_SERVICE, mock.ANY)
+        self.process = openswan_ipsec.OpenSwanProcess(mock.ANY,
+                                                      'foo-process-id',
+                                                      FAKE_VPN_SERVICE,
+                                                      mock.ANY)
+        self._execute = mock.patch.object(self.process, '_execute').start()
 
     def test__resolve_fqdn(self):
         with mock.patch.object(socket, 'getaddrinfo') as mock_getaddr_info:
             mock_getaddr_info.return_value = [(2, 1, 6, '',
                                               ('172.168.1.2', 0))]
-            resolved_ip_addr = self.driver._resolve_fqdn('fqdn.foo.addr')
+            resolved_ip_addr = self.process._resolve_fqdn('fqdn.foo.addr')
             self.assertEqual('172.168.1.2', resolved_ip_addr)
 
     def _test_get_nexthop_helper(self, address, _resolve_fqdn_side_effect,
-                                 _execute_ret_val, expected_ip_cmd,
-                                 expected_nexthop):
-        with contextlib.nested(
-            mock.patch.object(self.driver, '_execute'),
-            mock.patch.object(self.driver, '_resolve_fqdn')
-        ) as (fake_execute, fake_resolve_fqdn):
+                                 expected_ip_cmd, expected_nexthop):
+        with mock.patch.object(self.process,
+                               '_resolve_fqdn') as fake_resolve_fqdn:
             fake_resolve_fqdn.side_effect = _resolve_fqdn_side_effect
-            fake_execute.return_value = _execute_ret_val
 
-            returned_next_hop = self.driver._get_nexthop(address,
-                                                         'fake-conn-id')
+            returned_next_hop = self.process._get_nexthop(address,
+                                                          'fake-conn-id')
             _resolve_fqdn_expected_call_count = (
                 1 if _resolve_fqdn_side_effect else 0)
 
             self.assertEqual(_resolve_fqdn_expected_call_count,
                              fake_resolve_fqdn.call_count)
-            fake_execute.assert_called_once_with(expected_ip_cmd)
+            self._execute.assert_called_once_with(expected_ip_cmd)
             self.assertEqual(expected_nexthop, returned_next_hop)
 
     def test__get_nexthop_peer_addr_is_ipaddr(self):
         gw_addr = '10.0.0.1'
-        _fake_execute_ret_val = '172.168.1.2 via %s' % gw_addr
+        self._execute.return_value = '172.168.1.2 via %s' % gw_addr
         peer_address = '172.168.1.2'
         expected_ip_cmd = ['ip', 'route', 'get', peer_address]
         self._test_get_nexthop_helper(peer_address, None,
-                                      _fake_execute_ret_val, expected_ip_cmd,
-                                      gw_addr)
+                                      expected_ip_cmd, gw_addr)
 
     def test__get_nexthop_peer_addr_is_valid_fqdn(self):
         peer_address = 'foo.peer.addr'
         expected_ip_cmd = ['ip', 'route', 'get', '172.168.1.2']
         gw_addr = '10.0.0.1'
-        _fake_execute_ret_val = '172.168.1.2 via %s' % gw_addr
+        self._execute.return_value = '172.168.1.2 via %s' % gw_addr
 
         def _fake_resolve_fqdn(address):
             return '172.168.1.2'
 
         self._test_get_nexthop_helper(peer_address, _fake_resolve_fqdn,
-                                      _fake_execute_ret_val, expected_ip_cmd,
-                                      gw_addr)
+                                      expected_ip_cmd, gw_addr)
 
     def test__get_nexthop_gw_not_present(self):
         peer_address = '172.168.1.2'
         expected_ip_cmd = ['ip', 'route', 'get', '172.168.1.2']
-        _fake_execute_ret_val = ' '
+        self._execute.return_value = ' '
 
         self._test_get_nexthop_helper(peer_address, None,
-                                      _fake_execute_ret_val, expected_ip_cmd,
-                                      peer_address)
+                                      expected_ip_cmd, peer_address)
 
     def test__get_nexthop_fqdn_peer_addr_is_not_resolved(self):
-        self.driver.connection_status = {}
+        self.process.connection_status = {}
         expected_connection_status_dict = (
             {'fake-conn-id': {'status': constants.ERROR,
                               'updated_pending_status': True}})
 
         self.assertRaises(vpnaas.VPNPeerAddressNotResolved,
-                          self.driver._get_nexthop, 'foo.peer.addr',
+                          self.process._get_nexthop, 'foo.peer.addr',
                           'fake-conn-id')
         self.assertEqual(expected_connection_status_dict,
-                         self.driver.connection_status)
+                         self.process.connection_status)
 
-        self.driver.connection_status = (
+        self.process.connection_status = (
             {'fake-conn-id': {'status': constants.PENDING_CREATE,
                               'updated_pending_status': False}})
 
         self.assertRaises(vpnaas.VPNPeerAddressNotResolved,
-                          self.driver._get_nexthop, 'foo.peer.addr',
+                          self.process._get_nexthop, 'foo.peer.addr',
                           'fake-conn-id')
         self.assertEqual(expected_connection_status_dict,
-                         self.driver.connection_status)
+                         self.process.connection_status)
 
 
 class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
+
     def setUp(self, driver=strongswan_ipsec.StrongSwanDriver,
-              ipsec_process='strongswan_ipsec.StrongSwanProcess'):
+              ipsec_process=strongswan_ipsec.StrongSwanProcess):
         super(IPsecStrongswanDeviceDriverLegacy, self).setUp(driver,
                                                        ipsec_process)
         self.conf.register_opts(strongswan_ipsec.strongswan_opts,
@@ -653,14 +647,11 @@ class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
         self.conf.set_override('state_path', '/tmp')
         self.driver.agent_rpc.get_vpn_services_on_host.return_value = [
             FAKE_VPN_SERVICE]
-        mock.patch.object(strongswan_ipsec.StrongSwanProcess,
-                          'copy_and_overwrite').start()
 
     def test_config_files_on_create(self):
         """Verify that the content of config files are correct on create."""
-        router_id = self.router.router_id
-        self.driver.sync(mock.Mock(), [{'id': router_id}])
-        process = self.driver.processes[router_id]
+        process = self.driver.ensure_process(self.router.router_id,
+                                             FAKE_VPN_SERVICE)
         content = process._gen_config_content(
             self.conf.strongswan.ipsec_config_template,
             FAKE_VPN_SERVICE)
@@ -682,7 +673,7 @@ class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
         router_id = self.router.router_id
         connection_id = FAKE_IPSEC_SITE_CONNECTION2_ID
         self.driver.ensure_process(router_id, FAKE_VPN_SERVICE)
-        self.execute.return_value = DOWN_STATUS
+        self._execute.return_value = DOWN_STATUS
         self.driver.report_status(mock.Mock())
         process_status = self.driver.process_status_cache[router_id]
         ipsec_site_conn = process_status['ipsec_site_connections']
@@ -695,7 +686,7 @@ class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
         router_id = self.router.router_id
         connection_id = FAKE_IPSEC_SITE_CONNECTION2_ID
         self.driver.ensure_process(router_id, FAKE_VPN_SERVICE)
-        self.execute.return_value = ACTIVE_STATUS
+        self._execute.return_value = ACTIVE_STATUS
         self.driver.report_status(mock.Mock())
         process_status = self.driver.process_status_cache[
             router_id]
@@ -708,7 +699,7 @@ class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
         """Test status handling for deleted connection."""
         router_id = self.router.router_id
         self.driver.ensure_process(router_id, FAKE_VPN_SERVICE)
-        self.execute.return_value = NOT_RUNNING_STATUS
+        self._execute.return_value = NOT_RUNNING_STATUS
         self.driver.report_status(mock.Mock())
         process_status = self.driver.process_status_cache[router_id]
         ipsec_site_conn = process_status['ipsec_site_connections']
@@ -718,23 +709,21 @@ class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
     def test_update_connection_status(self):
         """Test the status of ipsec-site-connection parsed correctly."""
         router_id = self.router.router_id
-        self.driver.sync(mock.Mock(), [{'id': router_id}])
-        process = self.driver.processes[router_id]
-        self.assertIn(router_id, self.driver.processes)
-        self.execute.return_value = NOT_RUNNING_STATUS
+        process = self.driver.ensure_process(router_id, FAKE_VPN_SERVICE)
+        self._execute.return_value = NOT_RUNNING_STATUS
         self.assertFalse(process.active)
         # An empty return value to simulate that the StrongSwan process
         # does not have any status to report.
-        self.execute.return_value = ''
+        self._execute.return_value = ''
         self.assertFalse(process.active)
-        self.execute.return_value = ACTIVE_STATUS
+        self._execute.return_value = ACTIVE_STATUS
         self.assertTrue(process.active)
-        self.execute.return_value = DOWN_STATUS
+        self._execute.return_value = DOWN_STATUS
         self.assertTrue(process.active)
 
 
 class IPsecStrongswanDeviceDriverDVR(IPSecDeviceDVR):
     def setUp(self, driver=strongswan_ipsec.StrongSwanDriver,
-              ipsec_process='strongswan_ipsec.StrongSwanProcess'):
+              ipsec_process=strongswan_ipsec.StrongSwanProcess):
         super(IPsecStrongswanDeviceDriverDVR, self).setUp(driver,
                                                           ipsec_process)
