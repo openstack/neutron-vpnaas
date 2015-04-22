@@ -1,4 +1,4 @@
-This area holds tests that are run for all functional jobs. The load_test()
+This area holds tests that are run for all functional jobs. The load_tests()
 method in each implementation specific area will include tests in this area.
 Do not place a test module in this area, if it is specific to one particular
 implementation.
