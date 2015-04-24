@@ -453,6 +453,16 @@ class VPNPluginDbTestCase(VPNTestMixin,
 
 class TestVpnaas(VPNPluginDbTestCase):
 
+    def setUp(self, **kwargs):
+        # TODO(armax): this is far from being a unit test case, as it tests
+        # that multiple parties (core + vpn) are integrated properly and
+        # should be replaced by API test that do not rely on so much mocking.
+        # NOTE(armax): make sure that the callbacks needed by this test are
+        # registered, as they may get wiped out depending by the order in
+        # which imports, subscriptions and mocks occur.
+        super(TestVpnaas, self).setUp(**kwargs)
+        vpn_db.subscribe()
+
     def _check_policy(self, policy, keys, lifetime):
         for k, v in keys:
             self.assertEqual(policy[k], v)
