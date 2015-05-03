@@ -27,6 +27,7 @@ from oslo_config import cfg
 from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.device_drivers import fedora_strongswan_ipsec
 from neutron_vpnaas.services.vpn.device_drivers import ipsec as openswan_ipsec
+from neutron_vpnaas.services.vpn.device_drivers import libreswan_ipsec
 from neutron_vpnaas.services.vpn.device_drivers import strongswan_ipsec
 from neutron_vpnaas.tests import base
 
@@ -635,6 +636,36 @@ class TestOpenSwanProcess(base.BaseTestCase):
                           'fake-conn-id')
         self.assertEqual(expected_connection_status_dict,
                          self.process.connection_status)
+
+
+class TestLibreSwanProcess(base.BaseTestCase):
+    def setUp(self):
+        super(TestLibreSwanProcess, self).setUp()
+        self.ipsec_process = libreswan_ipsec.LibreSwanProcess(mock.ANY,
+                                                       'foo-process-id',
+                                                       FAKE_VPN_SERVICE,
+                                                       mock.ANY)
+
+    def test_ensure_configs(self):
+        openswan_ipsec.OpenSwanProcess.ensure_configs = mock.Mock()
+        with mock.patch.object(self.ipsec_process, '_execute') as fake_execute:
+            self.ipsec_process.ensure_configs()
+            expected = [mock.call(['ipsec', '_stackmanager', 'start']),
+                        mock.call(['ipsec', 'checknss',
+                                   self.ipsec_process.etc_dir])]
+            fake_execute.assert_has_calls(expected)
+            self.assertEqual(fake_execute.call_count, 2)
+
+        with mock.patch.object(self.ipsec_process, '_execute') as fake_execute:
+            fake_execute.side_effect = [None, RuntimeError, None]
+            self.ipsec_process.ensure_configs()
+            expected = [mock.call(['ipsec', '_stackmanager', 'start']),
+                        mock.call(['ipsec', 'checknss',
+                                   self.ipsec_process.etc_dir]),
+                        mock.call(['ipsec', 'initnss',
+                                   self.ipsec_process.etc_dir])]
+            fake_execute.assert_has_calls(expected)
+            self.assertEqual(fake_execute.call_count, 3)
 
 
 class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
