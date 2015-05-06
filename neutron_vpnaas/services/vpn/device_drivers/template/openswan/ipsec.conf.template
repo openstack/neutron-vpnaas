@@ -8,7 +8,19 @@ conn %default
     keyingtries=%forever
 {% for ipsec_site_connection in vpnservice.ipsec_site_connections if ipsec_site_connection.admin_state_up
 %}conn {{ipsec_site_connection.id}}
+    {% if vpnservice.subnet.ip_version == 6 %}
+    # To recognize the given IP addresses in this config
+    # as IPv6 addresses by pluto whack. Default is ipv4
+    connaddrfamily=ipv6
+    # openswan can't process defaultroute for ipv6.
+    # Assign gateway address as leftnexthop
+    leftnexthop={{vpnservice.external_ip}}
+    # rightnexthop is not mandatory for ipsec, so no need in ipv6.
+    {% else %}
     # NOTE: a default route is required for %defaultroute to work...
+    leftnexthop=%defaultroute
+    rightnexthop=%defaultroute
+    {% endif %}
     left={{vpnservice.external_ip}}
     leftid={{vpnservice.external_ip}}
     auto={{ipsec_site_connection.initiator}}
@@ -16,7 +28,6 @@ conn %default
     # [subnet]
     leftsubnet={{vpnservice.subnet.cidr}}
     # leftsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
-    leftnexthop=%defaultroute
     ######################
     # ipsec_site_connections
     ######################
@@ -27,7 +38,6 @@ conn %default
     # [peer_cidrs]
     rightsubnets={ {{ipsec_site_connection['peer_cidrs']|join(' ')}} }
     # rightsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
-    rightnexthop=%defaultroute
     # [mtu]
     # Note It looks like not supported in the strongswan driver
     # ignore it now

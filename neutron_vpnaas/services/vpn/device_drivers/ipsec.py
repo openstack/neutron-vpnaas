@@ -632,6 +632,10 @@ class IPsecDriver(device_drivers.DeviceDriver):
         :param func: self.add_nat_rule or self.remove_nat_rule
         """
         local_cidr = vpnservice['subnet']['cidr']
+        # This ipsec rule is not needed for ipv6.
+        if netaddr.IPNetwork(local_cidr).version == 6:
+            return
+
         router_id = vpnservice['router_id']
         for ipsec_site_connection in vpnservice['ipsec_site_connections']:
             for peer_cidr in ipsec_site_connection['peer_cidrs']:
