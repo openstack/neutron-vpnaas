@@ -13,8 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import contextlib
-
 import mock
 from neutron import context as n_ctx
 from neutron.db import l3_db
@@ -250,12 +248,10 @@ class TestIPsecDriver(base.BaseTestCase):
 
     def _test_update(self, func, args, additional_info=None):
         ctxt = n_ctx.Context('', 'somebody')
-        with contextlib.nested(
-            mock.patch.object(self.driver.agent_rpc.client, 'cast'),
-            mock.patch.object(self.driver.agent_rpc.client, 'prepare'),
-        ) as (
-            rpc_mock, prepare_mock
-        ):
+        with mock.patch.object(self.driver.agent_rpc.client, 'cast'
+                               ) as rpc_mock, \
+                mock.patch.object(self.driver.agent_rpc.client, 'prepare'
+                                  ) as prepare_mock:
             prepare_mock.return_value = self.driver.agent_rpc.client
             func(ctxt, *args)
 
