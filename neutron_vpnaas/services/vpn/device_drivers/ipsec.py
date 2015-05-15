@@ -298,16 +298,17 @@ class BaseSwanProcess(object):
                                            self.STATUS_MAP[status])
 
     def _record_connection_status(self, connection_id, status,
-                                  updated_pending_status=False):
-        if not self.connection_status.get(connection_id):
+                                  force_status_update=False):
+        conn_info = self.connection_status.get(connection_id)
+        if not conn_info:
             self.connection_status[connection_id] = {
                 'status': status,
-                'updated_pending_status': updated_pending_status
+                'updated_pending_status': force_status_update
             }
         else:
-            self.connection_status[connection_id]['status'] = status
-            self.connection_status[connection_id]['updated_pending_status'] = (
-                updated_pending_status)
+            conn_info['status'] = status
+            if force_status_update:
+                conn_info['updated_pending_status'] = True
 
 
 class OpenSwanProcess(BaseSwanProcess):
@@ -380,7 +381,7 @@ class OpenSwanProcess(BaseSwanProcess):
             ip_addr = self._resolve_fqdn(address)
             if not ip_addr:
                 self._record_connection_status(connection_id, constants.ERROR,
-                                               updated_pending_status=True)
+                                               force_status_update=True)
                 raise vpnaas.VPNPeerAddressNotResolved(peer_address=address)
         else:
             ip_addr = address
