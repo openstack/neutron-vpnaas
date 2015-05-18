@@ -1,7 +1,6 @@
 # Configuration for {{vpnservice.name}}
 config setup
     nat_traversal=yes
-    listen={{vpnservice.external_ip}}
 conn %default
     ikelifetime=480m
     keylife=60m
@@ -14,15 +13,15 @@ conn %default
     connaddrfamily=ipv6
     # openswan can't process defaultroute for ipv6.
     # Assign gateway address as leftnexthop
-    leftnexthop={{vpnservice.external_ip}}
+    leftnexthop={{ipsec_site_connection.external_ip}}
     # rightnexthop is not mandatory for ipsec, so no need in ipv6.
     {% else %}
     # NOTE: a default route is required for %defaultroute to work...
     leftnexthop=%defaultroute
     rightnexthop=%defaultroute
     {% endif %}
-    left={{vpnservice.external_ip}}
-    leftid={{vpnservice.external_ip}}
+    left={{ipsec_site_connection.external_ip}}
+    leftid={{ipsec_site_connection.external_ip}}
     auto={{ipsec_site_connection.initiator}}
     # NOTE:REQUIRED
     # [subnet]

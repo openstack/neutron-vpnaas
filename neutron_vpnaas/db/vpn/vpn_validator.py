@@ -12,6 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import netaddr
+import socket
+
+from neutron.api.v2 import attributes
 from neutron.db import l3_db
 from neutron import manager
 from neutron.plugins.common import constants
@@ -52,6 +56,36 @@ class VpnReferenceValidator(object):
         if mtu < VpnReferenceValidator.IP_MIN_MTU[ip_version]:
             raise vpnaas.IPsecSiteConnectionMtuError(mtu=mtu,
                                                      version=ip_version)
+
+    def validate_peer_address(self, ip_version, router):
+        # NOTE: peer_address ip version should match with
+        # at least one external gateway address ip verison.
+        # ipsec won't work with IPv6 LLA and neutron unaware GUA.
+        # So to support vpnaas with ipv6, external network must
+        # have ipv6 subnet
+        for fixed_ip in router.gw_port['fixed_ips']:
+            addr = fixed_ip['ip_address']
+            if ip_version == netaddr.IPAddress(addr).version:
+                return
+
+        raise vpnaas.ExternalNetworkHasNoSubnet(
+            router_id=router.id,
+            ip_version="IPv6" if ip_version == 6 else "IPv4")
+
+    def resolve_peer_address(self, ipsec_sitecon, router):
+        address = ipsec_sitecon['peer_address']
+        # check if address is an ip address or fqdn
+        invalid_ip_address = attributes._validate_ip_address(address)
+        if invalid_ip_address:
+            # resolve fqdn
+            try:
+                addrinfo = socket.getaddrinfo(address, None)[0]
+                ipsec_sitecon['peer_address'] = addrinfo[-1][0]
+            except socket.gaierror:
+                raise vpnaas.VPNPeerAddressNotResolved(peer_address=address)
+
+        ip_version = netaddr.IPAddress(ipsec_sitecon['peer_address']).version
+        self.validate_peer_address(ip_version, router)
 
     def assign_sensible_ipsec_sitecon_defaults(self, ipsec_sitecon,
                                                prev_conn=None):

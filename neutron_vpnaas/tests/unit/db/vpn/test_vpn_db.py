@@ -1263,6 +1263,11 @@ class TestVpnaas(VPNPluginDbTestCase):
                 self.router() as router:
             with self.vpnservice(name=keys['vpnsname'], subnet=subnet,
                                  router=router) as vpnservice1:
+                ext_gw = router['router']['external_gateway_info']
+                if ext_gw:
+                    self._create_subnet(self.fmt,
+                        net_id=ext_gw['network_id'],
+                        ip_version=6, cidr='2001:db8::/32')
                 keys['vpnservice_id'] = vpnservice1['vpnservice']['id']
                 keys['ikepolicy_id'] = ikepolicy['ikepolicy']['id']
                 keys['ipsecpolicy_id'] = ipsecpolicy['ipsecpolicy']['id']
