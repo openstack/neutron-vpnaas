@@ -13,6 +13,8 @@
 #    under the License.
 
 import mock
+from six import moves
+
 from neutron import context as n_ctx
 from neutron.db import servicetype_db as st_db
 from neutron.openstack.common import uuidutils
@@ -259,17 +261,17 @@ class TestCiscoIPsecDriverMapping(base.BaseTestCase):
         """Make sure can get the last ID for each of the table types."""
         # Simulate query indicates table is full
         self.query_mock.return_value = [
-            (x, ) for x in xrange(csr_db.MAX_CSR_TUNNELS - 1)]
+            (x, ) for x in moves.range(csr_db.MAX_CSR_TUNNELS - 1)]
         next_id = csr_db.get_next_available_tunnel_id(self.session)
         self.assertEqual(csr_db.MAX_CSR_TUNNELS - 1, next_id)
 
         self.query_mock.return_value = [
-            (x, ) for x in xrange(1, csr_db.MAX_CSR_IKE_POLICIES)]
+            (x, ) for x in moves.range(1, csr_db.MAX_CSR_IKE_POLICIES)]
         next_id = csr_db.get_next_available_ike_policy_id(self.session)
         self.assertEqual(csr_db.MAX_CSR_IKE_POLICIES, next_id)
 
         self.query_mock.return_value = [
-            (x, ) for x in xrange(1, csr_db.MAX_CSR_IPSEC_POLICIES)]
+            (x, ) for x in moves.range(1, csr_db.MAX_CSR_IPSEC_POLICIES)]
         next_id = csr_db.get_next_available_ipsec_policy_id(self.session)
         self.assertEqual(csr_db.MAX_CSR_IPSEC_POLICIES, next_id)
 
@@ -288,17 +290,17 @@ class TestCiscoIPsecDriverMapping(base.BaseTestCase):
     def test_no_more_mapping_ids_available(self):
         """Failure test of trying to reserve ID, when none available."""
         self.query_mock.return_value = [
-            (x, ) for x in xrange(csr_db.MAX_CSR_TUNNELS)]
+            (x, ) for x in moves.range(csr_db.MAX_CSR_TUNNELS)]
         self.assertRaises(IndexError, csr_db.get_next_available_tunnel_id,
                           self.session)
 
         self.query_mock.return_value = [
-            (x, ) for x in xrange(1, csr_db.MAX_CSR_IKE_POLICIES + 1)]
+            (x, ) for x in moves.range(1, csr_db.MAX_CSR_IKE_POLICIES + 1)]
         self.assertRaises(IndexError, csr_db.get_next_available_ike_policy_id,
                           self.session)
 
         self.query_mock.return_value = [
-            (x, ) for x in xrange(1, csr_db.MAX_CSR_IPSEC_POLICIES + 1)]
+            (x, ) for x in moves.range(1, csr_db.MAX_CSR_IPSEC_POLICIES + 1)]
         self.assertRaises(IndexError,
                           csr_db.get_next_available_ipsec_policy_id,
                           self.session)
