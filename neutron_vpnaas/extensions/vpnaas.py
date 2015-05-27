@@ -91,6 +91,11 @@ class VPNPeerAddressNotResolved(nexception.InvalidInput):
     message = _("Peer address %(peer_address)s cannot be resolved")
 
 
+class ExternalNetworkHasNoSubnet(nexception.BadRequest):
+    message = _("Router's %(router_id)s external network has "
+                "no %(ip_version)s subnet")
+
+
 vpn_supported_initiators = ['bi-directional', 'response-only']
 vpn_supported_encryption_algorithms = ['3des', 'aes-128',
                                        'aes-192', 'aes-256']

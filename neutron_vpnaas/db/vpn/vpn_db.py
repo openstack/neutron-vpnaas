@@ -261,6 +261,8 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
             validator.validate_ipsec_site_connection(context,
                                                      ipsec_sitecon,
                                                      ip_version)
+            vpnservice = self._get_vpnservice(context, vpnservice_id)
+            validator.resolve_peer_address(ipsec_sitecon, vpnservice.router)
             ipsec_site_conn_db = IPsecSiteConnection(
                 id=uuidutils.generate_uuid(),
                 tenant_id=tenant_id,
@@ -310,6 +312,10 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
                 context,
                 ipsec_sitecon,
                 ip_version)
+            if 'peer_address' in ipsec_sitecon:
+                vpnservice = self._get_vpnservice(context, vpnservice_id)
+                validator.resolve_peer_address(ipsec_sitecon,
+                                               vpnservice.router)
             self.assert_update_allowed(ipsec_site_conn_db)
 
             if "peer_cidrs" in ipsec_sitecon:

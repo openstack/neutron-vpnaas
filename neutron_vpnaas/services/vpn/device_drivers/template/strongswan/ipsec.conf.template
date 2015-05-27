@@ -11,9 +11,9 @@ conn %default
 {% for ipsec_site_connection in vpnservice.ipsec_site_connections%}
 conn {{ipsec_site_connection.id}}
     keyexchange={{ipsec_site_connection.ikepolicy.ike_version}}
-    left={{vpnservice.external_ip}}
+    left={{ipsec_site_connection.external_ip}}
     leftsubnet={{vpnservice.subnet.cidr}}
-    leftid={{vpnservice.external_ip}}
+    leftid={{ipsec_site_connection.external_ip}}
     leftfirewall=yes
     right={{ipsec_site_connection.peer_address}}
     rightsubnet={{ipsec_site_connection['peer_cidrs']|join(',')}}
