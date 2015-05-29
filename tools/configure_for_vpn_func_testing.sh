@@ -50,7 +50,7 @@ function _configure_vpn_ini_file {
         iniset_multiline $temp_ini vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.ipsec.OpenSwanDriver
     fi
     sudo install -d -o $STACK_USER /etc/neutron/
-    sudo mv $temp_ini $Q_VPN_CONF_FILE
+    sudo install -m 644 -o $STACK_USER $temp_ini $Q_VPN_CONF_FILE
 }
 
 
