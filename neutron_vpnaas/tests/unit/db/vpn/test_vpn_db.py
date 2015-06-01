@@ -32,6 +32,7 @@ from neutron.scheduler import l3_agent_scheduler
 from neutron.tests.unit.db import test_db_base_plugin_v2 as test_db_plugin
 from neutron.tests.unit.extensions import test_l3 as test_l3_plugin
 from oslo_config import cfg
+import six
 import webob.exc
 
 from neutron_vpnaas.db.vpn import vpn_db
@@ -461,7 +462,7 @@ class TestVpnaas(VPNPluginDbTestCase):
     def _check_policy(self, policy, keys, lifetime):
         for k, v in keys:
             self.assertEqual(policy[k], v)
-        for k, v in lifetime.iteritems():
+        for k, v in six.iteritems(lifetime):
             self.assertEqual(policy['lifetime'][k], v)
 
     def test_create_ikepolicy(self):
@@ -531,7 +532,7 @@ class TestVpnaas(VPNPluginDbTestCase):
             self.assertEqual(len(res), 1)
             for k, v in keys:
                 self.assertEqual(res['ikepolicies'][0][k], v)
-            for k, v in lifetime.iteritems():
+            for k, v in six.iteritems(lifetime):
                 self.assertEqual(res['ikepolicies'][0]['lifetime'][k], v)
 
     def test_list_ikepolicies_with_sort_emulated(self):
