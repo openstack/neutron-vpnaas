@@ -68,7 +68,7 @@ class TestNetnsWrapper(base.BaseTestCase):
         exp_calls = [mock.call(['mount', '--bind', '/dir/foo', '/foo']),
                      mock.call(['mount', '--bind', '/dir/var', '/var']),
                      mock.call('ls,-al')]
-        self.execute.assert_has_calls(exp_calls, any_order=False)
+        self.execute.assert_has_calls(exp_calls, any_order=True)
         self.assertFalse(return_val)
 
     def test_netns_wrap_fail_without_cmd(self):
