@@ -25,6 +25,7 @@ from neutron.i18n import _LE, _LI
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_rootwrap import wrapper
+import six
 
 LOG = logging.getLogger(__name__)
 
@@ -135,7 +136,7 @@ def execute_with_mount():
         LOG.error(_LE('Cannot run without netns, exiting'))
         return errno.EINVAL
 
-    for path, new_path in conf.mount_paths.iteritems():
+    for path, new_path in six.iteritems(conf.mount_paths):
         if not os.path.isdir(new_path):
             # Sometimes all directories are not ready
             LOG.debug('%s is not directory', new_path)
