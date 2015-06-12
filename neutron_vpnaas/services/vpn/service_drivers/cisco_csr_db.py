@@ -51,7 +51,7 @@ class IdentifierMap(model_base.BASEV2, models_v2.HasTenant):
 
     __tablename__ = 'cisco_csr_identifier_map'
 
-    ipsec_site_conn_id = sa.Column(sa.String(64),
+    ipsec_site_conn_id = sa.Column(sa.String(36),
                                    sa.ForeignKey('ipsec_site_connections.id',
                                                  ondelete="CASCADE"),
                                    primary_key=True)
