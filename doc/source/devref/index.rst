@@ -40,10 +40,7 @@ VPNaaS Internals
 .. toctree::
    :maxdepth: 3
 
-.. todo::
-
-   Add design details about VPN, especially items that are not obvious.
-   Can indication restrictions/limitations.
+   multiple-local-subnets
 
 
 Testing
