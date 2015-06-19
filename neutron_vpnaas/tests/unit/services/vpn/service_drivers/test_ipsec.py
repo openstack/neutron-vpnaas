@@ -19,9 +19,9 @@ import socket
 from neutron import context as n_ctx
 from neutron.db import l3_db
 from neutron.db import servicetype_db as st_db
-from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 from oslo_config import cfg
+from oslo_utils import uuidutils
 
 from neutron_vpnaas.db.vpn import vpn_validator
 from neutron_vpnaas.extensions import vpnaas

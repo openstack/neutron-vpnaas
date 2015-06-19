@@ -26,12 +26,12 @@ from neutron.db import servicetype_db as sdb
 from neutron import extensions as nextensions
 from neutron.extensions import l3 as l3_exception
 from neutron import manager
-from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 from neutron.scheduler import l3_agent_scheduler
 from neutron.tests.unit.db import test_db_base_plugin_v2 as test_db_plugin
 from neutron.tests.unit.extensions import test_l3 as test_l3_plugin
 from oslo_config import cfg
+from oslo_utils import uuidutils
 import six
 import webob.exc
 

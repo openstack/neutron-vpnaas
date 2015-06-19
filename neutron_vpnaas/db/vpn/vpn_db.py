@@ -27,11 +27,11 @@ from neutron.db import models_v2
 from neutron.extensions import l3 as l3_exception
 from neutron.i18n import _LW
 from neutron import manager
-from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 from neutron.plugins.common import utils
 from oslo_log import log as logging
 from oslo_utils import excutils
+from oslo_utils import uuidutils
 import sqlalchemy as sa
 from sqlalchemy import orm
 from sqlalchemy.orm import exc

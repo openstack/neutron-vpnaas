@@ -16,8 +16,8 @@
 import mock
 from neutron.agent.l3 import legacy_router
 from neutron.callbacks import registry
-from neutron.openstack.common import uuidutils
 from oslo_config import cfg
+from oslo_utils import uuidutils
 
 from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn import agent as vpn_agent

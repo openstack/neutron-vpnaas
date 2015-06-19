@@ -16,8 +16,8 @@
 
 import mock
 from neutron import context as n_ctx
-from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
+from oslo_utils import uuidutils
 
 from neutron_vpnaas.services.vpn.service_drivers import vyatta_ipsec
 from neutron_vpnaas.tests import base

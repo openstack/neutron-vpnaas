@@ -18,8 +18,8 @@ import operator
 
 import mock
 from neutron import context
-from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
+from oslo_utils import uuidutils
 
 from neutron_vpnaas.services.vpn.device_drivers import (
     cisco_csr_rest_client as csr_client)
