@@ -150,7 +150,7 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
         super(BaseIPsecDeviceDriver, self).setUp()
         for klass in [
             'neutron.common.rpc.create_connection',
-            'neutron.openstack.common.loopingcall.FixedIntervalLoopingCall'
+            'oslo_service.loopingcall.FixedIntervalLoopingCall'
         ]:
             mock.patch(klass).start()
         self._execute = mock.patch.object(ipsec_process, '_execute').start()

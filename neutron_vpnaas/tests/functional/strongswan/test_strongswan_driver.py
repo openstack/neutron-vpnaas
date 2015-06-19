@@ -106,7 +106,7 @@ class TestStrongSwanDeviceDriver(base.BaseSudoTestCase):
         self.router_id = FAKE_VPN_SERVICE['router_id']
 
         looping_call_p = mock.patch(
-            'neutron.openstack.common.loopingcall.FixedIntervalLoopingCall')
+            'oslo_service.loopingcall.FixedIntervalLoopingCall')
         looping_call_p.start()
 
         self.driver = strongswan_ipsec.StrongSwanDriver(
