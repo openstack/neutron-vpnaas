@@ -16,7 +16,7 @@ import copy
 import mock
 import socket
 
-from neutron.agent.l3 import dvr_router
+from neutron.agent.l3 import dvr_edge_router
 from neutron.agent.l3 import dvr_snat_ns
 from neutron.agent.l3 import legacy_router
 from neutron.agent.linux import iptables_manager
@@ -521,13 +521,13 @@ class IPSecDeviceDVR(BaseIPsecDeviceDriver):
               ipsec_process=openswan_ipsec.OpenSwanProcess):
         super(IPSecDeviceDVR, self).setUp(driver, ipsec_process)
         mock.patch.object(dvr_snat_ns.SnatNamespace, 'create').start()
-        self._make_dvr_router_info_for_test()
+        self._make_dvr_edge_router_info_for_test()
 
-    def _make_dvr_router_info_for_test(self):
-        router = dvr_router.DvrRouter(mock.sentinel.agent,
-                                  mock.sentinel.myhost,
-                                  FAKE_ROUTER_ID,
-                                  **self.ri_kwargs)
+    def _make_dvr_edge_router_info_for_test(self):
+        router = dvr_edge_router.DvrEdgeRouter(mock.sentinel.agent,
+                                               mock.sentinel.myhost,
+                                               FAKE_ROUTER_ID,
+                                               **self.ri_kwargs)
         router.router['distributed'] = True
         router.create_snat_namespace()
         router.snat_iptables_manager = iptables_manager.IptablesManager(
@@ -536,21 +536,21 @@ class IPSecDeviceDVR(BaseIPsecDeviceDriver):
         router.snat_iptables_manager.apply = self.apply_mock
         self.driver.routers[FAKE_ROUTER_ID] = router
 
-    def test_get_namespace_for_dvr_router(self):
+    def test_get_namespace_for_dvr_edge_router(self):
         namespace = self.driver.get_namespace(FAKE_ROUTER_ID)
         self.assertEqual('snat-' + FAKE_ROUTER_ID, namespace)
 
-    def test_add_nat_rule_with_dvr_router(self):
+    def test_add_nat_rule_with_dvr_edge_router(self):
         self.driver.add_nat_rule(FAKE_ROUTER_ID, 'fake_chain',
                                  'fake_rule', True)
         self.iptables.add_rule.assert_called_once_with(
             'fake_chain', 'fake_rule', top=True)
 
-    def test_iptables_apply_with_dvr_router(self):
+    def test_iptables_apply_with_dvr_edge_router(self):
         self.driver.iptables_apply(FAKE_ROUTER_ID)
         self.apply_mock.assert_called_once_with()
 
-    def test_remove_rule_with_dvr_router(self):
+    def test_remove_rule_with_dvr_edge_router(self):
         self.driver.remove_nat_rule(FAKE_ROUTER_ID, 'fake_chain',
                                     'fake_rule', True)
         self.iptables.remove_rule.assert_called_once_with(
