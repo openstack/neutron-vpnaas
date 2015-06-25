@@ -20,9 +20,9 @@ from neutron.agent.l3 import dvr_edge_router
 from neutron.agent.l3 import dvr_snat_ns
 from neutron.agent.l3 import legacy_router
 from neutron.agent.linux import iptables_manager
-from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 from oslo_config import cfg
+from oslo_utils import uuidutils
 
 from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.device_drivers import fedora_strongswan_ipsec

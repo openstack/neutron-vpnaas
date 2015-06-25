@@ -18,10 +18,10 @@ import os
 
 from neutron.agent.l3 import config as l3_config
 from neutron.agent.l3 import legacy_router
-from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 from neutron.tests.functional import base
 from oslo_config import cfg
+from oslo_utils import uuidutils
 
 from neutron_vpnaas.services.vpn.device_drivers import ipsec
 from neutron_vpnaas.services.vpn.device_drivers import strongswan_ipsec

@@ -16,8 +16,8 @@
 import mock
 
 from neutron.agent.common import config as agent_config
-from neutron.openstack.common import uuidutils
 from oslo_config import cfg
+from oslo_utils import uuidutils
 
 from neutron_vpnaas.services.vpn import vyatta_vpn_service
 from neutron_vpnaas.tests import base

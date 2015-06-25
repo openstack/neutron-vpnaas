@@ -18,7 +18,8 @@ import sys
 
 import mock
 from neutron.agent.l3 import legacy_router
-from neutron.openstack.common import uuidutils
+from oslo_utils import uuidutils
+
 from neutron_vpnaas.tests import base
 
 with mock.patch.dict(sys.modules, {
