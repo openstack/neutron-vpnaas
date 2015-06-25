@@ -110,8 +110,7 @@ class TestVyattaDeviceDriver(base.BaseTestCase):
     def setUp(self):
         super(TestVyattaDeviceDriver, self).setUp()
 
-        mock.patch('neutron.openstack.common.loopingcall'
-                   '.DynamicLoopingCall').start()
+        mock.patch('oslo_service.loopingcall.DynamicLoopingCall').start()
         self.server_api = mock.patch(
             'neutron_vpnaas.services.vpn.device_drivers'
             '.vyatta_ipsec.NeutronServerAPI').start()

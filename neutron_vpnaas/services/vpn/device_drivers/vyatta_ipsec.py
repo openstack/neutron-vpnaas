@@ -15,10 +15,7 @@
 
 import collections
 import logging
-
-import oslo_messaging as messaging
 import pprint
-import six
 
 from networking_brocade.vyatta.common import exceptions as v_exc
 from networking_brocade.vyatta.common import vrouter_config
@@ -26,8 +23,11 @@ from networking_brocade.vyatta.vpn import config as vyatta_vpn_config
 from neutron.common import rpc as n_rpc
 from neutron import context as n_ctx
 from neutron.i18n import _LE, _LW
-from neutron.openstack.common import loopingcall
-from neutron.openstack.common import periodic_task
+from oslo_config import cfg
+import oslo_messaging as messaging
+from oslo_service import loopingcall
+from oslo_service import periodic_task
+import six
 
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import device_drivers
@@ -257,7 +257,7 @@ class VyattaIPSecDriver(device_drivers.DeviceDriver):
 
 class _VyattaPeriodicTasks(periodic_task.PeriodicTasks):
     def __init__(self, driver):
-        super(_VyattaPeriodicTasks, self).__init__()
+        super(_VyattaPeriodicTasks, self).__init__(cfg.CONF)
         self.driver = driver
 
     def __call__(self):
