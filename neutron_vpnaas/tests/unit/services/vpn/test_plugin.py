@@ -20,7 +20,8 @@ from neutron import context
 from neutron import manager
 from neutron.plugins.common import constants as p_constants
 from neutron.tests.unit.extensions import test_agent as test_agent_ext_plugin
-from neutron.tests.unit.plugins.openvswitch import test_agent_scheduler
+from neutron.tests.unit.plugins.ml2.drivers.openvswitch.agent import (
+    test_agent_scheduler)
 
 from neutron_vpnaas.db.vpn import vpn_validator
 from neutron_vpnaas.services.vpn.service_drivers import ipsec as ipsec_driver
