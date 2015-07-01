@@ -418,8 +418,7 @@ class TestCiscoCsrIPsecDeviceDriverSyncStatuses(base.BaseTestCase):
         super(TestCiscoCsrIPsecDeviceDriverSyncStatuses, self).setUp()
         for klass in ['neutron.common.rpc.create_connection',
                       'neutron.context.get_admin_context_without_session',
-                      'neutron.openstack.common.'
-                      'loopingcall.FixedIntervalLoopingCall']:
+                      'oslo_service.loopingcall.FixedIntervalLoopingCall']:
             mock.patch(klass).start()
         self.context = context.Context('some_user', 'some_tenant')
         self.agent = mock.Mock()
