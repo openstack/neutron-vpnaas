@@ -62,7 +62,7 @@ class TestVpnCorePlugin(test_l3_plugin.TestL3NatIntPlugin,
 class VPNTestMixin(object):
     resource_prefix_map = dict(
         (k.replace('_', '-'),
-         constants.COMMON_PREFIXES[constants.VPN])
+         "/vpn")
         for k in vpnaas.RESOURCE_ATTRIBUTE_MAP
     )
 
