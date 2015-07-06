@@ -33,6 +33,7 @@ class VPNPlugin(vpn_db.VPNPluginDb):
     vpn_db.VPNPluginDb.
     """
     supported_extension_aliases = ["vpnaas", "service-type"]
+    path_prefix = "/vpn"
 
 
 class VPNDriverPlugin(VPNPlugin, vpn_db.VPNPluginRpcDbMixin):
