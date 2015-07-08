@@ -18,7 +18,9 @@ import os
 
 import mock
 from neutron.api import extensions as api_extensions
+from neutron.api.v2 import attributes
 from neutron.common import config
+from neutron.common import constants as l3_constants
 from neutron import context
 from neutron.db import agentschedulers_db
 from neutron.db import l3_agentschedulers_db
@@ -1608,3 +1610,156 @@ class TestVpnaas(VPNPluginDbTestCase):
                 mock.ANY, mock.ANY, mock.ANY, **kwargs))
             vpn_plugin.check_router_in_use.assert_called_once_with(
                 mock.ANY, 'foo_id')
+
+
+# Note: Below are new database related tests that only exercise the database
+# instead of going through the client API. The intent here is to (eventually)
+# convert all the database tests to this method, for faster, more granular
+# tests.
+
+# TODO(pcm): Put helpers in another module for sharing
+class NeutronResourcesMixin(object):
+
+    def create_network(self, overrides=None):
+        """Create datatbase entry for network."""
+        network_info = {'network': {'name': 'my-net',
+                                    'tenant_id': self.tenant_id,
+                                    'admin_state_up': True,
+                                    'shared': False}}
+        if overrides:
+            network_info['network'].update(overrides)
+        return self.core_plugin.create_network(self.context, network_info)
+
+    def create_subnet(self, overrides=None):
+        """Create database entry for subnet."""
+        subnet_info = {'subnet': {'name': 'my-subnet',
+                                  'tenant_id': self.tenant_id,
+                                  'ip_version': 4,
+                                  'enable_dhcp': True,
+                                  'dns_nameservers': None,
+                                  'host_routes': None,
+                                  'allocation_pools': None}}
+        if overrides:
+            subnet_info['subnet'].update(overrides)
+        return self.core_plugin.create_subnet(self.context, subnet_info)
+
+    def create_router(self, overrides=None, gw=None):
+        """Create database entry for router with optional gateway."""
+        router_info = {
+            'router': {
+                'name': 'my-router',
+                'tenant_id': self.tenant_id,
+                'admin_state_up': True,
+            }
+        }
+        if overrides:
+            router_info['router'].update(overrides)
+        if gw:
+            gw_info = {
+                'external_gateway_info': {
+                    'network_id': gw['net_id'],
+                    'external_fixed_ips': [{'subnet_id': gw['subnet_id'],
+                                            'ip_address': gw['ip']}],
+                }
+            }
+            router_info['router'].update(gw_info)
+        return self.l3_plugin.create_router(self.context, router_info)
+
+    def create_router_port_for_subnet(self, router, subnet):
+        """Creates port on router for subnet specified."""
+        port = {'port': {
+            'tenant_id': self.tenant_id,
+            'network_id': subnet['network_id'],
+            'fixed_ips': [
+                {'ip_address': subnet['gateway_ip'],
+                 'subnet_id': subnet['id']}
+            ],
+            'mac_address': attributes.ATTR_NOT_SPECIFIED,
+            'admin_state_up': True,
+            'device_id': router['id'],
+            'device_owner': l3_constants.DEVICE_OWNER_ROUTER_INTF,
+            'name': ''
+        }}
+        return self.core_plugin.create_port(self.context, port)
+
+    def create_basic_topology(self):
+        """Setup networks, subnets, and a router for testing VPN."""
+
+        public_net = self.create_network(overrides={'name': 'public',
+                                                    'router:external': True})
+        private_net = self.create_network(overrides={'name': 'private'})
+        overrides = {'name': 'private-subnet',
+                     'cidr': '10.2.0.0/24',
+                     'gateway_ip': '10.2.0.1',
+                     'network_id': private_net['id']}
+        private_subnet = self.create_subnet(overrides=overrides)
+        overrides = {'name': 'public-subnet',
+                     'cidr': '192.168.100.0/24',
+                     'gateway_ip': '192.168.100.1',
+                     'allocation_pools': [{'start': '192.168.100.2',
+                                           'end': '192.168.100.254'}],
+                     'network_id': public_net['id']}
+        public_subnet = self.create_subnet(overrides=overrides)
+        gw_info = {'net_id': public_net['id'],
+                   'subnet_id': public_subnet['id'],
+                   'ip': '192.168.100.5'}
+        router = self.create_router(gw=gw_info)
+        self.create_router_port_for_subnet(router, private_subnet)
+        return (private_subnet, router)
+
+
+class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
+
+    def setUp(self):
+        # Setup the core plugin
+        self.plugin_str = ('neutron_vpnaas.tests.unit.db.vpn.'
+                           'test_vpn_db.TestVpnCorePlugin')
+        super(TestVpnDatabase, self).setUp(self.plugin_str)
+        # Get the plugins
+        self.core_plugin = manager.NeutronManager.get_plugin()
+        self.l3_plugin = manager.NeutronManager.get_service_plugins().get(
+            constants.L3_ROUTER_NAT)
+        # Create VPN database instance
+        self.plugin = vpn_db.VPNPluginDb()
+        self.tenant_id = uuidutils.generate_uuid()
+        self.context = context.get_admin_context()
+
+    def prepare_service_info(self, private_subnet, router):
+        return {'vpnservice': {'name': 'my-service',
+                               'description': 'new service',
+                               'subnet_id': private_subnet['id'],
+                               'router_id': router['id'],
+                               'admin_state_up': True}}
+
+    def test_create_vpnservice(self):
+        private_subnet, router = self.create_basic_topology()
+        info = self.prepare_service_info(private_subnet, router)
+        expected = {'admin_state_up': True,
+                    'external_v4_ip': None,
+                    'external_v6_ip': None,
+                    'status': 'PENDING_CREATE'}
+        expected.update(info['vpnservice'])
+        new_service = self.plugin.create_vpnservice(self.context, info)
+        self.assertDictSupersetOf(expected, new_service)
+
+    def test_update_external_tunnel_ips(self):
+        """Verify that external tunnel IPs can be set."""
+        private_subnet, router = self.create_basic_topology()
+        info = self.prepare_service_info(private_subnet, router)
+        expected = {'admin_state_up': True,
+                    'external_v4_ip': None,
+                    'external_v6_ip': None,
+                    'status': 'PENDING_CREATE'}
+        expected.update(info['vpnservice'])
+        new_service = self.plugin.create_vpnservice(self.context, info)
+        self.assertDictSupersetOf(expected, new_service)
+
+        external_v4_ip = '192.168.100.5'
+        external_v6_ip = 'fd00:1000::4'
+        expected.update({'external_v4_ip': external_v4_ip,
+                         'external_v6_ip': external_v6_ip})
+        mod_service = self.plugin.set_external_tunnel_ips(self.context,
+                                                          new_service['id'],
+                                                          v4_ip=external_v4_ip,
+                                                          v6_ip=external_v6_ip)
+        self.assertDictSupersetOf(expected, mod_service)
