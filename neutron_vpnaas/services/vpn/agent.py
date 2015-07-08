@@ -34,6 +34,7 @@ class VPNAgent(l3_agent.L3NATAgentWithStateReport):
     """VPNAgent class which can handle vpn service drivers."""
     def __init__(self, host, conf=None):
         super(VPNAgent, self).__init__(host=host, conf=conf)
+        self.agent_state['binary'] = 'neutron-vpn-agent'
         self.service = vpn_service.VPNService(self)
         self.device_drivers = self.service.load_device_drivers(host)
 
