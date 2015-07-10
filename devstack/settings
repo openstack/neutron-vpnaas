@@ -1,0 +1,26 @@
+# Settings for the VPNaaS devstack plugin
+
+enable_service q-vpn
+
+AGENT_VPN_BINARY="$NEUTRON_BIN_DIR/neutron-vpn-agent"
+
+# Plugin
+VPN_PLUGIN=${VPN_PLUGIN:-"neutron_vpnaas.services.vpn.plugin.VPNDriverPlugin"}
+
+# Service Driver
+NEUTRON_VPNAAS_SERVICE_PROVIDER=${NEUTRON_VPNAAS_SERVICE_PROVIDER:-"VPN:openswan:neutron_vpnaas.services.vpn.service_drivers.ipsec.IPsecVPNDriver:default"}
+
+# Device driver
+IPSEC_PACKAGE=${IPSEC_PACKAGE:-"openswan"}
+NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.ipsec.OpenSwanDriver"}
+
+# Config files
+NEUTRON_VPNAAS_DIR=$DEST/neutron-vpnaas
+Q_VPN_CONF_FILE=$NEUTRON_CONF_DIR/vpn_agent.ini
+NEUTRON_VPNAAS_CONF=$NEUTRON_CONF_DIR/neutron_vpnaas.conf
+
+declare -a Q_VPN_EXTRA_CONF_FILES
+
+# Need this because if FW and VPN enabled, the FW config must be included,
+# when starting the agent. VPN-agent is a L3-agent is a FW-agent.
+Q_FWAAS_CONF_FILE=$NEUTRON_CONF_DIR/fwaas_driver.ini
