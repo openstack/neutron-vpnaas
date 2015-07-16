@@ -15,14 +15,16 @@
 """fix identifier map fk
 
 Revision ID: 56893333aa52
-Revises: kilo
+Revises: None
 Create Date: 2015-06-11 12:09:01.263253
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '56893333aa52'
-down_revision = 'kilo'
+down_revision = None
+branch_labels = ('liberty_contract',)
+depends_on = ('kilo',)
 
 from alembic import op
 import sqlalchemy as sa
