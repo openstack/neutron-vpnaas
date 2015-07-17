@@ -44,6 +44,9 @@ sudo -H -u $owner $sudo_env tox -e $VENV
 testr_exit_code=$?
 set -e
 
+echo "Dumping log from tox_install.sh"
+cat /tmp/tox_install.txt
+
 # Collect and parse results
 generate_testr_results
 exit $testr_exit_code

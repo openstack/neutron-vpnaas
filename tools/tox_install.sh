@@ -13,16 +13,24 @@
 # default:
 # pip install {opts} {packages}
 
+set -x
+
+exec > /tmp/tox_install.txt 2>&1
+
 ZUUL_CLONER=/usr/zuul-env/bin/zuul-cloner
-neutron_installed=$(python -c "import neutron" ; echo $?)
+neutron_installed=$(echo "import neutron" | python 2>/dev/null ; echo $?)
+NEUTRON_DIR=$HOME/neutron
 
 set -e
 
-if [ $neutron_installed -eq 0 ]; then
-    echo "ALREADY INSTALLED" > /tmp/tox_install.txt
-    echo "Neutron already installed; using existing package"
+if [ -d "$NEUTRON_DIR" ]; then
+    echo "FOUND Neutron code at $NEUTRON_DIR - using"
+    pip install -U -e $NEUTRON_DIR
+elif [ $neutron_installed -eq 0 ]; then
+    location=$(python -c "import neutron; print(neutron.__file__)")
+    echo "ALREADY INSTALLED at $location"
 elif [ -x "$ZUUL_CLONER" ]; then
-    echo "ZUUL CLONER" > /tmp/tox_install.txt
+    echo "USING ZUUL CLONER to obtain Neutron code"
     cwd=$(/bin/pwd)
     cd /tmp
     $ZUUL_CLONER --cache-dir \
@@ -33,7 +41,7 @@ elif [ -x "$ZUUL_CLONER" ]; then
     pip install -e .
     cd "$cwd"
 else
-    echo "PIP HARDCODE" > /tmp/tox_install.txt
+    echo "LOCAL - Obtaining Neutron code from git.openstack.org"
     pip install -U -egit+https://git.openstack.org/openstack/neutron#egg=neutron
 fi
 
