@@ -3,7 +3,7 @@
 set -xe
 
 NEUTRON_VPNAAS_DIR="$BASE/new/neutron-vpnaas"
-TEMPEST_DIR="$BASE/new/tempest"
+TEMPEST_CONFIG_DIR="$BASE/new/tempest/etc"
 SCRIPTS_DIR="/usr/local/jenkins/slave_scripts"
 
 VENV=${1:-"dsvm-functional"}

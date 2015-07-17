@@ -3,6 +3,7 @@
 set -ex
 
 VENV=${1:-"dsvm-functional"}
+export DEVSTACK_LOCAL_CONFIG="enable_plugin neutron-vpnaas https://git.openstack.org/openstack/neutron-vpnaas"
 
 case $VENV in
     dsvm-functional | dsvm-functional-sswan)
