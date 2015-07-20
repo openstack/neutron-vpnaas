@@ -58,14 +58,27 @@ class TestCiscoValidatorSelection(base.BaseTestCase):
 
     def setUp(self):
         super(TestCiscoValidatorSelection, self).setUp()
-        vpnaas_provider = (constants.VPN + ':vpnaas:' +
-                           CISCO_IPSEC_SERVICE_DRIVER + ':default')
-        cfg.CONF.set_override('service_provider',
-                              [vpnaas_provider],
-                              'service_providers')
-        stm = st_db.ServiceTypeManager()
-        mock.patch('neutron.db.servicetype_db.ServiceTypeManager.get_instance',
-                   return_value=stm).start()
+        # TODO(armax): remove this if branch as soon as the ServiceTypeManager
+        # API for adding provider configurations becomes available
+        if not hasattr(st_db.ServiceTypeManager, 'add_provider_configuration'):
+            vpnaas_provider = (constants.VPN +
+                               ':vpnaas:' +
+                               CISCO_IPSEC_SERVICE_DRIVER + ':default')
+            cfg.CONF.set_override(
+                'service_provider', [vpnaas_provider], 'service_providers')
+        else:
+            vpnaas_provider = [{
+                'service_type': constants.VPN,
+                'name': 'vpnaas',
+                'driver': CISCO_IPSEC_SERVICE_DRIVER,
+                'default': True
+            }]
+            # override the default service provider
+            self.service_providers = (
+                mock.patch.object(st_db.ServiceTypeManager,
+                                  'get_service_providers').start())
+            self.service_providers.return_value = vpnaas_provider
+        st_db.ServiceTypeManager._instance = None
         mock.patch('neutron.common.rpc.create_connection').start()
         self.vpn_plugin = vpn_plugin.VPNDriverPlugin()
 

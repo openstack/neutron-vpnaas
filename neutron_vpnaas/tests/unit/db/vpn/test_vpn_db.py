@@ -422,13 +422,27 @@ class VPNPluginDbTestCase(VPNTestMixin,
                 constants.VPN +
                 ':vpnaas:neutron_vpnaas.services.vpn.'
                 'service_drivers.ipsec.IPsecVPNDriver:default')
-
-        cfg.CONF.set_override('service_provider',
-                              [vpnaas_provider],
-                              'service_providers')
+        # TODO(armax): remove this if branch as soon as the ServiceTypeManager
+        # API for adding provider configurations becomes available
+        if not hasattr(sdb.ServiceTypeManager, 'add_provider_configuration'):
+            cfg.CONF.set_override(
+                'service_provider', [vpnaas_provider], 'service_providers')
+        else:
+            bits = vpnaas_provider.split(':')
+            vpnaas_provider = {
+                'service_type': bits[0],
+                'name': bits[1],
+                'driver': bits[2]
+            }
+            if len(bits) == 4:
+                vpnaas_provider['default'] = True
+            # override the default service provider
+            self.service_providers = (
+                mock.patch.object(sdb.ServiceTypeManager,
+                                  'get_service_providers').start())
+            self.service_providers.return_value = [vpnaas_provider]
         # force service type manager to reload configuration:
         sdb.ServiceTypeManager._instance = None
-
         service_plugins = {'vpnaas_plugin': vpnaas_plugin}
         plugin_str = ('neutron_vpnaas.tests.unit.db.vpn.'
                       'test_vpn_db.TestVpnCorePlugin')
