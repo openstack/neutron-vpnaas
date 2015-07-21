@@ -6,8 +6,9 @@ conn %default
     keylife=60m
     keyingtries=%forever
 {% for ipsec_site_connection in vpnservice.ipsec_site_connections if ipsec_site_connection.admin_state_up
-%}conn {{ipsec_site_connection.id}}
-    {% if vpnservice.subnet.ip_version == 6 %}
+-%}
+conn {{ipsec_site_connection.id}}
+    {% if vpnservice.subnet.ip_version == 6 -%}
     # To recognize the given IP addresses in this config
     # as IPv6 addresses by pluto whack. Default is ipv4
     connaddrfamily=ipv6
@@ -15,11 +16,11 @@ conn %default
     # Assign gateway address as leftnexthop
     leftnexthop={{ipsec_site_connection.external_ip}}
     # rightnexthop is not mandatory for ipsec, so no need in ipv6.
-    {% else %}
+    {% else -%}
     # NOTE: a default route is required for %defaultroute to work...
     leftnexthop=%defaultroute
     rightnexthop=%defaultroute
-    {% endif %}
+    {% endif -%}
     left={{ipsec_site_connection.external_ip}}
     leftid={{ipsec_site_connection.external_ip}}
     auto={{ipsec_site_connection.initiator}}
@@ -63,11 +64,17 @@ conn %default
     ##########################
     # [transform_protocol]
     auth={{ipsec_site_connection.ipsecpolicy.transform_protocol}}
+    {% if ipsec_site_connection.ipsecpolicy.transform_protocol == "ah" -%}
+    # AH protocol does not support encryption
+    # [auth_algorithm]-[pfs]
+    phase2alg={{ipsec_site_connection.ipsecpolicy.auth_algorithm}};{{ipsec_site_connection.ipsecpolicy.pfs}}
+    {% else -%}
     # [encryption_algorithm]-[auth_algorithm]-[pfs]
     phase2alg={{ipsec_site_connection.ipsecpolicy.encryption_algorithm}}-{{ipsec_site_connection.ipsecpolicy.auth_algorithm}};{{ipsec_site_connection.ipsecpolicy.pfs}}
+    {% endif -%}
     # [encapsulation_mode]
     type={{ipsec_site_connection.ipsecpolicy.encapsulation_mode}}
     # [lifetime_value]
     lifetime={{ipsec_site_connection.ipsecpolicy.lifetime_value}}s
     # lifebytes=100000 if lifetime_units=kilobytes (IKEv2 only)
-{% endfor %}
+{% endfor -%}
