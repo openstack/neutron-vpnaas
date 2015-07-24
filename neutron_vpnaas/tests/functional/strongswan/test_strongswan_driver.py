@@ -109,8 +109,10 @@ class TestStrongSwanDeviceDriver(base.BaseSudoTestCase):
             'oslo_service.loopingcall.FixedIntervalLoopingCall')
         looping_call_p.start()
 
+        vpn_service = mock.Mock()
+        vpn_service.conf = self.conf
         self.driver = strongswan_ipsec.StrongSwanDriver(
-            vpn_service=mock.Mock(), host=mock.sentinel.host)
+            vpn_service, host=mock.sentinel.host)
         self.driver.routers[FAKE_ROUTER_ID] = self.router
         self.driver.agent_rpc = mock.Mock()
         self.driver._update_nat = mock.Mock()

@@ -144,7 +144,7 @@ class BaseSwanProcess(object):
         self.namespace = namespace
         self.connection_status = {}
         self.config_dir = os.path.join(
-            cfg.CONF.ipsec.config_base_dir, self.id)
+            self.conf.ipsec.config_base_dir, self.id)
         self.etc_dir = os.path.join(self.config_dir, 'etc')
         self.log_dir = os.path.join(self.config_dir, 'logs')
         self.update_vpnservice(vpnservice)
@@ -204,7 +204,7 @@ class BaseSwanProcess(object):
         template = _get_template(template_file)
         return template.render(
             {'vpnservice': vpnservice,
-             'state_path': cfg.CONF.state_path})
+             'state_path': self.conf.state_path})
 
     @abc.abstractmethod
     def get_status(self):
@@ -703,6 +703,9 @@ class IPsecDriver(device_drivers.DeviceDriver):
             # before router's namespace
             process = self.processes[process_id]
             self._update_nat(process.vpnservice, self.add_nat_rule)
+            # Don't run ipsec process for backup HA router
+            if router.router['ha'] and router.ha_state == 'backup':
+                return
             process.enable()
 
     def destroy_process(self, process_id):
@@ -833,7 +836,15 @@ class IPsecDriver(device_drivers.DeviceDriver):
                 process = self.ensure_process(vpnservice['router_id'],
                                               vpnservice=vpnservice)
                 self._update_nat(vpnservice, self.add_nat_rule)
-                process.update()
+                router = self.routers.get(vpnservice['router_id'])
+                if not router:
+                    continue
+                # For HA router, spawn vpn process on master router
+                # and terminate vpn process on backup router
+                if router.router['ha'] and router.ha_state == 'backup':
+                    process.disable()
+                else:
+                    process.update()
 
     def _delete_vpn_processes(self, sync_router_ids, vpn_router_ids):
         # Delete any IPSec processes that are

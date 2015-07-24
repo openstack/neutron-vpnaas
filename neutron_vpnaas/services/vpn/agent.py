@@ -38,6 +38,24 @@ class VPNAgent(l3_agent.L3NATAgentWithStateReport):
         self.service = vpn_service.VPNService(self)
         self.device_drivers = self.service.load_device_drivers(host)
 
+    def process_state_change(self, router_id, state):
+        """Enable the vpn process when router transitioned to master.
+
+           And disable vpn process for backup router.
+        """
+        for device_driver in self.device_drivers:
+            if router_id in device_driver.processes:
+                process = device_driver.processes[router_id]
+                if state == 'master':
+                    process.enable()
+                else:
+                    process.disable()
+
+    def enqueue_state_change(self, router_id, state):
+        """Handle HA router state changes for vpn process"""
+        self.process_state_change(router_id, state)
+        super(VPNAgent, self).enqueue_state_change(router_id, state)
+
 
 def main():
     entry.main(manager='neutron_vpnaas.services.vpn.agent.VPNAgent')

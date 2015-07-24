@@ -261,13 +261,14 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
             mock.patch(klass).start()
         self._execute = mock.patch.object(ipsec_process, '_execute').start()
         self.agent = mock.Mock()
+        self.conf = cfg.CONF
+        self.agent.conf = self.conf
         self.driver = driver(
             self.agent,
             FAKE_HOST)
-        self.conf = cfg.CONF
         self.conf.use_namespaces = True
         self.driver.agent_rpc = mock.Mock()
-        self.ri_kwargs = {'router': {'id': FAKE_ROUTER_ID},
+        self.ri_kwargs = {'router': {'id': FAKE_ROUTER_ID, 'ha': False},
                           'agent_conf': self.conf,
                           'interface_driver': mock.sentinel.interface_driver}
         self.iptables = mock.Mock()
@@ -309,7 +310,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         self._test_vpnservice_updated([])
 
     def test_vpnservice_updated_with_router_info(self):
-        router_info = {'id': FAKE_ROUTER_ID}
+        router_info = {'id': FAKE_ROUTER_ID, 'ha': False}
         kwargs = {'router': router_info}
         self._test_vpnservice_updated([router_info], **kwargs)
 
@@ -825,7 +826,7 @@ class TestLibreSwanProcess(base.BaseTestCase):
                                       'OpenSwanProcess.stop').start()
         self.os_remove = mock.patch('os.remove').start()
 
-        self.ipsec_process = libreswan_ipsec.LibreSwanProcess(mock.ANY,
+        self.ipsec_process = libreswan_ipsec.LibreSwanProcess(cfg.CONF,
                                                        'foo-process-id',
                                                        self.vpnservice,
                                                        mock.ANY)
