@@ -6,7 +6,7 @@ hacking<0.11,>=0.10.0
 coverage>=3.6
 discover
 fixtures>=1.3.1
-mock>=1.0
+mock>=1.2
 python-subunit>=0.0.18
 requests-mock>=0.6.0 # Apache-2.0
 sphinx!=1.2.0,!=1.3b1,<1.3,>=1.1.2
@@ -16,4 +16,4 @@ testtools>=1.4.0
 testscenarios>=0.4
 WebOb>=1.2.3
 WebTest>=2.0
-oslotest>=1.5.1 # Apache-2.0
+oslotest>=1.7.0 # Apache-2.0
