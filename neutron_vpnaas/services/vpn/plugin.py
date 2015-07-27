@@ -27,14 +27,9 @@ LOG = logging.getLogger(__name__)
 
 
 def add_provider_configuration(type_manager, service_type):
-    try:
-        type_manager.add_provider_configuration(
-            service_type,
-            pconf.ProviderConfiguration('neutron_vpnaas'))
-    except AttributeError:
-        # TODO(armax): remove this try catch once the API
-        # add_provider_configuration becomes available
-        LOG.debug('add_provider_configuration API is not available')
+    type_manager.add_provider_configuration(
+        service_type,
+        pconf.ProviderConfiguration('neutron_vpnaas'))
 
 
 class VPNPlugin(vpn_db.VPNPluginDb):

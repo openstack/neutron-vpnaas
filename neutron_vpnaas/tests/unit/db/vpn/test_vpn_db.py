@@ -32,7 +32,6 @@ from neutron.plugins.common import constants
 from neutron.scheduler import l3_agent_scheduler
 from neutron.tests.unit.db import test_db_base_plugin_v2 as test_db_plugin
 from neutron.tests.unit.extensions import test_l3 as test_l3_plugin
-from oslo_config import cfg
 from oslo_utils import uuidutils
 import six
 import webob.exc
@@ -423,25 +422,19 @@ class VPNPluginDbTestCase(VPNTestMixin,
                 constants.VPN +
                 ':vpnaas:neutron_vpnaas.services.vpn.'
                 'service_drivers.ipsec.IPsecVPNDriver:default')
-        # TODO(armax): remove this if branch as soon as the ServiceTypeManager
-        # API for adding provider configurations becomes available
-        if not hasattr(sdb.ServiceTypeManager, 'add_provider_configuration'):
-            cfg.CONF.set_override(
-                'service_provider', [vpnaas_provider], 'service_providers')
-        else:
-            bits = vpnaas_provider.split(':')
-            vpnaas_provider = {
-                'service_type': bits[0],
-                'name': bits[1],
-                'driver': bits[2]
-            }
-            if len(bits) == 4:
-                vpnaas_provider['default'] = True
-            # override the default service provider
-            self.service_providers = (
-                mock.patch.object(sdb.ServiceTypeManager,
-                                  'get_service_providers').start())
-            self.service_providers.return_value = [vpnaas_provider]
+        bits = vpnaas_provider.split(':')
+        vpnaas_provider = {
+            'service_type': bits[0],
+            'name': bits[1],
+            'driver': bits[2]
+        }
+        if len(bits) == 4:
+            vpnaas_provider['default'] = True
+        # override the default service provider
+        self.service_providers = (
+            mock.patch.object(sdb.ServiceTypeManager,
+                              'get_service_providers').start())
+        self.service_providers.return_value = [vpnaas_provider]
         # force service type manager to reload configuration:
         sdb.ServiceTypeManager._instance = None
         service_plugins = {'vpnaas_plugin': vpnaas_plugin}
