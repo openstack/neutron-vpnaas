@@ -66,6 +66,7 @@ FAKE_VPN_SERVICE = {
          'id': FAKE_IPSEC_SITE_CONNECTION1_ID,
          'external_ip': '50.0.0.4',
          'peer_address': '30.0.0.5',
+         'mtu': 1500,
          'peer_id': '30.0.0.5',
          'psk': 'password',
          'initiator': 'bi-directional',
@@ -78,6 +79,7 @@ FAKE_VPN_SERVICE = {
          'external_ip': '50.0.0.4',
          'peer_address': '50.0.0.5',
          'peer_id': '50.0.0.5',
+         'mtu': 1500,
          'psk': 'password',
          'id': FAKE_IPSEC_SITE_CONNECTION2_ID,
          'initiator': 'bi-directional',
@@ -98,8 +100,7 @@ AUTH_AH = '''ah
 
 OPENSWAN_CONNECTION_DETAILS = '''# rightsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
     # [mtu]
-    # Note It looks like not supported in the strongswan driver
-    # ignore it now
+    mtu=1500
     # [dpd_action]
     dpdaction=
     # [dpd_interval]
@@ -151,6 +152,11 @@ conn %(conn1_id)s
     # [subnet]
     leftsubnet=10.0.0.0/24
     # leftsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
+    # [updown]
+    # What "updown" script to run to adjust routing and/or firewalling when
+    # the status of the connection changes (default "ipsec _updown").
+    # "--route yes" allows to specify such routing options as mtu and metric.
+    leftupdown="ipsec _updown --route yes"
     ######################
     # ipsec_site_connections
     ######################
@@ -171,6 +177,11 @@ conn %(conn1_id)s
     # [subnet]
     leftsubnet=10.0.0.0/24
     # leftsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
+    # [updown]
+    # What "updown" script to run to adjust routing and/or firewalling when
+    # the status of the connection changes (default "ipsec _updown").
+    # "--route yes" allows to specify such routing options as mtu and metric.
+    leftupdown="ipsec _updown --route yes"
     ######################
     # ipsec_site_connections
     ######################

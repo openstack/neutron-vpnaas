@@ -155,14 +155,13 @@ def get_ovs_bridge(br_name):
     return ovs_lib.OVSBridge(br_name)
 
 
-class TestIPSecScenario(base.BaseSudoTestCase):
-
+class TestIPSecBase(base.BaseSudoTestCase):
     vpn_agent_ini = os.environ.get('VPN_AGENT_INI',
                                    '/etc/neutron/vpn_agent.ini')
     NESTED_NAMESPACE_SEPARATOR = '@'
 
     def setUp(self):
-        super(TestIPSecScenario, self).setUp()
+        super(TestIPSecBase, self).setUp()
         mock.patch('neutron.agent.l3.agent.L3PluginApi').start()
         # avoid report_status running periodically
         mock.patch('oslo_service.loopingcall.FixedIntervalLoopingCall').start()
@@ -172,7 +171,12 @@ class TestIPSecScenario(base.BaseSudoTestCase):
         # root_helper_daemon and instead use root_helper
         # https://bugs.launchpad.net/neutron/+bug/1482622
         cfg.CONF.set_override('root_helper_daemon', None, group='AGENT')
+
+        self.fake_vpn_service = copy.deepcopy(FAKE_VPN_SERVICE)
+        self.fake_ipsec_connection = copy.deepcopy(FAKE_IPSEC_CONNECTION)
+
         self.vpn_agent = self._configure_agent('agent1')
+        self.driver = self.vpn_agent.device_drivers[0]
 
     def connect_agents(self, agent1, agent2):
         """Simulate both agents in the same host.
@@ -301,7 +305,7 @@ class TestIPSecScenario(base.BaseSudoTestCase):
         return agent.router_info[router['id']]
 
     def prepare_vpn_service_info(self, router_id, external_ip, subnet_cidr):
-        service = copy.deepcopy(FAKE_VPN_SERVICE)
+        service = copy.deepcopy(self.fake_vpn_service)
         service.update({
             'id': _uuid(),
             'router_id': router_id,
@@ -310,7 +314,7 @@ class TestIPSecScenario(base.BaseSudoTestCase):
         return service
 
     def prepare_ipsec_conn_info(self, vpn_service, peer_vpn_service):
-        ipsec_conn = copy.deepcopy(FAKE_IPSEC_CONNECTION)
+        ipsec_conn = copy.deepcopy(self.fake_ipsec_connection)
         ipsec_conn.update({
             'id': _uuid(),
             'vpnservice_id': vpn_service['id'],
@@ -402,8 +406,7 @@ class TestIPSecScenario(base.BaseSudoTestCase):
                 break
         return pm.active
 
-    def test_ipsec_site_connections(self):
-        device = self.vpn_agent.device_drivers[0]
+    def _create_ipsec_site_connection(self, l3ha=False):
         # Mock the method below because it causes Exception:
         #   RuntimeError: Second simultaneous read on fileno 5 detected.
         #   Unless you really know what you're doing, make sure that only
@@ -414,32 +417,49 @@ class TestIPSecScenario(base.BaseSudoTestCase):
         ip_lib.send_ip_addr_adv_notif = mock.Mock()
         # There are no vpn services yet. get_vpn_services_on_host returns
         # empty list
-        device.agent_rpc.get_vpn_services_on_host = mock.Mock(
+        self.driver.agent_rpc.get_vpn_services_on_host = mock.Mock(
             return_value=[])
         # instantiate network resources "router", "private network"
         private_nets = list(PRIVATE_NET.subnet(24))
         site1 = self.site_setup(PUBLIC_NET[4], private_nets[1])
-        site2 = self.site_setup(PUBLIC_NET[5], private_nets[2])
+        if l3ha:
+            site2 = self.setup_ha_routers(PUBLIC_NET[5], private_nets[2])
+        else:
+            site2 = self.site_setup(PUBLIC_NET[5], private_nets[2])
         # build vpn resources
         self.prepare_ipsec_conn_info(site1['vpn_service'],
                                      site2['vpn_service'])
         self.prepare_ipsec_conn_info(site2['vpn_service'],
                                      site1['vpn_service'])
 
-        device.report_status = mock.Mock()
-        device.agent_rpc.get_vpn_services_on_host = mock.Mock(
+        self.driver.report_status = mock.Mock()
+        self.driver.agent_rpc.get_vpn_services_on_host = mock.Mock(
             return_value=[site1['vpn_service'],
                           site2['vpn_service']])
+        if l3ha:
+            self.failover_agent_driver.agent_rpc.get_vpn_services_on_host = (
+                mock.Mock(return_value=[]))
+            self.failover_agent_driver.report_status = mock.Mock()
+            self.failover_agent_driver.agent_rpc.get_vpn_services_on_host = (
+                mock.Mock(return_value=[site2['vpn_service']]))
+
+        return site1, site2
+
+
+class TestIPSecScenario(TestIPSecBase):
+
+    def test_ipsec_site_connections(self):
+        site1, site2 = self._create_ipsec_site_connection()
 
         net_helpers.assert_no_ping(site1['port_namespace'], site2['port_ip'],
                                    timeout=8, count=4)
         net_helpers.assert_no_ping(site2['port_namespace'], site1['port_ip'],
                                    timeout=8, count=4)
 
-        device.sync(mock.Mock(), [{'id': site1['router'].router_id},
-                                  {'id': site2['router'].router_id}])
+        self.driver.sync(mock.Mock(), [{'id': site1['router'].router_id},
+                                       {'id': site2['router'].router_id}])
         self.addCleanup(
-            device._delete_vpn_processes,
+            self.driver._delete_vpn_processes,
             [site1['router'].router_id, site2['router'].router_id], [])
 
         net_helpers.assert_ping(site1['port_namespace'], site2['port_ip'],
@@ -466,38 +486,13 @@ class TestIPSecScenario(base.BaseSudoTestCase):
         self.connect_agents(self.vpn_agent, self.failover_agent)
 
         vpn_agent_driver = self.vpn_agent.device_drivers[0]
-        failover_agent_driver = self.failover_agent.device_drivers[0]
-        ip_lib.send_ip_addr_adv_notif = mock.Mock()
+        self.failover_agent_driver = self.failover_agent.device_drivers[0]
 
-        # There are no vpn services yet. get_vpn_services_on_host returns
-        # empty list
-        vpn_agent_driver.agent_rpc.get_vpn_services_on_host = mock.Mock(
-            return_value=[])
-        failover_agent_driver.agent_rpc.get_vpn_services_on_host = mock.Mock(
-            return_value=[])
+        site1, site2 = self._create_ipsec_site_connection(l3ha=True)
 
-        # instantiate network resources "router", "private network"
-        private_nets = list(PRIVATE_NET.subnet(24))
-        site1 = self.site_setup(PUBLIC_NET[4], private_nets[1])
-        site2 = self.setup_ha_routers(PUBLIC_NET[5], private_nets[2])
         router = site1['router']
         router1 = site2['router1']
         router2 = site2['router2']
-
-        # build vpn resources
-        self.prepare_ipsec_conn_info(site1['vpn_service'],
-                                     site2['vpn_service'])
-        self.prepare_ipsec_conn_info(site2['vpn_service'],
-                                     site1['vpn_service'])
-
-        vpn_agent_driver.report_status = mock.Mock()
-        failover_agent_driver.report_status = mock.Mock()
-
-        vpn_agent_driver.agent_rpc.get_vpn_services_on_host = mock.Mock(
-            return_value=[site1['vpn_service'],
-                          site2['vpn_service']])
-        failover_agent_driver.agent_rpc.get_vpn_services_on_host = mock.Mock(
-            return_value=[site2['vpn_service']])
 
         # No ipsec connection between legacy router and HA routers
         net_helpers.assert_no_ping(site1['port_namespace'], site2['port_ip'],
@@ -508,7 +503,8 @@ class TestIPSecScenario(base.BaseSudoTestCase):
         # sync the routers
         vpn_agent_driver.sync(mock.Mock(), [{'id': router.router_id},
                                   {'id': router1.router_id}])
-        failover_agent_driver.sync(mock.Mock(), [{'id': router1.router_id}])
+        self.failover_agent_driver.sync(mock.Mock(),
+                                        [{'id': router1.router_id}])
 
         self.addCleanup(
             vpn_agent_driver._delete_vpn_processes,
@@ -529,7 +525,8 @@ class TestIPSecScenario(base.BaseSudoTestCase):
 
         # wait until ipsec process running in failover agent's HA router
         # check for both strongswan and openswan processes
-        path = failover_agent_driver.processes[router2.router_id].config_dir
+        path = self.failover_agent_driver.processes[
+            router2.router_id].config_dir
         pid_files = ['%s/var/run/charon.pid' % path,
                      '%s/var/run/pluto.pid' % path]
         linux_utils.wait_until_true(
