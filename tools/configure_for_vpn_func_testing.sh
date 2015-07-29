@@ -21,6 +21,8 @@ PROJECT_NAME=${PROJECT_NAME:-neutron-vpnaas}
 REPO_BASE=${GATE_DEST:-$(cd $(dirname "$BASH_SOURCE")/../.. && pwd)}
 
 source $REPO_BASE/neutron/tools/configure_for_func_testing.sh
+source $REPO_BASE/neutron-vpnaas/devstack/settings
+source $NEUTRON_VPNAAS_DIR/devstack/plugin.sh
 
 
 function _install_vpn_package {
@@ -32,23 +34,14 @@ function _install_vpn_package {
     fi
 
     echo_summary "Installing $IPSEC_PACKAGE"
-    neutron_vpn_install_agent_packages
+    neutron_agent_vpnaas_install_agent_packages
 }
 
 
 function _configure_vpn_ini_file {
     echo_summary "Configuring VPN ini file"
-
     local temp_ini=$(mktemp)
-    cp $REPO_BASE/$PROJECT_NAME/etc/vpn_agent.ini $temp_ini
-    if [ "$IPSEC_PACKAGE" == "strongswan" ]; then
-        iniset_multiline $temp_ini vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.StrongSwanDriver
-        if is_fedora; then
-            iniset $temp_ini strongswan default_config_area /usr/share/strongswan/templates/config/strongswan.d
-        fi
-    else
-        iniset_multiline $temp_ini vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.ipsec.OpenSwanDriver
-    fi
+    neutron_vpnaas_configure_agent $temp_ini
     sudo install -d -o $STACK_USER /etc/neutron/
     sudo install -m 644 -o $STACK_USER $temp_ini $Q_VPN_CONF_FILE
 }
