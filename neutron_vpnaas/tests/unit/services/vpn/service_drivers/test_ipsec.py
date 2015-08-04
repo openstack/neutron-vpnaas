@@ -16,14 +16,16 @@
 import mock
 import socket
 
+from neutron.common import exceptions as nexception
 from neutron import context as n_ctx
 from neutron.db import l3_db
 from neutron.db import servicetype_db as st_db
-from neutron.plugins.common import constants
+from neutron.plugins.common import constants as nconstants
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
 from neutron_vpnaas.extensions import vpnaas
+from neutron_vpnaas.services.vpn.common import constants
 from neutron_vpnaas.services.vpn import plugin as vpn_plugin
 from neutron_vpnaas.services.vpn.service_drivers import ipsec as ipsec_driver
 from neutron_vpnaas.services.vpn.service_drivers \
@@ -58,13 +60,13 @@ class TestValidatorSelection(base.BaseTestCase):
         # TODO(armax): remove this if branch as soon as the ServiceTypeManager
         # API for adding provider configurations becomes available
         if not hasattr(st_db.ServiceTypeManager, 'add_provider_configuration'):
-            vpnaas_provider = (constants.VPN + ':vpnaas:' +
+            vpnaas_provider = (nconstants.VPN + ':vpnaas:' +
                                IPSEC_SERVICE_DRIVER + ':default')
             cfg.CONF.set_override(
                 'service_provider', [vpnaas_provider], 'service_providers')
         else:
             vpnaas_provider = [{
-                'service_type': constants.VPN,
+                'service_type': nconstants.VPN,
                 'name': 'vpnaas',
                 'driver': IPSEC_SERVICE_DRIVER,
                 'default': True
@@ -92,7 +94,7 @@ class TestIPsecDriverValidation(base.BaseTestCase):
         self.l3_plugin = mock.Mock()
         mock.patch(
             'neutron.manager.NeutronManager.get_service_plugins',
-            return_value={constants.L3_ROUTER_NAT: self.l3_plugin}).start()
+            return_value={nconstants.L3_ROUTER_NAT: self.l3_plugin}).start()
         self.core_plugin = mock.Mock()
         mock.patch('neutron.manager.NeutronManager.get_plugin',
                    return_value=self.core_plugin).start()
@@ -306,6 +308,67 @@ class TestIPsecDriverValidation(base.BaseTestCase):
                 self.validator.validate_ipsec_site_connection,
                 self.context, ipsec_sitecon, version)
 
+    def test_endpoints_all_cidrs_in_endpoint_group(self):
+        """All endpoints in the endpoint group are valid CIDRs."""
+        endpoint_group = {'type': constants.CIDR_ENDPOINT,
+                          'endpoints': ['10.10.10.0/24', '20.20.20.0/24']}
+        try:
+            self.validator.validate_endpoint_group(self.context,
+                                                   endpoint_group)
+        except Exception:
+            self.fail("All CIDRs in endpoint_group should be valid")
+
+    def test_endpoints_all_subnets_in_endpoint_group(self):
+        """All endpoints in the endpoint group are valid subnets."""
+        endpoint_group = {'type': constants.SUBNET_ENDPOINT,
+                          'endpoints': [_uuid(), _uuid()]}
+        try:
+            self.validator.validate_endpoint_group(self.context,
+                                                   endpoint_group)
+        except Exception:
+            self.fail("All subnets in endpoint_group should be valid")
+
+    def test_mixed_endpoint_types_in_endpoint_group(self):
+        """Fail when mixing types of endpoints in endpoint group."""
+        endpoint_group = {'type': constants.CIDR_ENDPOINT,
+                          'endpoints': ['10.10.10.0/24', _uuid()]}
+        self.assertRaises(vpnaas.InvalidEndpointInEndpointGroup,
+                          self.validator.validate_endpoint_group,
+                          self.context, endpoint_group)
+        endpoint_group = {'type': constants.SUBNET_ENDPOINT,
+                          'endpoints': [_uuid(), '10.10.10.0/24']}
+        self.assertRaises(vpnaas.InvalidEndpointInEndpointGroup,
+                          self.validator.validate_endpoint_group,
+                          self.context, endpoint_group)
+
+    def test_missing_endpoints_for_endpoint_group(self):
+        endpoint_group = {'type': constants.CIDR_ENDPOINT,
+                          'endpoints': []}
+        self.assertRaises(vpnaas.MissingEndpointForEndpointGroup,
+                          self.validator.validate_endpoint_group,
+                          self.context, endpoint_group)
+
+    def test_fail_bad_cidr_in_endpoint_group(self):
+        """Testing catches bad CIDR.
+
+        Just check one case, as CIDR validator used has good test coverage.
+        """
+        endpoint_group = {'type': constants.CIDR_ENDPOINT,
+                          'endpoints': ['10.10.10.10/24', '20.20.20.1']}
+        self.assertRaises(vpnaas.InvalidEndpointInEndpointGroup,
+                          self.validator.validate_endpoint_group,
+                          self.context, endpoint_group)
+
+    def test_unknown_subnet_in_endpoint_group(self):
+        subnet_id = _uuid()
+        self.core_plugin.get_subnet.side_effect = nexception.SubnetNotFound(
+            subnet_id=subnet_id)
+        endpoint_group = {'type': constants.SUBNET_ENDPOINT,
+                          'endpoints': [subnet_id]}
+        self.assertRaises(vpnaas.NonExistingSubnetInEndpointGroup,
+                          self.validator.validate_endpoint_group,
+                          self.context, endpoint_group)
+
 
 class FakeSqlQueryObject(dict):
     """To fake SqlAlchemy query object and access keys as attributes."""
@@ -330,7 +393,7 @@ class TestIPsecDriver(base.BaseTestCase):
         service_plugin_p = mock.patch(
             'neutron.manager.NeutronManager.get_service_plugins')
         get_service_plugin = service_plugin_p.start()
-        get_service_plugin.return_value = {constants.L3_ROUTER_NAT: plugin}
+        get_service_plugin.return_value = {nconstants.L3_ROUTER_NAT: plugin}
         self.svc_plugin = mock.Mock()
         self.svc_plugin.get_l3_agents_hosting_routers.return_value = [l3_agent]
         self._fake_vpn_router_id = _uuid()

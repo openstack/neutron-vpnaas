@@ -13,12 +13,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from neutron.api.v2 import attributes as attr
 from neutron.db import l3_db
 from neutron.db import model_base
 from neutron.db import models_v2
 
 import sqlalchemy as sa
 from sqlalchemy import orm
+
+from neutron_vpnaas.services.vpn.common import constants
 
 
 class IPsecPeerCidr(model_base.BASEV2):
@@ -35,8 +38,8 @@ class IPsecPeerCidr(model_base.BASEV2):
 class IPsecPolicy(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
     """Represents a v2 IPsecPolicy Object."""
     __tablename__ = 'ipsecpolicies'
-    name = sa.Column(sa.String(255))
-    description = sa.Column(sa.String(255))
+    name = sa.Column(sa.String(attr.NAME_MAX_LEN))
+    description = sa.Column(sa.String(attr.DESCRIPTION_MAX_LEN))
     transform_protocol = sa.Column(sa.Enum("esp", "ah", "ah-esp",
                                            name="ipsec_transform_protocols"),
                                    nullable=False)
@@ -61,8 +64,8 @@ class IPsecPolicy(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
 class IKEPolicy(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
     """Represents a v2 IKEPolicy Object."""
     __tablename__ = 'ikepolicies'
-    name = sa.Column(sa.String(255))
-    description = sa.Column(sa.String(255))
+    name = sa.Column(sa.String(attr.NAME_MAX_LEN))
+    description = sa.Column(sa.String(attr.DESCRIPTION_MAX_LEN))
     auth_algorithm = sa.Column(sa.Enum("sha1",
                                        name="vpn_auth_algorithms"),
                                nullable=False)
@@ -87,8 +90,8 @@ class IPsecSiteConnection(model_base.BASEV2,
                           models_v2.HasId, models_v2.HasTenant):
     """Represents a IPsecSiteConnection Object."""
     __tablename__ = 'ipsec_site_connections'
-    name = sa.Column(sa.String(255))
-    description = sa.Column(sa.String(255))
+    name = sa.Column(sa.String(attr.NAME_MAX_LEN))
+    description = sa.Column(sa.String(attr.DESCRIPTION_MAX_LEN))
     peer_address = sa.Column(sa.String(255), nullable=False)
     peer_id = sa.Column(sa.String(255), nullable=False)
     route_mode = sa.Column(sa.String(8), nullable=False)
@@ -125,8 +128,8 @@ class IPsecSiteConnection(model_base.BASEV2,
 
 class VPNService(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
     """Represents a v2 VPNService Object."""
-    name = sa.Column(sa.String(255))
-    description = sa.Column(sa.String(255))
+    name = sa.Column(sa.String(attr.NAME_MAX_LEN))
+    description = sa.Column(sa.String(attr.DESCRIPTION_MAX_LEN))
     status = sa.Column(sa.String(16), nullable=False)
     admin_state_up = sa.Column(sa.Boolean(), nullable=False)
     external_v4_ip = sa.Column(sa.String(16))
@@ -141,3 +144,33 @@ class VPNService(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
         IPsecSiteConnection,
         backref='vpnservice',
         cascade="all, delete-orphan")
+
+
+class VPNEndpoint(model_base.BASEV2):
+    """Endpoints used in VPN connections.
+
+    All endpoints in a group must be of the same type. Note: the endpoint
+    is an 'opaque' field used to hold different endpoint types, and be
+    flexible enough to use for future types.
+    """
+    __tablename__ = 'vpn_endpoints'
+    endpoint = sa.Column(sa.String(255), nullable=False, primary_key=True)
+    endpoint_group_id = sa.Column(sa.String(36),
+                                  sa.ForeignKey('vpn_endpoint_groups.id',
+                                                ondelete="CASCADE"),
+                                  primary_key=True)
+
+
+class VPNEndpointGroup(model_base.BASEV2, models_v2.HasId,
+                       models_v2.HasTenant):
+    """Collection of endpoints of a specific type, for VPN connections."""
+    __tablename__ = 'vpn_endpoint_groups'
+    name = sa.Column(sa.String(attr.NAME_MAX_LEN))
+    description = sa.Column(sa.String(attr.DESCRIPTION_MAX_LEN))
+    endpoint_type = sa.Column(sa.Enum(*constants.VPN_SUPPORTED_ENDPOINT_TYPES,
+                                      name="vpn_endpoint_type"),
+                              nullable=False)
+    endpoints = orm.relationship(VPNEndpoint,
+                                 backref='endpoint_group',
+                                 lazy='joined',
+                                 cascade='all, delete, delete-orphan')

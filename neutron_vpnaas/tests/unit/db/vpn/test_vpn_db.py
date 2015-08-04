@@ -28,16 +28,18 @@ from neutron.db import servicetype_db as sdb
 from neutron import extensions as nextensions
 from neutron.extensions import l3 as l3_exception
 from neutron import manager
-from neutron.plugins.common import constants
+from neutron.plugins.common import constants as nconstants
 from neutron.scheduler import l3_agent_scheduler
 from neutron.tests.unit.db import test_db_base_plugin_v2 as test_db_plugin
 from neutron.tests.unit.extensions import test_l3 as test_l3_plugin
+from oslo_db import exception as db_exc
 from oslo_utils import uuidutils
 import six
 import webob.exc
 
 from neutron_vpnaas.db.vpn import vpn_db
 from neutron_vpnaas.db.vpn import vpn_models
+from neutron_vpnaas.services.vpn.common import constants
 from neutron_vpnaas.services.vpn import plugin as vpn_plugin
 from neutron_vpnaas.tests import base
 
@@ -402,14 +404,14 @@ class VPNTestMixin(object):
 
     def _set_active(self, model, resource_id):
         service_plugin = manager.NeutronManager.get_service_plugins()[
-            constants.VPN]
+            nconstants.VPN]
         adminContext = context.get_admin_context()
         with adminContext.session.begin(subtransactions=True):
             resource_db = service_plugin._get_resource(
                 adminContext,
                 model,
                 resource_id)
-            resource_db.status = constants.ACTIVE
+            resource_db.status = nconstants.ACTIVE
 
 
 class VPNPluginDbTestCase(VPNTestMixin,
@@ -419,7 +421,7 @@ class VPNPluginDbTestCase(VPNTestMixin,
               vpnaas_provider=None):
         if not vpnaas_provider:
             vpnaas_provider = (
-                constants.VPN +
+                nconstants.VPN +
                 ':vpnaas:neutron_vpnaas.services.vpn.'
                 'service_drivers.ipsec.IPsecVPNDriver:default')
         bits = vpnaas_provider.split(':')
@@ -450,8 +452,8 @@ class VPNPluginDbTestCase(VPNTestMixin,
         self.plugin = vpn_plugin.VPNPlugin()
         ext_mgr = api_extensions.PluginAwareExtensionManager(
             extensions_path,
-            {constants.CORE: self.core_plugin,
-             constants.VPN: self.plugin}
+            {nconstants.CORE: self.core_plugin,
+             nconstants.VPN: self.plugin}
         )
         app = config.load_paste_app('extensions_test_app')
         self.ext_api = api_extensions.ExtensionMiddleware(app, ext_mgr=ext_mgr)
@@ -1726,7 +1728,8 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         # Get the plugins
         self.core_plugin = manager.NeutronManager.get_plugin()
         self.l3_plugin = manager.NeutronManager.get_service_plugins().get(
-            constants.L3_ROUTER_NAT)
+            nconstants.L3_ROUTER_NAT)
+
         # Create VPN database instance
         self.plugin = vpn_db.VPNPluginDb()
         self.tenant_id = uuidutils.generate_uuid()
@@ -1771,3 +1774,167 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
                                                           v4_ip=external_v4_ip,
                                                           v6_ip=external_v6_ip)
         self.assertDictSupersetOf(expected, mod_service)
+
+    def prepare_endpoint_info(self, group_type, endpoints):
+        return {'endpoint_group': {'tenant_id': self.tenant_id,
+                                   'name': 'my endpoint group',
+                                   'description': 'my description',
+                                   'type': group_type,
+                                   'endpoints': endpoints}}
+
+    def test_endpoint_group_create_and_with_cidrs(self):
+        """Verify create endpoint group using CIDRs."""
+        info = self.prepare_endpoint_info(constants.CIDR_ENDPOINT,
+                                          ['10.10.10.0/24', '20.20.20.0/24'])
+        expected = info['endpoint_group']
+        new_endpoint_group = self.plugin.create_endpoint_group(self.context,
+                                                               info)
+        self.assertDictSupersetOf(expected, new_endpoint_group)
+
+    def test_endpoint_group_create_with_subnets(self):
+        """Verify create endpoint group using subnets."""
+        # Skip validation for subnets, as validation is checked in other tests
+        mock.patch.object(self.l3_plugin, "get_subnet").start()
+        private_subnet, router = self.create_basic_topology()
+        private_net2 = self.create_network(overrides={'name': 'private2'})
+        overrides = {'name': 'private-subnet2',
+                     'cidr': '10.1.0.0/24',
+                     'gateway_ip': '10.1.0.1',
+                     'network_id': private_net2['id']}
+        private_subnet2 = self.create_subnet(overrides=overrides)
+        self.create_router_port_for_subnet(router, private_subnet2)
+
+        info = self.prepare_endpoint_info(constants.SUBNET_ENDPOINT,
+                                          [private_subnet['id'],
+                                           private_subnet2['id']])
+        expected = info['endpoint_group']
+        new_endpoint_group = self.plugin.create_endpoint_group(self.context,
+                                                               info)
+        self.assertDictSupersetOf(expected, new_endpoint_group)
+
+    def test_endpoint_group_create_with_vlans(self):
+        """Verify endpoint group using VLANs."""
+        info = self.prepare_endpoint_info(constants.VLAN_ENDPOINT,
+                                          ['100', '200', '300'])
+        expected = info['endpoint_group']
+        new_endpoint_group = self.plugin.create_endpoint_group(self.context,
+                                                               info)
+        self.assertDictSupersetOf(expected, new_endpoint_group)
+
+    def helper_create_endpoint_group(self, info):
+        """Helper to create endpoint group database entry."""
+        try:
+            actual = self.plugin.create_endpoint_group(self.context, info)
+        except db_exc.DBError as e:
+            self.fail("Endpoint create in prep for test failed: %s" % e)
+        self.assertDictSupersetOf(info['endpoint_group'], actual)
+        self.assertIn('id', actual)
+        return actual['id']
+
+    def check_endpoint_group_entry(self, endpoint_group_id, expected_info,
+                                   should_exist=True):
+        try:
+            endpoint_group = self.plugin.get_endpoint_group(self.context,
+                                                            endpoint_group_id)
+            is_found = True
+        except vpnaas.VPNEndpointGroupNotFound:
+            is_found = False
+        except Exception as e:
+            self.fail("Unexpected exception getting endpoint group: %s" % e)
+
+        if should_exist != is_found:
+            self.fail("Endpoint group should%(expected)s exist, but "
+                      "did%(actual)s exist" %
+                      {'expected': '' if should_exist else ' not',
+                       'actual': '' if is_found else ' not'})
+        if is_found:
+            self.assertDictSupersetOf(expected_info, endpoint_group)
+
+    def test_delete_endpoint_group(self):
+        """Test that endpoint group is deleted."""
+        info = self.prepare_endpoint_info(constants.CIDR_ENDPOINT,
+                                          ['10.10.10.0/24', '20.20.20.0/24'])
+        expected = info['endpoint_group']
+        group_id = self.helper_create_endpoint_group(info)
+        self.check_endpoint_group_entry(group_id, expected, should_exist=True)
+
+        self.plugin.delete_endpoint_group(self.context, group_id)
+        self.check_endpoint_group_entry(group_id, expected, should_exist=False)
+
+        self.assertRaises(vpnaas.VPNEndpointGroupNotFound,
+                          self.plugin.delete_endpoint_group,
+                          self.context, group_id)
+
+    def test_show_endpoint_group(self):
+        """Test showing a single endpoint group."""
+        info = self.prepare_endpoint_info(constants.CIDR_ENDPOINT,
+                                          ['10.10.10.0/24', '20.20.20.0/24'])
+        expected = info['endpoint_group']
+        group_id = self.helper_create_endpoint_group(info)
+        self.check_endpoint_group_entry(group_id, expected, should_exist=True)
+
+        actual = self.plugin.get_endpoint_group(self.context, group_id)
+        self.assertDictSupersetOf(expected, actual)
+
+    def test_fail_showing_non_existent_endpoint_group(self):
+        """Test failure to show non-existent endpoint gourp."""
+        self.assertRaises(vpnaas.VPNEndpointGroupNotFound,
+                          self.plugin.get_endpoint_group,
+                          self.context, uuidutils.generate_uuid())
+
+    def test_list_endpoint_groups(self):
+        """Test listing multiple endpoint groups."""
+        # Skip validation for subnets, as validation is checked in other tests
+        mock.patch.object(self.l3_plugin, "get_subnet").start()
+        info1 = self.prepare_endpoint_info(constants.CIDR_ENDPOINT,
+                                           ['10.10.10.0/24', '20.20.20.0/24'])
+        expected1 = info1['endpoint_group']
+        group_id1 = self.helper_create_endpoint_group(info1)
+        self.check_endpoint_group_entry(group_id1, expected1,
+                                        should_exist=True)
+
+        info2 = self.prepare_endpoint_info(constants.SUBNET_ENDPOINT,
+                                           [uuidutils.generate_uuid(),
+                                            uuidutils.generate_uuid()])
+        expected2 = info2['endpoint_group']
+        group_id2 = self.helper_create_endpoint_group(info2)
+        self.check_endpoint_group_entry(group_id2, expected2,
+                                        should_exist=True)
+        expected1.update({'id': group_id1})
+        expected2.update({'id': group_id2})
+        # Note: Subnet IDs could be in any order - force ascending
+        expected2['endpoints'].sort()
+        expected = [expected1, expected2]
+        actual = self.plugin.get_endpoint_groups(self.context,
+            fields=('type', 'tenant_id', 'endpoints',
+                    'name', 'description', 'id'))
+        self.assertEqual(expected, actual)
+
+    def test_update_endpoint_group(self):
+        """Test updating endpoint group information."""
+        info = self.prepare_endpoint_info(constants.CIDR_ENDPOINT,
+                                          ['10.10.10.0/24', '20.20.20.0/24'])
+        expected = info['endpoint_group']
+        group_id = self.helper_create_endpoint_group(info)
+        self.check_endpoint_group_entry(group_id, expected, should_exist=True)
+
+        group_updates = {'endpoint_group': {'name': 'new name',
+                                            'description': 'new description'}}
+        updated_group = self.plugin.update_endpoint_group(self.context,
+                                                          group_id,
+                                                          group_updates)
+
+        # Check what was returned, and what is stored in database
+        self.assertDictSupersetOf(group_updates['endpoint_group'],
+                                  updated_group)
+        expected.update(group_updates['endpoint_group'])
+        self.check_endpoint_group_entry(group_id, expected,
+                                        should_exist=True)
+
+    def test_fail_updating_non_existent_group(self):
+        """Test fail updating a non-existent group."""
+        group_updates = {'endpoint_group': {'name': 'new name'}}
+        self.assertRaises(
+            vpnaas.VPNEndpointGroupNotFound,
+            self.plugin.update_endpoint_group,
+            self.context, uuidutils.generate_uuid(), group_updates)

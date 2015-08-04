@@ -16,11 +16,16 @@ import netaddr
 import socket
 
 from neutron.api.v2 import attributes
+from neutron.common import exceptions as nexception
 from neutron.db import l3_db
 from neutron import manager
-from neutron.plugins.common import constants
+from neutron.plugins.common import constants as nconstants
+from oslo_log import log as logging
 
 from neutron_vpnaas.extensions import vpnaas
+from neutron_vpnaas.services.vpn.common import constants
+
+LOG = logging.getLogger(__name__)
 
 
 class VpnReferenceValidator(object):
@@ -35,7 +40,7 @@ class VpnReferenceValidator(object):
             return self._l3_plugin
         except AttributeError:
             self._l3_plugin = manager.NeutronManager.get_service_plugins().get(
-                constants.L3_ROUTER_NAT)
+                nconstants.L3_ROUTER_NAT)
             return self._l3_plugin
 
     @property
@@ -143,3 +148,42 @@ class VpnReferenceValidator(object):
         for IPSec Policy validation.
         """
         pass
+
+    def _validate_cidrs(self, cidrs):
+        """Ensure valid IPv4/6 CIDRs."""
+        for cidr in cidrs:
+            msg = attributes._validate_subnet(cidr)
+            if msg:
+                raise vpnaas.InvalidEndpointInEndpointGroup(
+                    group_type=constants.CIDR_ENDPOINT, endpoint=cidr,
+                    why=_("Invalid CIDR"))
+
+    def _validate_subnets(self, context, subnet_ids):
+        """Ensure UUIDs OK and subnets exist."""
+        for subnet_id in subnet_ids:
+            msg = attributes._validate_uuid(subnet_id)
+            if msg:
+                raise vpnaas.InvalidEndpointInEndpointGroup(
+                    group_type=constants.SUBNET_ENDPOINT, endpoint=subnet_id,
+                    why=_('Invalid UUID'))
+            try:
+                self.core_plugin.get_subnet(context, subnet_id)
+            except nexception.SubnetNotFound:
+                raise vpnaas.NonExistingSubnetInEndpointGroup(
+                    subnet=subnet_id)
+
+    def validate_endpoint_group(self, context, endpoint_group):
+        """Reference validator for endpoint group.
+
+        Ensures that there is at least one endpoint, all the endpoints in the
+        group are of the same type, and that the endpoints are "valid".
+        Note: Only called for create, as endpoints cannot be changed.
+        """
+        endpoints = endpoint_group['endpoints']
+        if not endpoints:
+            raise vpnaas.MissingEndpointForEndpointGroup(group=endpoint_group)
+        group_type = endpoint_group['type']
+        if group_type == constants.CIDR_ENDPOINT:
+            self._validate_cidrs(endpoints)
+        elif group_type == constants.SUBNET_ENDPOINT:
+            self._validate_subnets(context, endpoints)

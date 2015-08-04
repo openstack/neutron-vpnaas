@@ -21,8 +21,10 @@ from neutron.api import extensions
 from neutron.api.v2 import attributes as attr
 from neutron.api.v2 import resource_helper
 from neutron.common import exceptions as nexception
-from neutron.plugins.common import constants
+from neutron.plugins.common import constants as nconstants
 from neutron.services import service_base
+
+from neutron_vpnaas.services.vpn.common import constants
 
 
 class VPNServiceNotFound(nexception.NotFound):
@@ -94,6 +96,23 @@ class VPNPeerAddressNotResolved(nexception.InvalidInput):
 class ExternalNetworkHasNoSubnet(nexception.BadRequest):
     message = _("Router's %(router_id)s external network has "
                 "no %(ip_version)s subnet")
+
+
+class VPNEndpointGroupNotFound(nexception.NotFound):
+    message = _("Endpoint group %(endpoint_group_id)s could not be found")
+
+
+class InvalidEndpointInEndpointGroup(nexception.InvalidInput):
+    message = _("Endpoint '%(endpoint)s' is invalid for group "
+                "type '%(group_type)s': %(why)s")
+
+
+class MissingEndpointForEndpointGroup(nexception.BadRequest):
+    message = _("No endpoints specified for endpoint group '%(group)s'")
+
+
+class NonExistingSubnetInEndpointGroup(nexception.InvalidInput):
+    message = _("Subnet %(subnet)s in endpoint group does not exist")
 
 
 vpn_supported_initiators = ['bi-directional', 'response-only']
@@ -343,7 +362,32 @@ RESOURCE_ATTRIBUTE_MAP = {
                 'default': 'group5',
                 'validate': {'type:values': vpn_supported_pfs},
                 'is_visible': True}
-    }
+    },
+
+    'endpoint_groups': {
+        'id': {'allow_post': False, 'allow_put': False,
+               'validate': {'type:uuid': None},
+               'is_visible': True,
+               'primary_key': True},
+        'tenant_id': {'allow_post': True, 'allow_put': False,
+                      'validate': {'type:string': attr.TENANT_ID_MAX_LEN},
+                      'required_by_policy': True,
+                      'is_visible': True},
+        'name': {'allow_post': True, 'allow_put': True,
+                 'validate': {'type:string': attr.NAME_MAX_LEN},
+                 'is_visible': True, 'default': ''},
+        'description': {'allow_post': True, 'allow_put': True,
+                        'validate': {'type:string': attr.DESCRIPTION_MAX_LEN},
+                        'is_visible': True, 'default': ''},
+        'type': {'allow_post': True, 'allow_put': False,
+                 'validate': {
+                     'type:values': constants.VPN_SUPPORTED_ENDPOINT_TYPES,
+                 },
+                 'is_visible': True},
+        'endpoints': {'allow_post': True, 'allow_put': False,
+                      'convert_to': attr.convert_to_list,
+                      'is_visible': True},
+    },
 }
 
 
@@ -379,7 +423,7 @@ class Vpnaas(extensions.ExtensionDescriptor):
         attr.PLURALS.update(plural_mappings)
         return resource_helper.build_resource_info(plural_mappings,
                                                    RESOURCE_ATTRIBUTE_MAP,
-                                                   constants.VPN,
+                                                   nconstants.VPN,
                                                    register_quota=True,
                                                    translate_name=True)
 
@@ -402,10 +446,10 @@ class Vpnaas(extensions.ExtensionDescriptor):
 class VPNPluginBase(service_base.ServicePluginBase):
 
     def get_plugin_name(self):
-        return constants.VPN
+        return nconstants.VPN
 
     def get_plugin_type(self):
-        return constants.VPN
+        return nconstants.VPN
 
     def get_plugin_description(self):
         return 'VPN service plugin'
@@ -490,4 +534,25 @@ class VPNPluginBase(service_base.ServicePluginBase):
 
     @abc.abstractmethod
     def delete_ipsecpolicy(self, context, ipsecpolicy_id):
+        pass
+
+    @abc.abstractmethod
+    def create_endpoint_group(self, context, endpoint_group):
+        pass
+
+    @abc.abstractmethod
+    def update_endpoint_group(self, context, endpoint_group_id,
+                              endpoint_group):
+        pass
+
+    @abc.abstractmethod
+    def delete_endpoint_group(self, context, endpoint_group_id):
+        pass
+
+    @abc.abstractmethod
+    def get_endpoint_group(self, context, endpoint_group_id, fields=None):
+        pass
+
+    @abc.abstractmethod
+    def get_endpoint_groups(self, context, filters=None, fields=None):
         pass

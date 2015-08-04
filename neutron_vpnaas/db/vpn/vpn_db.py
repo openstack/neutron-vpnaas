@@ -72,6 +72,9 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
                     raise vpnaas.IPsecPolicyNotFound(ipsecpolicy_id=v_id)
                 elif issubclass(model, vpn_models.VPNService):
                     raise vpnaas.VPNServiceNotFound(vpnservice_id=v_id)
+                elif issubclass(model, vpn_models.VPNEndpointGroup):
+                    raise vpnaas.VPNEndpointGroupNotFound(
+                        endpoint_group_id=v_id)
                 ctx.reraise = True
         return r
 
@@ -514,6 +517,64 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
                 raise vpnaas.SubnetInUseByVPNService(
                     subnet_id=subnet_id,
                     vpnservice_id=vpnservices['id'])
+
+    def _make_endpoint_group_dict(self, endpoint_group, fields=None):
+        res = {'id': endpoint_group['id'],
+               'tenant_id': endpoint_group['tenant_id'],
+               'name': endpoint_group['name'],
+               'description': endpoint_group['description'],
+               'type': endpoint_group['endpoint_type'],
+               'endpoints': [ep['endpoint']
+                             for ep in endpoint_group['endpoints']]}
+        return self._fields(res, fields)
+
+    def create_endpoint_group(self, context, endpoint_group):
+        group = endpoint_group['endpoint_group']
+        tenant_id = self._get_tenant_id_for_create(context, group)
+        validator = self._get_validator()
+        with context.session.begin(subtransactions=True):
+            validator.validate_endpoint_group(context, group)
+            endpoint_group_db = vpn_models.VPNEndpointGroup(
+                id=uuidutils.generate_uuid(),
+                tenant_id=tenant_id,
+                name=group['name'],
+                description=group['description'],
+                endpoint_type=group['type'])
+            context.session.add(endpoint_group_db)
+            for endpoint in group['endpoints']:
+                endpoint_db = vpn_models.VPNEndpoint(
+                    endpoint=endpoint,
+                    endpoint_group_id=endpoint_group_db['id']
+                )
+                context.session.add(endpoint_db)
+        return self._make_endpoint_group_dict(endpoint_group_db)
+
+    def update_endpoint_group(self, context, endpoint_group_id,
+                              endpoint_group):
+        group_changes = endpoint_group['endpoint_group']
+        # Note: Endpoints cannot be changed, so will not do validation
+        with context.session.begin(subtransactions=True):
+            endpoint_group_db = self._get_resource(context,
+                                                   vpn_models.VPNEndpointGroup,
+                                                   endpoint_group_id)
+            endpoint_group_db.update(group_changes)
+        return self._make_endpoint_group_dict(endpoint_group_db)
+
+    def delete_endpoint_group(self, context, endpoint_group_id):
+        with context.session.begin(subtransactions=True):
+            endpoint_group_db = self._get_resource(
+                context, vpn_models.VPNEndpointGroup, endpoint_group_id)
+            context.session.delete(endpoint_group_db)
+
+    def get_endpoint_group(self, context, endpoint_group_id, fields=None):
+        endpoint_group_db = self._get_resource(
+            context, vpn_models.VPNEndpointGroup, endpoint_group_id)
+        return self._make_endpoint_group_dict(endpoint_group_db, fields)
+
+    def get_endpoint_groups(self, context, filters=None, fields=None):
+        return self._get_collection(context, vpn_models.VPNEndpointGroup,
+                                    self._make_endpoint_group_dict,
+                                    filters=filters, fields=fields)
 
 
 class VPNPluginRpcDbMixin(object):
