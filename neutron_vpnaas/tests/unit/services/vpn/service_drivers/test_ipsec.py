@@ -132,7 +132,7 @@ class TestIPsecDriverValidation(base.BaseTestCase):
         }
         self.assertEqual(expected, ipsec_sitecon)
 
-    def test_resolve_peer_address_with_ipadress(self):
+    def test_resolve_peer_address_with_ipaddress(self):
         ipsec_sitecon = {'peer_address': '10.0.0.9'}
         self.validator.validate_peer_address = mock.Mock()
         self.validator.resolve_peer_address(ipsec_sitecon, self.router)
