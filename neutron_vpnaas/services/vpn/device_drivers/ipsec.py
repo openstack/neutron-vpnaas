@@ -20,13 +20,13 @@ import shutil
 import six
 import socket
 
-
 import jinja2
 import netaddr
 from neutron.agent.linux import ip_lib
 from neutron.agent.linux import utils
 from neutron.api.v2 import attributes
 from neutron.common import rpc as n_rpc
+from neutron.common import utils as n_utils
 from neutron import context
 from neutron.i18n import _LE
 from neutron.plugins.common import constants
@@ -184,16 +184,12 @@ class BaseSwanProcess(object):
         config_dir = self.etc_dir
         return os.path.join(config_dir, kind)
 
-    def _ensure_dir(self, dir_path):
-        if not os.path.isdir(dir_path):
-            os.makedirs(dir_path, 0o755)
-
     def ensure_config_dir(self, vpnservice):
         """Create config directory if it does not exist."""
-        self._ensure_dir(self.config_dir)
+        n_utils.ensure_dir(self.config_dir)
         for subdir in self.CONFIG_DIRS:
             dir_path = os.path.join(self.config_dir, subdir)
-            self._ensure_dir(dir_path)
+            n_utils.ensure_dir(dir_path)
 
     def _gen_config_content(self, template_file, vpnservice):
         template = _get_template(template_file)
