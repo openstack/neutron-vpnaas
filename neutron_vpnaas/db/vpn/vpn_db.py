@@ -150,6 +150,8 @@ class VPNService(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
     description = sa.Column(sa.String(255))
     status = sa.Column(sa.String(16), nullable=False)
     admin_state_up = sa.Column(sa.Boolean(), nullable=False)
+    external_v4_ip = sa.Column(sa.String(16))
+    external_v6_ip = sa.Column(sa.String(64))
     subnet_id = sa.Column(sa.String(36), sa.ForeignKey('subnets.id'),
                           nullable=False)
     router_id = sa.Column(sa.String(36), sa.ForeignKey('routers.id'),
@@ -555,6 +557,8 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
                'subnet_id': vpnservice['subnet_id'],
                'router_id': vpnservice['router_id'],
                'admin_state_up': vpnservice['admin_state_up'],
+               'external_v4_ip': vpnservice['external_v4_ip'],
+               'external_v6_ip': vpnservice['external_v6_ip'],
                'status': vpnservice['status']}
         return self._fields(res, fields)
 
@@ -574,6 +578,15 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
                                        status=constants.PENDING_CREATE)
             context.session.add(vpnservice_db)
         return self._make_vpnservice_dict(vpnservice_db)
+
+    def set_external_tunnel_ips(self, context, vpnservice_id, v4_ip=None,
+                                v6_ip=None):
+        """Update the external tunnel IP(s) for service."""
+        vpns = {'external_v4_ip': v4_ip, 'external_v6_ip': v6_ip}
+        with context.session.begin(subtransactions=True):
+            vpns_db = self._get_resource(context, VPNService, vpnservice_id)
+            vpns_db.update(vpns)
+        return self._make_vpnservice_dict(vpns_db)
 
     def update_vpnservice(self, context, vpnservice_id, vpnservice):
         vpns = vpnservice['vpnservice']

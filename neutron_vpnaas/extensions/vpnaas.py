@@ -142,6 +142,10 @@ RESOURCE_ATTRIBUTE_MAP = {
                            'default': True,
                            'convert_to': attr.convert_to_boolean,
                            'is_visible': True},
+        'external_v4_ip': {'allow_post': False, 'allow_put': False,
+                        'is_visible': True},
+        'external_v6_ip': {'allow_post': False, 'allow_put': False,
+                        'is_visible': True},
         'status': {'allow_post': False, 'allow_put': False,
                    'is_visible': True}
     },

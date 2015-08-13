@@ -57,6 +57,11 @@ class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
         self.driver.delete_ipsec_site_connection.assert_called_once_with(
             mock.ANY, mock.ANY)
 
+    def test_create_vpnservice(self):
+        super(TestVPNDriverPlugin, self).test_create_vpnservice()
+        self.driver.create_vpnservice.assert_called_once_with(
+            mock.ANY, mock.ANY)
+
     def test_delete_vpnservice(self, **extras):
         super(TestVPNDriverPlugin, self).test_delete_vpnservice()
         self.driver.delete_vpnservice.assert_called_once_with(

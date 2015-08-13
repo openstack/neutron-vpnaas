@@ -114,8 +114,38 @@ class BaseIPsecVPNDriver(service_drivers.VpnDriver):
     def update_ipsecpolicy(self, context, old_ipsec_policy, ipsecpolicy):
         pass
 
-    def create_vpnservice(self, context, vpnservice):
-        pass
+    def _get_gateway_ips(self, router):
+        """Obtain the IPv4 and/or IPv6 GW IP for the router.
+
+        If there are multiples, (arbitrarily) use the first one.
+        """
+        v4_ip = v6_ip = None
+        for fixed_ip in router.gw_port['fixed_ips']:
+            addr = fixed_ip['ip_address']
+            vers = netaddr.IPAddress(addr).version
+            if vers == 4:
+                if v4_ip is None:
+                    v4_ip = addr
+            elif v6_ip is None:
+                v6_ip = addr
+        return v4_ip, v6_ip
+
+    def create_vpnservice(self, context, vpnservice_dict):
+        """Get the gateway IP(s) and save for later use.
+
+        For the reference implementation, this side's tunnel IP (external_ip)
+        will be the router's GW IP. IPSec connections will use a GW IP of
+        the same version, as is used for the peer, so we will collect the
+        first IP for each version (if they exist) and save them.
+        """
+        vpnservice = self.service_plugin._get_vpnservice(context,
+                                                         vpnservice_dict['id'])
+        v4_ip, v6_ip = self._get_gateway_ips(vpnservice.router)
+        vpnservice_dict['external_v4_ip'] = v4_ip
+        vpnservice_dict['external_v6_ip'] = v6_ip
+        self.service_plugin.set_external_tunnel_ips(context,
+                                                    vpnservice_dict['id'],
+                                                    v4_ip=v4_ip, v6_ip=v6_ip)
 
     def update_vpnservice(self, context, old_vpnservice, vpnservice):
         self.agent_rpc.vpnservice_updated(context, vpnservice['router_id'])
@@ -123,21 +153,17 @@ class BaseIPsecVPNDriver(service_drivers.VpnDriver):
     def delete_vpnservice(self, context, vpnservice):
         self.agent_rpc.vpnservice_updated(context, vpnservice['router_id'])
 
-    def assign_ipsec_sitecon_external_ip(self, vpnservice, ipsec_site_con):
-        """Assign external_ip to ipsec siteconn.
-
-        We need to assign ip from gateway based on the
-        ip version of peer_address.
-        """
-        ip_version = netaddr.IPAddress(ipsec_site_con['peer_address']).version
-        # *Swan use same ip version for left and right gateway ips
-        # If gateway has multiple GUA, we assign the first one, as
-        # any GUA can be used to reach the external network
-        for fixed_ip in vpnservice.router.gw_port['fixed_ips']:
-            addr = fixed_ip['ip_address']
-            if ip_version == netaddr.IPAddress(addr).version:
-                ipsec_site_con['external_ip'] = addr
-                break
+    def get_external_ip_based_on_peer(self, vpnservice, ipsec_site_con):
+        """Use service's external IP, based on peer IP version."""
+        vers = netaddr.IPAddress(ipsec_site_con['peer_address']).version
+        if vers == 4:
+            ip_to_use = vpnservice.external_v4_ip
+        else:
+            ip_to_use = vpnservice.external_v6_ip
+        # TODO(pcm): Add validator to check that connection's peer address has
+        # a version that is available in service table, so can fail early and
+        # don't need a check here.
+        return ip_to_use
 
     def make_vpnservice_dict(self, vpnservice):
         """Convert vpnservice information for vpn agent.
@@ -149,9 +175,10 @@ class BaseIPsecVPNDriver(service_drivers.VpnDriver):
         vpnservice_dict['subnet'] = dict(
             vpnservice.subnet)
         # Not removing external_ip from vpnservice_dict, as some providers
-        # may be still using it from vpnservice_dict
-        vpnservice_dict['external_ip'] = vpnservice.router.gw_port[
-            'fixed_ips'][0]['ip_address']
+        # may be still using it from vpnservice_dict. Will use whichever IP
+        # is specified.
+        vpnservice_dict['external_ip'] = (
+            vpnservice.external_v4_ip or vpnservice.external_v6_ip)
         for ipsec_site_connection in vpnservice.ipsec_site_connections:
             ipsec_site_connection_dict = dict(ipsec_site_connection)
             try:
@@ -169,6 +196,7 @@ class BaseIPsecVPNDriver(service_drivers.VpnDriver):
                 peer_cidr.cidr
                 for peer_cidr in ipsec_site_connection.peer_cidrs]
             ipsec_site_connection_dict['peer_cidrs'] = peer_cidrs
-            self.assign_ipsec_sitecon_external_ip(
-                vpnservice, ipsec_site_connection_dict)
+            ipsec_site_connection_dict['external_ip'] = (
+                self.get_external_ip_based_on_peer(vpnservice,
+                                                   ipsec_site_connection_dict))
         return vpnservice_dict
