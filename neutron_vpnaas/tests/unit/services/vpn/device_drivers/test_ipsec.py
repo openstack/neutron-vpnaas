@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import copy
+import difflib
 import mock
 import socket
 
@@ -60,6 +61,7 @@ FAKE_VPN_SERVICE = {
     'ipsec_site_connections': [
         {'peer_cidrs': ['20.0.0.0/24',
                         '30.0.0.0/24'],
+         'admin_state_up': True,
          'id': FAKE_IPSEC_SITE_CONNECTION1_ID,
          'external_ip': '50.0.0.4',
          'peer_address': '30.0.0.5',
@@ -71,6 +73,7 @@ FAKE_VPN_SERVICE = {
          'status': constants.PENDING_CREATE},
         {'peer_cidrs': ['40.0.0.0/24',
                         '50.0.0.0/24'],
+         'admin_state_up': True,
          'external_ip': '50.0.0.4',
          'peer_address': '50.0.0.5',
          'peer_id': '50.0.0.5',
@@ -81,6 +84,108 @@ FAKE_VPN_SERVICE = {
          'ipsecpolicy': FAKE_IPSEC_POLICY,
          'status': constants.PENDING_CREATE}]
 }
+
+
+AUTH_ESP = '''esp
+    # [encryption_algorithm]-[auth_algorithm]-[pfs]
+    phase2alg=aes128-sha1;modp1536'''
+
+AUTH_AH = '''ah
+    # AH protocol does not support encryption
+    # [auth_algorithm]-[pfs]
+    phase2alg=sha1;modp1536'''
+
+OPENSWAN_CONNECTION_DETAILS = '''# rightsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
+    # [mtu]
+    # Note It looks like not supported in the strongswan driver
+    # ignore it now
+    # [dpd_action]
+    dpdaction=
+    # [dpd_interval]
+    dpddelay=
+    # [dpd_timeout]
+    dpdtimeout=
+    # [auth_mode]
+    authby=secret
+    ######################
+    # IKEPolicy params
+    ######################
+    #ike version
+    ikev2=never
+    # [encryption_algorithm]-[auth_algorithm]-[pfs]
+    ike=aes128-sha1;modp1536
+    # [lifetime_value]
+    ikelifetime=s
+    # NOTE: it looks lifetime_units=kilobytes can't be enforced \
+(could be seconds,  hours,  days...)
+    ##########################
+    # IPsecPolicys params
+    ##########################
+    # [transform_protocol]
+    auth=%(auth_mode)s
+    # [encapsulation_mode]
+    type=
+    # [lifetime_value]
+    lifetime=s
+    # lifebytes=100000 if lifetime_units=kilobytes (IKEv2 only)
+'''
+
+
+EXPECTED_OPENSWAN_CONF = """
+# Configuration for myvpn
+config setup
+    nat_traversal=yes
+conn %(default_id)s
+    ikelifetime=480m
+    keylife=60m
+    keyingtries=%%forever
+conn %(conn1_id)s
+    # NOTE: a default route is required for %%defaultroute to work...
+    leftnexthop=%%defaultroute
+    rightnexthop=%%defaultroute
+    left=50.0.0.4
+    leftid=50.0.0.4
+    auto=start
+    # NOTE:REQUIRED
+    # [subnet]
+    leftsubnet=10.0.0.0/24
+    # leftsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
+    ######################
+    # ipsec_site_connections
+    ######################
+    # [peer_address]
+    right=30.0.0.5
+    # [peer_id]
+    rightid=30.0.0.5
+    # [peer_cidrs]
+    rightsubnets={ 20.0.0.0/24 30.0.0.0/24 }
+    %(conn_details)sconn %(conn2_id)s
+    # NOTE: a default route is required for %%defaultroute to work...
+    leftnexthop=%%defaultroute
+    rightnexthop=%%defaultroute
+    left=50.0.0.4
+    leftid=50.0.0.4
+    auto=start
+    # NOTE:REQUIRED
+    # [subnet]
+    leftsubnet=10.0.0.0/24
+    # leftsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
+    ######################
+    # ipsec_site_connections
+    ######################
+    # [peer_address]
+    right=50.0.0.5
+    # [peer_id]
+    rightid=50.0.0.5
+    # [peer_cidrs]
+    rightsubnets={ 40.0.0.0/24 50.0.0.0/24 }
+    %(conn_details)s
+"""
+
+EXPECTED_IPSEC_OPENSWAN_SECRET_CONF = '''
+# Configuration for myvpn
+50.0.0.4 30.0.0.5 : PSK "password"
+50.0.0.4 50.0.0.5 : PSK "password"'''
 
 EXPECTED_IPSEC_STRONGSWAN_CONF = '''
 # Configuration for myvpn
@@ -166,6 +271,16 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
                           'interface_driver': mock.sentinel.interface_driver}
         self.iptables = mock.Mock()
         self.apply_mock = mock.Mock()
+        self.vpnservice = copy.deepcopy(FAKE_VPN_SERVICE)
+
+    @staticmethod
+    def generate_diff(a, b):
+        """Generates unified diff of a and b."""
+        by_lines = lambda x: x.splitlines(True)
+        a, b = list(by_lines(a)), list(by_lines(b))
+        diff = difflib.unified_diff(a, b, fromfile="expected",
+                                    tofile="actual")
+        return diff
 
 
 class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
@@ -199,7 +314,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
 
     def test_create_router(self):
         process = mock.Mock(openswan_ipsec.OpenSwanProcess)
-        process.vpnservice = FAKE_VPN_SERVICE
+        process.vpnservice = self.vpnservice
         self.driver.processes = {
             FAKE_ROUTER_ID: process}
         self.driver.create_router(self.router)
@@ -209,7 +324,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
     def test_destroy_router(self):
         process_id = _uuid()
         process = mock.Mock()
-        process.vpnservice = FAKE_VPN_SERVICE
+        process.vpnservice = self.vpnservice
         self.driver.processes = {
             process_id: process}
         self.driver.destroy_router(process_id)
@@ -260,7 +375,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
             sync_router_ids)
 
     def test__sync_vpn_processes_new_vpn_service(self):
-        new_vpnservice = FAKE_VPN_SERVICE
+        new_vpnservice = self.vpnservice
         router_id = new_vpnservice['router_id']
         self.driver.processes = {}
         with mock.patch.object(self.driver, 'ensure_process') as ensure_p:
@@ -277,14 +392,14 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         the existing vpnservice processes.
         """
         process = mock.Mock()
-        vpnservice = FAKE_VPN_SERVICE
-        process.vpnservice = vpnservice
+        process.vpnservice = self.vpnservice
         process.connection_status = {}
         self.driver.processes = {
-            vpnservice['router_id']: process}
+            self.vpnservice['router_id']: process}
         router_id_no_vpn = _uuid()
         with mock.patch.object(self.driver, 'ensure_process') as ensure_p:
-            self.driver._sync_vpn_processes([vpnservice], [router_id_no_vpn])
+            self.driver._sync_vpn_processes([self.vpnservice],
+                                            [router_id_no_vpn])
             self.assertEqual(ensure_p.call_count, 0)
 
     def test__sync_vpn_processes_router_with_no_vpn_and_no_vpn_services(self):
@@ -304,13 +419,12 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         is updated, _sync_vpn_processes restart/update the existing vpnservices
         which are not yet stored in driver.processes.
         """
-        vpnservice = FAKE_VPN_SERVICE
         router_id = FAKE_ROUTER_ID
         self.driver.process_status_cache = {}
         self.driver.processes = {}
         with mock.patch.object(self.driver, 'ensure_process') as ensure_p:
             ensure_p.side_effect = self.fake_ensure_process
-            self.driver._sync_vpn_processes([vpnservice], [router_id])
+            self.driver._sync_vpn_processes([self.vpnservice], [router_id])
             self._test_add_nat_rule_helper()
             self.driver.processes[router_id].update.assert_called_once_with()
 
@@ -348,7 +462,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         process = self.driver.processes.get(process_id)
         if not process:
             process = mock.Mock()
-            process.vpnservice = FAKE_VPN_SERVICE
+            process.vpnservice = self.vpnservice
             process.connection_status = {}
             process.status = constants.ACTIVE
             process.updated_pending_status = True
@@ -392,7 +506,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         context = mock.Mock()
         process_id = _uuid()
         process = mock.Mock()
-        process.vpnservice = FAKE_VPN_SERVICE
+        process.vpnservice = self.vpnservice
         self.driver.processes = {
             process_id: process}
         self.driver.sync(context, [])
@@ -557,14 +671,53 @@ class IPSecDeviceDVR(BaseIPsecDeviceDriver):
             'fake_chain', 'fake_rule', top=True)
 
 
-class TestOpenSwanProcess(base.BaseTestCase):
-    def setUp(self):
-        super(TestOpenSwanProcess, self).setUp()
-        self.process = openswan_ipsec.OpenSwanProcess(mock.ANY,
+class TestOpenSwanProcess(BaseIPsecDeviceDriver):
+    def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
+              ipsec_process=openswan_ipsec.OpenSwanProcess):
+        super(TestOpenSwanProcess, self).setUp(driver, ipsec_process)
+        self.conf.register_opts(openswan_ipsec.openswan_opts,
+                                'openswan')
+        self.conf.set_override('state_path', '/tmp')
+
+        self.process = openswan_ipsec.OpenSwanProcess(self.conf,
                                                       'foo-process-id',
-                                                      FAKE_VPN_SERVICE,
+                                                      self.vpnservice,
                                                       mock.ANY)
-        self._execute = mock.patch.object(self.process, '_execute').start()
+
+    def _test_config_files_on_create(self, proto, auth_mode):
+        """Verify that the content of config files are correct on create."""
+        auth_proto = {'transform_protocol': proto}
+        for conn in self.vpnservice['ipsec_site_connections']:
+            conn['ipsecpolicy'].update(auth_proto)
+        content = self.process._gen_config_content(
+            self.conf.openswan.ipsec_config_template,
+            self.vpnservice)
+        conn_details = OPENSWAN_CONNECTION_DETAILS % {'auth_mode': auth_mode}
+        expected_openswan_conf = EXPECTED_OPENSWAN_CONF % {
+            'default_id': '%default',
+            'conn1_id': FAKE_IPSEC_SITE_CONNECTION1_ID,
+            'conn2_id': FAKE_IPSEC_SITE_CONNECTION2_ID,
+            'conn_details': conn_details}
+
+        res_diff = self.generate_diff(expected_openswan_conf.strip(),
+                                      content.strip())
+
+        self.assertEqual(expected_openswan_conf.strip(),
+                         str(content.strip()), message=''.join(res_diff))
+        content = self.process._gen_config_content(
+            self.conf.openswan.ipsec_secret_template,
+            self.vpnservice)
+        res_diff = self.generate_diff(
+            EXPECTED_IPSEC_OPENSWAN_SECRET_CONF.strip(),
+            content.strip())
+        self.assertEqual(EXPECTED_IPSEC_OPENSWAN_SECRET_CONF.strip(),
+                         str(content.strip()), message=''.join(res_diff))
+
+    def test_config_files_on_create_esp_transform_protocol(self):
+        self._test_config_files_on_create('esp', AUTH_ESP)
+
+    def test_config_files_on_create_ah_transform_protocol(self):
+        self._test_config_files_on_create('ah', AUTH_AH)
 
     def test__resolve_fqdn(self):
         with mock.patch.object(socket, 'getaddrinfo') as mock_getaddr_info:
@@ -643,9 +796,10 @@ class TestOpenSwanProcess(base.BaseTestCase):
 class TestLibreSwanProcess(base.BaseTestCase):
     def setUp(self):
         super(TestLibreSwanProcess, self).setUp()
+        self.vpnservice = copy.deepcopy(FAKE_VPN_SERVICE)
         self.ipsec_process = libreswan_ipsec.LibreSwanProcess(mock.ANY,
                                                        'foo-process-id',
-                                                       FAKE_VPN_SERVICE,
+                                                       self.vpnservice,
                                                        mock.ANY)
 
     def test_ensure_configs(self):
@@ -680,25 +834,25 @@ class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
             'strongswan')
         self.conf.set_override('state_path', '/tmp')
         self.driver.agent_rpc.get_vpn_services_on_host.return_value = [
-            FAKE_VPN_SERVICE]
+            self.vpnservice]
 
     def test_config_files_on_create(self):
         """Verify that the content of config files are correct on create."""
         process = self.driver.ensure_process(self.router.router_id,
-                                             FAKE_VPN_SERVICE)
+                                             self.vpnservice)
         content = process._gen_config_content(
             self.conf.strongswan.ipsec_config_template,
-            FAKE_VPN_SERVICE)
+            self.vpnservice)
         self.assertEqual(EXPECTED_IPSEC_STRONGSWAN_CONF.strip(),
                          str(content.strip()))
         content = process._gen_config_content(
             self.conf.strongswan.strongswan_config_template,
-            FAKE_VPN_SERVICE)
+            self.vpnservice)
         self.assertEqual(EXPECTED_STRONGSWAN_DEFAULT_CONF.strip(),
                          str(content.strip()))
         content = process._gen_config_content(
             self.conf.strongswan.ipsec_secret_template,
-            FAKE_VPN_SERVICE)
+            self.vpnservice)
         self.assertEqual(EXPECTED_IPSEC_STRONGSWAN_SECRET_CONF.strip(),
                          str(content.strip()))
 
@@ -706,7 +860,7 @@ class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
         """Test status handling for downed connection."""
         router_id = self.router.router_id
         connection_id = FAKE_IPSEC_SITE_CONNECTION2_ID
-        self.driver.ensure_process(router_id, FAKE_VPN_SERVICE)
+        self.driver.ensure_process(router_id, self.vpnservice)
         self._execute.return_value = DOWN_STATUS
         self.driver.report_status(mock.Mock())
         process_status = self.driver.process_status_cache[router_id]
@@ -719,7 +873,7 @@ class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
         """Test status handling for actived connection."""
         router_id = self.router.router_id
         connection_id = FAKE_IPSEC_SITE_CONNECTION2_ID
-        self.driver.ensure_process(router_id, FAKE_VPN_SERVICE)
+        self.driver.ensure_process(router_id, self.vpnservice)
         self._execute.return_value = ACTIVE_STATUS
         self.driver.report_status(mock.Mock())
         process_status = self.driver.process_status_cache[
@@ -732,7 +886,7 @@ class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
     def test_status_handling_for_deleted_connection(self):
         """Test status handling for deleted connection."""
         router_id = self.router.router_id
-        self.driver.ensure_process(router_id, FAKE_VPN_SERVICE)
+        self.driver.ensure_process(router_id, self.vpnservice)
         self._execute.return_value = NOT_RUNNING_STATUS
         self.driver.report_status(mock.Mock())
         process_status = self.driver.process_status_cache[router_id]
@@ -743,7 +897,7 @@ class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
     def test_update_connection_status(self):
         """Test the status of ipsec-site-connection parsed correctly."""
         router_id = self.router.router_id
-        process = self.driver.ensure_process(router_id, FAKE_VPN_SERVICE)
+        process = self.driver.ensure_process(router_id, self.vpnservice)
         self._execute.return_value = NOT_RUNNING_STATUS
         self.assertFalse(process.active)
         # An empty return value to simulate that the StrongSwan process
