@@ -64,6 +64,9 @@ class StrongSwanProcess(ipsec.BaseSwanProcess):
     # CONNECTING means route created, connection tunnel is negotiating.
     # INSTALLED means route created,
     #           also connection tunnel installed. (traffic can pass)
+
+    DIALECT_MAP = dict(ipsec.BaseSwanProcess.DIALECT_MAP)
+
     STATUS_DICT = {
         'ROUTED': constants.DOWN,
         'CONNECTING': constants.DOWN,
