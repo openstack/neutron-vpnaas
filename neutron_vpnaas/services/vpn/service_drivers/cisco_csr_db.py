@@ -14,7 +14,6 @@
 
 from neutron.common import exceptions
 from neutron.db import model_base
-from neutron.db import models_v2
 from neutron.i18n import _LI
 from oslo_db import exception as db_exc
 from oslo_log import log as logging
@@ -45,7 +44,7 @@ class CsrInternalError(exceptions.NeutronException):
     message = _("Fatal - %(reason)s")
 
 
-class IdentifierMap(model_base.BASEV2, models_v2.HasTenant):
+class IdentifierMap(model_base.BASEV2):
 
     """Maps OpenStack IDs to compatible numbers for Cisco CSR."""
 
