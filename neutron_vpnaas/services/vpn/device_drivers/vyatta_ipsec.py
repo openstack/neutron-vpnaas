@@ -14,7 +14,6 @@
 #    under the License.
 
 import collections
-import logging
 import pprint
 
 from networking_brocade.vyatta.common import exceptions as v_exc
@@ -24,6 +23,7 @@ from neutron.common import rpc as n_rpc
 from neutron import context as n_ctx
 from neutron.i18n import _LE, _LW
 from oslo_config import cfg
+from oslo_log import log as logging
 import oslo_messaging as messaging
 from oslo_service import loopingcall
 from oslo_service import periodic_task
