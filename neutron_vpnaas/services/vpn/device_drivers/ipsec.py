@@ -51,7 +51,12 @@ ipsec_opts = [
         help=_('Location to store ipsec server config files')),
     cfg.IntOpt('ipsec_status_check_interval',
                default=60,
-               help=_("Interval for checking ipsec status"))
+               help=_("Interval for checking ipsec status")),
+    cfg.BoolOpt('enable_detailed_logging',
+               default=False,
+               help=_("Enable detail logging for ipsec pluto process. "
+                      "If the flag set to True, the detailed logging will "
+                      "be written into config_base_dir/<pid>/logs.")),
 ]
 cfg.CONF.register_opts(ipsec_opts, 'ipsec')
 
@@ -141,6 +146,7 @@ class BaseSwanProcess(object):
         self.config_dir = os.path.join(
             cfg.CONF.ipsec.config_base_dir, self.id)
         self.etc_dir = os.path.join(self.config_dir, 'etc')
+        self.log_dir = os.path.join(self.config_dir, 'logs')
         self.update_vpnservice(vpnservice)
         self.STATUS_PATTERN = re.compile(self.STATUS_RE)
         self.STATUS_NOT_RUNNING_PATTERN = re.compile(
@@ -411,16 +417,19 @@ class OpenSwanProcess(BaseSwanProcess):
             return
         virtual_private = self._virtual_privates()
         #start pluto IKE keying daemon
-        self._execute([self.binary,
-                       'pluto',
-                       '--ctlbase', self.pid_path,
-                       '--ipsecdir', self.etc_dir,
-                       '--use-netkey',
-                       '--uniqueids',
-                       '--nat_traversal',
-                       '--secretsfile', self.secrets_file,
-                       '--virtual_private', virtual_private
-                       ])
+        cmd = [self.binary,
+               'pluto',
+               '--ctlbase', self.pid_path,
+               '--ipsecdir', self.etc_dir,
+               '--use-netkey',
+               '--uniqueids',
+               '--nat_traversal',
+               '--secretsfile', self.secrets_file,
+               '--virtual_private', virtual_private]
+
+        if self.conf.ipsec.enable_detailed_logging:
+            cmd += ['--perpeerlogbase', self.log_dir]
+        self._execute(cmd)
         #add connections
         for ipsec_site_conn in self.vpnservice['ipsec_site_connections']:
             nexthop = self._get_nexthop(ipsec_site_conn['peer_address'],
