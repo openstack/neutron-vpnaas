@@ -33,9 +33,10 @@ function neutron_vpnaas_configure_agent {
     local conf_file=${1:-$Q_VPN_CONF_FILE}
     cp $NEUTRON_VPNAAS_DIR/etc/vpn_agent.ini $conf_file
     if [[ "$IPSEC_PACKAGE" == "strongswan" ]]; then
-        iniset_multiline $conf_file vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.StrongSwanDriver
         if is_fedora; then
-            iniset $conf_file strongswan default_config_area /usr/share/strongswan/templates/config/strongswan.d
+            iniset_multiline $conf_file vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.fedora_strongswan_ipsec.FedoraStrongSwanDriver
+        else
+            iniset_multiline $conf_file vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.StrongSwanDriver
         fi
     else
         iniset_multiline $conf_file vpnagent vpn_device_driver $NEUTRON_VPNAAS_DEVICE_DRIVER
