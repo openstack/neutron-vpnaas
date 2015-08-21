@@ -235,7 +235,7 @@ class CiscoCsrIPsecDriver(device_drivers.DeviceDriver):
         """Remove connections that are not known by service driver."""
         service_count = 0
         connection_count = 0
-        for vpn_service_id, vpn_service in self.service_state.items():
+        for vpn_service_id, vpn_service in list(self.service_state.items()):
             dirty = [c_id for c_id, c in vpn_service.conn_state.items()
                      if c.is_dirty]
             vpn_service.connections_removed = len(dirty) > 0
