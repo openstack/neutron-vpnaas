@@ -90,7 +90,7 @@ class CsrRestClient(object):
         if method == 'POST' and self.status == requests.codes.CREATED:
             return response.headers.get('location', '')
         if self.status >= requests.codes.BAD_REQUEST and response.content:
-            if 'error-code' in response.content:
+            if b'error-code' in response.content:
                 content = jsonutils.loads(response.content)
                 LOG.debug("Error response content %s", content)
                 return content
