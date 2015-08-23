@@ -170,11 +170,14 @@ class BaseSwanProcess(object):
     def ensure_configs(self):
         pass
 
-    def ensure_config_file(self, kind, template, vpnservice):
+    def ensure_config_file(self, kind, template, vpnservice, file_mode=None):
         """Update config file,  based on current settings for service."""
         config_str = self._gen_config_content(template, vpnservice)
         config_file_name = self._get_config_filename(kind)
-        utils.replace_file(config_file_name, config_str)
+        if file_mode is None:
+            utils.replace_file(config_file_name, config_str)
+        else:
+            utils.replace_file(config_file_name, config_str, file_mode)
 
     def remove_config(self):
         """Remove whole config file."""
@@ -349,7 +352,8 @@ class OpenSwanProcess(BaseSwanProcess):
         self.ensure_config_file(
             'ipsec.secrets',
             self.conf.openswan.ipsec_secret_template,
-            self.vpnservice)
+            self.vpnservice,
+            0o600)
 
     def get_status(self):
         return self._execute([self.binary,
