@@ -19,9 +19,8 @@ from neutron.common import constants
 from neutron import context
 from neutron import manager
 from neutron.plugins.common import constants as p_constants
+from neutron.tests.unit.db import test_agentschedulers_db
 from neutron.tests.unit.extensions import test_agent as test_agent_ext_plugin
-from neutron.tests.unit.plugins.ml2.drivers.openvswitch.agent import (
-    test_agent_scheduler)
 
 from neutron_vpnaas.db.vpn import vpn_validator
 from neutron_vpnaas.services.vpn.service_drivers import ipsec as ipsec_driver
@@ -32,7 +31,7 @@ VPN_DRIVER_CLASS = 'neutron_vpnaas.services.vpn.plugin.VPNDriverPlugin'
 
 
 class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
-                          test_agent_scheduler.AgentSchedulerTestMixIn,
+                          test_agentschedulers_db.AgentSchedulerTestMixIn,
                           test_agent_ext_plugin.AgentDBTestMixIn):
 
     def setUp(self):
