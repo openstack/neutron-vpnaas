@@ -1,7 +1,7 @@
 # plugin.sh - DevStack plugin.sh dispatch script template
 
 VPNAAS_XTRACE=$(set +o | grep xtrace)
-set +o xtrace
+set -o xtrace
 
 function neutron_vpnaas_install {
     setup_develop $NEUTRON_VPNAAS_DIR
@@ -51,7 +51,7 @@ function neutron_vpnaas_start {
     for cfg_file in ${Q_VPN_EXTRA_CONF_FILES[@]}; do
         opts+=" --config-file $cfg_file"
     done
-    run_process q-vpn "$AGENT_VPN_BINARY $opts"
+    run_process neutron-vpnaas "$AGENT_VPN_BINARY $opts"
 }
 
 function neutron_vpnaas_stop {
@@ -63,7 +63,7 @@ function neutron_vpnaas_stop {
     if [ -n "$pids" ]; then
         sudo kill $pids
     fi
-    stop_process q-vpn
+    stop_process neutron-vpnaas
 }
 
 # Main plugin processing

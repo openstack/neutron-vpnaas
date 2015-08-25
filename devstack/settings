@@ -1,6 +1,6 @@
 # Settings for the VPNaaS devstack plugin
 
-enable_service q-vpn
+enable_service neutron-vpnaas
 
 AGENT_VPN_BINARY="$NEUTRON_BIN_DIR/neutron-vpn-agent"
 
