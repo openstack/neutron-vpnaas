@@ -14,14 +14,27 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from neutron.db import servicetype_db as st_db
 from neutron.i18n import _LI
 from neutron.plugins.common import constants
+from neutron.services import provider_configuration as pconf
 from neutron.services import service_base
 from oslo_log import log as logging
 
 from neutron_vpnaas.db.vpn import vpn_db
 
 LOG = logging.getLogger(__name__)
+
+
+def add_provider_configuration(type_manager, service_type):
+    try:
+        type_manager.add_provider_configuration(
+            service_type,
+            pconf.ProviderConfiguration('neutron_vpnaas'))
+    except AttributeError:
+        # TODO(armax): remove this try catch once the API
+        # add_provider_configuration becomes available
+        LOG.debug('add_provider_configuration API is not available')
 
 
 class VPNPlugin(vpn_db.VPNPluginDb):
@@ -41,6 +54,8 @@ class VPNDriverPlugin(VPNPlugin, vpn_db.VPNPluginRpcDbMixin):
     #TODO(nati) handle ikepolicy and ipsecpolicy update usecase
     def __init__(self):
         super(VPNDriverPlugin, self).__init__()
+        self.service_type_manager = st_db.ServiceTypeManager.get_instance()
+        add_provider_configuration(self.service_type_manager, constants.VPN)
         # Load the service driver from neutron.conf.
         drivers, default_provider = service_base.load_drivers(
             constants.VPN, self)
