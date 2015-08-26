@@ -643,7 +643,11 @@ class IPSecDeviceDVR(BaseIPsecDeviceDriver):
                                                FAKE_ROUTER_ID,
                                                **self.ri_kwargs)
         router.router['distributed'] = True
-        router.create_snat_namespace()
+        router.snat_namespace = dvr_snat_ns.SnatNamespace(router.router['id'],
+                                                          mock.sentinel.agent,
+                                                          self.driver,
+                                                          mock.ANY)
+        router.snat_namespace.create()
         router.snat_iptables_manager = iptables_manager.IptablesManager(
             namespace='snat-' + FAKE_ROUTER_ID, use_ipv6=mock.ANY)
         router.snat_iptables_manager.ipv4['nat'] = self.iptables
