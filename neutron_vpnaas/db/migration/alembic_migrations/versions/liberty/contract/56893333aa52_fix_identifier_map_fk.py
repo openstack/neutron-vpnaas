@@ -15,16 +15,10 @@
 """fix identifier map fk
 
 Revision ID: 56893333aa52
-Revises: None
+Revises: kilo
 Create Date: 2015-06-11 12:09:01.263253
 
 """
-
-# revision identifiers, used by Alembic.
-revision = '56893333aa52'
-down_revision = None
-branch_labels = ('liberty_contract',)
-depends_on = ('kilo',)
 
 from alembic import op
 import sqlalchemy as sa
@@ -32,6 +26,14 @@ from sqlalchemy.sql import column
 from sqlalchemy.sql import expression as expr
 from sqlalchemy.sql import func
 from sqlalchemy.sql import table
+
+from neutron.db.migration import cli
+
+
+# revision identifiers, used by Alembic.
+revision = '56893333aa52'
+down_revision = 'kilo'
+branch_labels = (cli.CONTRACT_BRANCH,)
 
 
 def upgrade():

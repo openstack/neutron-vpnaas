@@ -14,16 +14,18 @@
 """Initial no-op Liberty expand rule.
 
 Revision ID: 30018084ed99
-Revises: None
+Revises: kilo
 Create Date: 2015-07-16 00:00:00.000000
 
 """
 
+from neutron.db.migration import cli
+
+
 # revision identifiers, used by Alembic.
 revision = '30018084ed99'
-down_revision = None
-depends_on = ('kilo',)
-branch_labels = ('liberty_expand',)
+down_revision = 'kilo'
+branch_labels = (cli.EXPAND_BRANCH,)
 
 
 def upgrade():
