@@ -16,7 +16,7 @@ from neutron.common import rpc as n_rpc
 from oslo_log import log as logging
 import oslo_messaging
 
-from neutron_vpnaas.db.vpn import vpn_db
+from neutron_vpnaas.db.vpn import vpn_models
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import service_drivers
 from neutron_vpnaas.services.vpn.service_drivers import base_ipsec
@@ -55,12 +55,12 @@ class CiscoCsrIPsecVpnDriverCallBack(object):
         return n_rpc.PluginRpcDispatcher([self])
 
     def get_vpn_services_using(self, context, router_id):
-        query = context.session.query(vpn_db.VPNService)
-        query = query.join(vpn_db.IPsecSiteConnection)
-        query = query.join(vpn_db.IKEPolicy)
-        query = query.join(vpn_db.IPsecPolicy)
-        query = query.join(vpn_db.IPsecPeerCidr)
-        query = query.filter(vpn_db.VPNService.router_id == router_id)
+        query = context.session.query(vpn_models.VPNService)
+        query = query.join(vpn_models.IPsecSiteConnection)
+        query = query.join(vpn_models.IKEPolicy)
+        query = query.join(vpn_models.IPsecPolicy)
+        query = query.join(vpn_models.IPsecPeerCidr)
+        query = query.filter(vpn_models.VPNService.router_id == router_id)
         return query.all()
 
     def get_vpn_services_on_host(self, context, host=None):

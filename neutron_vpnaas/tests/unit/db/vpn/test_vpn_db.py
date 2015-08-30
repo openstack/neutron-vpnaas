@@ -38,6 +38,7 @@ import six
 import webob.exc
 
 from neutron_vpnaas.db.vpn import vpn_db
+from neutron_vpnaas.db.vpn import vpn_models
 from neutron_vpnaas.services.vpn import plugin as vpn_plugin
 from neutron_vpnaas.tests import base
 
@@ -952,7 +953,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                 keys.append(('router_id',
                              vpnservice['vpnservice']['router_id']))
                 data = {'vpnservice': {'name': name}}
-                self._set_active(vpn_db.VPNService,
+                self._set_active(vpn_models.VPNService,
                                  vpnservice['vpnservice']['id'])
                 req = self.new_update_request(
                     'vpnservices',
@@ -1309,7 +1310,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                     data = {'ipsec_site_connection': update}
                     if keys.get('make_active', None):
                         self._set_active(
-                            vpn_db.IPsecSiteConnection,
+                            vpn_models.IPsecSiteConnection,
                             (ipsec_site_connection['ipsec_site_connection']
                              ['id']))
                     req = self.new_update_request(
