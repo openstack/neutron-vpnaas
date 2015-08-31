@@ -23,10 +23,11 @@ from neutron.plugins.common import constants
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
-from neutron_vpnaas.db.vpn import vpn_validator
 from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn import plugin as vpn_plugin
 from neutron_vpnaas.services.vpn.service_drivers import ipsec as ipsec_driver
+from neutron_vpnaas.services.vpn.service_drivers \
+    import ipsec_validator as vpn_validator
 from neutron_vpnaas.tests import base
 
 _uuid = uuidutils.generate_uuid
@@ -81,7 +82,7 @@ class TestValidatorSelection(base.BaseTestCase):
 
     def test_reference_driver_used(self):
         self.assertIsInstance(self.vpn_plugin._get_validator(),
-                              vpn_validator.VpnReferenceValidator)
+                              vpn_validator.IpsecVpnValidator)
 
 
 class TestIPsecDriverValidation(base.BaseTestCase):
@@ -96,7 +97,8 @@ class TestIPsecDriverValidation(base.BaseTestCase):
         mock.patch('neutron.manager.NeutronManager.get_plugin',
                    return_value=self.core_plugin).start()
         self.context = n_ctx.Context('some_user', 'some_tenant')
-        self.validator = vpn_validator.VpnReferenceValidator()
+        self.service_plugin = mock.Mock()
+        self.validator = vpn_validator.IpsecVpnValidator(self.service_plugin)
         self.router = mock.Mock()
         self.router.gw_port = {'fixed_ips': [{'ip_address': '10.0.0.99'}]}
 
@@ -212,6 +214,12 @@ class TestIPsecDriverValidation(base.BaseTestCase):
         fixed_ips = [{'ip_address': '10.0.0.99'}]
         self._validate_peer_address(fixed_ips, IPV6, expected_exception=True)
 
+    def test_validate_ipsec_policy(self):
+        ipsec_policy = {'transform_protocol': 'ah-esp'}
+        self.assertRaises(vpn_validator.IpsecValidationFailure,
+                          self.validator.validate_ipsec_policy,
+                          self.context, ipsec_policy)
+
     def test_defaults_for_ipsec_site_connections_on_update(self):
         """Check that defaults are used for any values not specified."""
         ipsec_sitecon = {}
@@ -287,7 +295,7 @@ class TestIPsecDriverValidation(base.BaseTestCase):
 
     def test_bad_mtu_for_ipsec_connection(self):
         """Failure test of invalid MTU values for IPSec conn create/update."""
-        ip_version_limits = vpn_validator.VpnReferenceValidator.IP_MIN_MTU
+        ip_version_limits = vpn_validator.IpsecVpnValidator.IP_MIN_MTU
         for version, limit in ip_version_limits.items():
             ipsec_sitecon = {'mtu': limit - 1,
                              'dpd_action': 'hold',
