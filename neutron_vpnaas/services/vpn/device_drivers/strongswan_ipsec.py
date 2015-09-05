@@ -116,7 +116,8 @@ class StrongSwanProcess(ipsec.BaseSwanProcess):
         self.ensure_config_file(
             'ipsec.secrets',
             cfg.CONF.strongswan.ipsec_secret_template,
-            self.vpnservice)
+            self.vpnservice,
+            0o600)
         self.copy_and_overwrite(cfg.CONF.strongswan.default_config_area,
                                 self._get_config_filename('strongswan.d'))
 
