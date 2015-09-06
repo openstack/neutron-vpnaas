@@ -13,7 +13,6 @@
 #    under the License.
 
 import copy
-import httplib
 import operator
 
 import mock
@@ -26,6 +25,12 @@ from neutron_vpnaas.services.vpn.device_drivers import (
 from neutron_vpnaas.services.vpn.device_drivers \
     import cisco_ipsec as ipsec_driver
 from neutron_vpnaas.tests import base
+import six
+
+if six.PY3:
+    from http import client as httplib
+else:
+    import httplib
 
 _uuid = uuidutils.generate_uuid
 FAKE_HOST = 'fake_host'
