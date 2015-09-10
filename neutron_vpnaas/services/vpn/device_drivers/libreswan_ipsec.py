@@ -60,6 +60,14 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
         Initialise the nssdb, otherwise pluto daemon will fail to run.
         """
         super(LibreSwanProcess, self).ensure_configs()
+
+        # LibreSwan uses the capabilities library to restrict access to
+        # ipsec.secrets to users that have explicit access. Since pluto is
+        # running as root and the file has 0600 perms, we must set the
+        # owner of the file to root.
+        secrets_file = self._get_config_filename('ipsec.secrets')
+        self._execute(['chown', 'root:root', secrets_file])
+
         # Load the ipsec kernel module if not loaded
         self._execute([self.binary, '_stackmanager', 'start'])
         # checknss creates nssdb only if it is missing
