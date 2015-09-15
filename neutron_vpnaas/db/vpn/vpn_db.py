@@ -357,12 +357,14 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
 
     def create_ipsecpolicy(self, context, ipsecpolicy):
         ipsecp = ipsecpolicy['ipsecpolicy']
+        validator = self._get_validator()
         tenant_id = self._get_tenant_id_for_create(context, ipsecp)
         lifetime_info = ipsecp['lifetime']
         lifetime_units = lifetime_info.get('units', 'seconds')
         lifetime_value = lifetime_info.get('value', 3600)
 
         with context.session.begin(subtransactions=True):
+            validator.validate_ipsec_policy(context, ipsecp)
             ipsecp_db = vpn_models.IPsecPolicy(
                 id=uuidutils.generate_uuid(),
                 tenant_id=tenant_id,
@@ -380,7 +382,9 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
 
     def update_ipsecpolicy(self, context, ipsecpolicy_id, ipsecpolicy):
         ipsecp = ipsecpolicy['ipsecpolicy']
+        validator = self._get_validator()
         with context.session.begin(subtransactions=True):
+            validator.validate_ipsec_policy(context, ipsecp)
             if context.session.query(vpn_models.IPsecSiteConnection).filter_by(
                     ipsecpolicy_id=ipsecpolicy_id).first():
                 raise vpnaas.IPsecPolicyInUse(ipsecpolicy_id=ipsecpolicy_id)

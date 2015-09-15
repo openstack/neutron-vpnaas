@@ -18,6 +18,7 @@ from oslo_log import log as logging
 
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn.service_drivers import base_ipsec
+from neutron_vpnaas.services.vpn.service_drivers import ipsec_validator
 
 
 LOG = logging.getLogger(__name__)
@@ -30,7 +31,9 @@ class IPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
     """VPN Service Driver class for IPsec."""
 
     def __init__(self, service_plugin):
-        super(IPsecVPNDriver, self).__init__(service_plugin)
+        super(IPsecVPNDriver, self).__init__(
+            service_plugin,
+            ipsec_validator.IpsecVpnValidator(service_plugin))
 
     def create_rpc_conn(self):
         self.endpoints = [base_ipsec.IPsecVpnDriverCallBack(self)]

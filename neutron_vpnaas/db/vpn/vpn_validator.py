@@ -135,3 +135,11 @@ class VpnReferenceValidator(object):
         self._check_router(context, vpnservice['router_id'])
         self._check_subnet_id(context, vpnservice['router_id'],
                               vpnservice['subnet_id'])
+
+    def validate_ipsec_policy(self, context, ipsec_policy):
+        """Reference implementation of validation for IPSec Policy.
+
+        Service driver can override and implement specific logic
+        for IPSec Policy validation.
+        """
+        pass
