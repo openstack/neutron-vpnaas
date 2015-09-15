@@ -385,22 +385,6 @@ class TestIPSecScenario(base.BaseSudoTestCase):
                 "port_namespace": port_namespace, "port_ip": port_ip,
                 "vpn_service": vpn_service}
 
-    def _ping(self, namespace, ip):
-        """Pings ip address from network namespace.
-
-        In order to ping it uses following cli command:
-            ip netns exec <namespace> ping -c 4 -q <ip>
-        """
-        try:
-            count = 4
-            cmd = ['ping', '-w', 2 * count, '-c', count, ip]
-            cmd = ip_lib.add_namespace_to_cmd(cmd, namespace)
-            linux_utils.execute(cmd, check_exit_code=True,
-                extra_ok_codes=[0], run_as_root=True)
-            return True
-        except RuntimeError:
-            return False
-
     def _fail_ha_router(self, router):
         """Down the HA router."""
         device_name = router.get_ha_device_name()
@@ -447,8 +431,10 @@ class TestIPSecScenario(base.BaseSudoTestCase):
             return_value=[site1['vpn_service'],
                           site2['vpn_service']])
 
-        self.assertFalse(self._ping(site1['port_namespace'], site2['port_ip']))
-        self.assertFalse(self._ping(site2['port_namespace'], site1['port_ip']))
+        net_helpers.assert_no_ping(site1['port_namespace'], site2['port_ip'],
+                                   timeout=8, count=4)
+        net_helpers.assert_no_ping(site2['port_namespace'], site1['port_ip'],
+                                   timeout=8, count=4)
 
         device.sync(mock.Mock(), [{'id': site1['router'].router_id},
                                   {'id': site2['router'].router_id}])
@@ -456,8 +442,10 @@ class TestIPSecScenario(base.BaseSudoTestCase):
             device._delete_vpn_processes,
             [site1['router'].router_id, site2['router'].router_id], [])
 
-        self.assertTrue(self._ping(site1['port_namespace'], site2['port_ip']))
-        self.assertTrue(self._ping(site2['port_namespace'], site1['port_ip']))
+        net_helpers.assert_ping(site1['port_namespace'], site2['port_ip'],
+                                timeout=8, count=4)
+        net_helpers.assert_ping(site2['port_namespace'], site1['port_ip'],
+                                timeout=8, count=4)
 
     def test_ipsec_site_connections_with_l3ha_routers(self):
         """Test ipsec site connection with HA routers.
@@ -512,8 +500,10 @@ class TestIPSecScenario(base.BaseSudoTestCase):
             return_value=[site2['vpn_service']])
 
         # No ipsec connection between legacy router and HA routers
-        self.assertFalse(self._ping(site1['port_namespace'], site2['port_ip']))
-        self.assertFalse(self._ping(site2['port_namespace'], site1['port_ip']))
+        net_helpers.assert_no_ping(site1['port_namespace'], site2['port_ip'],
+                                   timeout=8, count=4)
+        net_helpers.assert_no_ping(site2['port_namespace'], site1['port_ip'],
+                                   timeout=8, count=4)
 
         # sync the routers
         vpn_agent_driver.sync(mock.Mock(), [{'id': router.router_id},
@@ -525,8 +515,10 @@ class TestIPSecScenario(base.BaseSudoTestCase):
             [router.router_id, router1.router_id], [])
 
         # Test ipsec connection between legacy router and agent2's HA router
-        self.assertTrue(self._ping(site1['port_namespace'], site2['port_ip']))
-        self.assertTrue(self._ping(site2['port_namespace'], site1['port_ip']))
+        net_helpers.assert_ping(site1['port_namespace'], site2['port_ip'],
+                                timeout=8, count=4)
+        net_helpers.assert_ping(site2['port_namespace'], site1['port_ip'],
+                                timeout=8, count=4)
 
         # Fail the agent1's HA router. Agent1's HA router will transition
         # to backup and agent2's HA router will become master.
@@ -545,5 +537,7 @@ class TestIPSecScenario(base.BaseSudoTestCase):
                 self.failover_agent.conf, router2, pid_files))
 
         # Test ipsec connection between legacy router and agent2's HA router
-        self.assertTrue(self._ping(site1['port_namespace'], site2['port_ip']))
-        self.assertTrue(self._ping(site2['port_namespace'], site1['port_ip']))
+        net_helpers.assert_ping(site1['port_namespace'], site2['port_ip'],
+                                timeout=8, count=4)
+        net_helpers.assert_ping(site2['port_namespace'], site1['port_ip'],
+                                timeout=8, count=4)
