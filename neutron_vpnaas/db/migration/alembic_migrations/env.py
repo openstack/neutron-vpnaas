@@ -12,18 +12,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from logging import config as logging_config
-
 from alembic import context
-from neutron.db import model_base
+from logging import config as logging_config
 from oslo_config import cfg
 from oslo_db.sqlalchemy import session
 import sqlalchemy as sa
 from sqlalchemy import event
 
+from neutron.db import model_base
+
+from neutron_vpnaas.db.migration import alembic_migrations
+
 
 MYSQL_ENGINE = None
-VPNAAS_VERSION_TABLE = 'alembic_version_vpnaas'
 config = context.config
 neutron_config = config.neutron_config
 logging_config.fileConfig(config.config_file_name)
@@ -49,7 +50,7 @@ def run_migrations_offline():
         kwargs['url'] = neutron_config.database.connection
     else:
         kwargs['dialect_name'] = neutron_config.database.engine
-    kwargs['version_table'] = VPNAAS_VERSION_TABLE
+    kwargs['version_table'] = alembic_migrations.VPNAAS_VERSION_TABLE
     context.configure(**kwargs)
 
     with context.begin_transaction():
@@ -70,7 +71,7 @@ def run_migrations_online():
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
-        version_table=VPNAAS_VERSION_TABLE
+        version_table=alembic_migrations.VPNAAS_VERSION_TABLE
     )
     try:
         with context.begin_transaction():
