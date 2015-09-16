@@ -14,4 +14,4 @@ ipsec: CommandFilter, ipsec, root
 strongswan: CommandFilter, strongswan, root
 neutron_netns_wrapper: CommandFilter, neutron-vpn-netns-wrapper, root
 neutron_netns_wrapper_local: CommandFilter, /usr/local/bin/neutron-vpn-netns-wrapper, root
-chown: CommandFilter, chown, root
+chown: RegExpFilter, chown, root, chown, --from=.*, root.root, .*/ipsec.secrets
