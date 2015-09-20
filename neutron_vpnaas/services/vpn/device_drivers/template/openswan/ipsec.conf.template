@@ -28,6 +28,11 @@ conn {{ipsec_site_connection.id}}
     # [subnet]
     leftsubnet={{vpnservice.subnet.cidr}}
     # leftsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
+    # [updown]
+    # What "updown" script to run to adjust routing and/or firewalling when
+    # the status of the connection changes (default "ipsec _updown").
+    # "--route yes" allows to specify such routing options as mtu and metric.
+    leftupdown="ipsec _updown --route yes"
     ######################
     # ipsec_site_connections
     ######################
@@ -39,8 +44,7 @@ conn {{ipsec_site_connection.id}}
     rightsubnets={ {{ipsec_site_connection['peer_cidrs']|join(' ')}} }
     # rightsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
     # [mtu]
-    # Note It looks like not supported in the strongswan driver
-    # ignore it now
+    mtu={{ipsec_site_connection.mtu}}
     # [dpd_action]
     dpdaction={{ipsec_site_connection.dpd_action}}
     # [dpd_interval]
