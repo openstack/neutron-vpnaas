@@ -17,8 +17,7 @@ import os.path
 
 import eventlet
 
-from neutron.i18n import _LE
-from neutron.i18n import _LW
+from neutron.i18n import _LE, _LW
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -66,7 +65,8 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
         # running as root and the file has 0600 perms, we must set the
         # owner of the file to root.
         secrets_file = self._get_config_filename('ipsec.secrets')
-        self._execute(['chown', 'root:root', secrets_file])
+        self._execute(['chown', '--from=%s' % os.getuid(), 'root:root',
+                       secrets_file])
 
         # Load the ipsec kernel module if not loaded
         self._execute([self.binary, '_stackmanager', 'start'])

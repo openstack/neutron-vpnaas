@@ -16,6 +16,7 @@ import copy
 import difflib
 import io
 import mock
+import os
 import socket
 
 from neutron.agent.l3 import dvr_edge_router
@@ -993,7 +994,8 @@ class TestLibreSwanProcess(base.BaseTestCase):
         openswan_ipsec.OpenSwanProcess.ensure_configs = mock.Mock()
         with mock.patch.object(self.ipsec_process, '_execute') as fake_execute:
             self.ipsec_process.ensure_configs()
-            expected = [mock.call(['chown', 'root:root',
+            expected = [mock.call(['chown', '--from=%s' % os.getuid(),
+                                   'root:root',
                                    self.ipsec_process._get_config_filename(
                                        'ipsec.secrets')]),
                         mock.call(['ipsec', '_stackmanager', 'start']),
@@ -1005,7 +1007,8 @@ class TestLibreSwanProcess(base.BaseTestCase):
         with mock.patch.object(self.ipsec_process, '_execute') as fake_execute:
             fake_execute.side_effect = [None, None, RuntimeError, None]
             self.ipsec_process.ensure_configs()
-            expected = [mock.call(['chown', 'root:root',
+            expected = [mock.call(['chown', '--from=%s' % os.getuid(),
+                                   'root:root',
                                    self.ipsec_process._get_config_filename(
                                        'ipsec.secrets')]),
                         mock.call(['ipsec', '_stackmanager', 'start']),
