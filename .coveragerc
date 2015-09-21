@@ -4,4 +4,4 @@ source = neutron_vpnaas
 omit = neutron_vpnaas/tests/*
 
 [report]
-ignore-errors = True
+ignore_errors = True
