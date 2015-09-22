@@ -103,7 +103,7 @@ def get_next_available_ipsec_policy_id(session):
 
 
 def find_conn_with_policy(policy_field, policy_id, conn_id, session):
-    """Return ID of another conneciton (if any) that uses same policy ID."""
+    """Return ID of another connection (if any) that uses same policy ID."""
     qry = session.query(vpn_models.IPsecSiteConnection.id)
     match = qry.filter_request(
         policy_field == policy_id,

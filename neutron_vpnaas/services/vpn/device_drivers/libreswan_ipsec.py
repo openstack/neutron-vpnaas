@@ -139,7 +139,7 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
         # override or things refactored to special-case start() when
         # called from restart().
 
-        # LibreSwan's use of the capablities library may prevent the ctl
+        # LibreSwan's use of the capabilities library may prevent the ctl
         # and pid files from being cleaned up, so we check to see if the
         # process is running and if not, attempt a cleanup. In either case
         # we fall through to allow the LibreSwan process to start or fail

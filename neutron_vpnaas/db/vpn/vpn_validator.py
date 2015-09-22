@@ -59,7 +59,7 @@ class VpnReferenceValidator(object):
 
     def validate_peer_address(self, ip_version, router):
         # NOTE: peer_address ip version should match with
-        # at least one external gateway address ip verison.
+        # at least one external gateway address ip version.
         # ipsec won't work with IPv6 LLA and neutron unaware GUA.
         # So to support vpnaas with ipv6, external network must
         # have ipv6 subnet

@@ -180,7 +180,7 @@ class VpnUtils(scenario.OpenStackScenario):
         """
 
         :param nova_client: nova client
-        :param nova_id: uuid of the nova instance whose ip is wanted
+        :param server_id: uuid of the nova instance whose ip is wanted
         :param network_suffix: network name suffix
         :return: ip address of the instance
         """
@@ -249,7 +249,6 @@ class VpnUtils(scenario.OpenStackScenario):
         :param name: name of vpn service
         :param rally_subnet: local subnet
         :param rally_router: router endpoint
-        :param admin_state_up: admin state of the vpn_service
         :return: vpn_service
         """
         LOG.debug("CREATING VPN_SERVICE")
@@ -279,7 +278,6 @@ class VpnUtils(scenario.OpenStackScenario):
         :param peer_address: peer_address
         :param vpn_service: vpn_service
         :param secret: pre shared secret
-        :param admin_state_up: admin state of the ipsec site connections
         :param mtu: max transmission unit
         :param name: name of the ipsec site connections
         :return:ipsec_site_connection
@@ -335,7 +333,7 @@ class VpnUtils(scenario.OpenStackScenario):
         :param resource: resource whose status has to be checked
         :param final_status: desired final status of the resource
         :param resource_tag: to identify the resource as vpnservice or
-        ipser_site_connection
+        ipsec_site_connection
         :param wait_timeout: timeout value in seconds
         :param check_interval: time to sleep before each check for the status
         change
