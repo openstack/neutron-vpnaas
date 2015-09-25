@@ -42,7 +42,7 @@ elif [ -x "$ZUUL_CLONER" ]; then
     cd "$cwd"
 else
     echo "LOCAL - Obtaining Neutron code from git.openstack.org"
-    pip install -U -egit+https://git.openstack.org/openstack/neutron#egg=neutron
+    pip install -U -egit+https://git.openstack.org/openstack/neutron@stable/liberty#egg=neutron
 fi
 
 pip install -U $*
