@@ -1,4 +1,5 @@
 #    (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+#    (c) Copyright 2015 Cisco Systems Inc.
 #    All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -14,6 +15,7 @@
 #    under the License.
 
 import contextlib
+import copy
 import os
 
 import mock
@@ -53,6 +55,8 @@ ROOTDIR = os.path.normpath(os.path.join(
     '..', '..', '..', '..'))
 
 extensions_path = ':'.join(extensions.__path__ + nextensions.__path__)
+
+_uuid = uuidutils.generate_uuid
 
 
 class TestVpnCorePlugin(test_l3_plugin.TestL3NatIntPlugin,
@@ -295,6 +299,8 @@ class VPNTestMixin(object):
                                       ikepolicy_id='fake_id',
                                       ipsecpolicy_id='fake_id',
                                       admin_state_up=True,
+                                      local_ep_group_id=None,
+                                      peer_ep_group_id=None,
                                       expected_res_status=None, **kwargs):
         data = {
             'ipsec_site_connection': {'name': name,
@@ -313,7 +319,9 @@ class VPNTestMixin(object):
                                       'ikepolicy_id': ikepolicy_id,
                                       'ipsecpolicy_id': ipsecpolicy_id,
                                       'admin_state_up': admin_state_up,
-                                      'tenant_id': self._tenant_id}
+                                      'tenant_id': self._tenant_id,
+                                      'local_ep_group_id': local_ep_group_id,
+                                      'peer_ep_group_id': peer_ep_group_id}
         }
         if kwargs.get('description') is not None:
             data['ipsec_site_connection'][
@@ -347,6 +355,8 @@ class VPNTestMixin(object):
                               ikepolicy=None,
                               ipsecpolicy=None,
                               admin_state_up=True, do_delete=True,
+                              local_ep_group_id=None,
+                              peer_ep_group_id=None,
                               **kwargs):
         if not fmt:
             fmt = self.fmt
@@ -359,6 +369,9 @@ class VPNTestMixin(object):
             vpnservice_id = tmp_vpnservice['vpnservice']['id']
             ikepolicy_id = tmp_ikepolicy['ikepolicy']['id']
             ipsecpolicy_id = tmp_ipsecpolicy['ipsecpolicy']['id']
+            if not peer_cidrs and not local_ep_group_id:
+                # Must be legacy usage - pick default to use
+                peer_cidrs = ['10.0.0.0/24']
             res = self._create_ipsec_site_connection(fmt,
                                                      name,
                                                      peer_address,
@@ -374,6 +387,8 @@ class VPNTestMixin(object):
                                                      ikepolicy_id,
                                                      ipsecpolicy_id,
                                                      admin_state_up,
+                                                     local_ep_group_id,
+                                                     peer_ep_group_id,
                                                      **kwargs)
             if res.status_int >= 400:
                 raise webob.exc.HTTPClientError(code=res.status_int)
@@ -447,7 +462,7 @@ class VPNPluginDbTestCase(VPNTestMixin,
             plugin_str,
             service_plugins=service_plugins
         )
-        self._subnet_id = uuidutils.generate_uuid()
+        self._subnet_id = _uuid()
         self.core_plugin = TestVpnCorePlugin()
         self.plugin = vpn_plugin.VPNPlugin()
         ext_mgr = api_extensions.PluginAwareExtensionManager(
@@ -1732,13 +1747,14 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
 
         # Create VPN database instance
         self.plugin = vpn_db.VPNPluginDb()
-        self.tenant_id = uuidutils.generate_uuid()
+        self.tenant_id = _uuid()
         self.context = context.get_admin_context()
 
     def prepare_service_info(self, private_subnet, router):
+        subnet_id = private_subnet['id'] if private_subnet else None
         return {'vpnservice': {'name': 'my-service',
                                'description': 'new service',
-                               'subnet_id': private_subnet['id'],
+                               'subnet_id': subnet_id,
                                'router_id': router['id'],
                                'admin_state_up': True}}
 
@@ -1750,6 +1766,19 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
                     'external_v6_ip': None,
                     'status': 'PENDING_CREATE'}
         expected.update(info['vpnservice'])
+        new_service = self.plugin.create_vpnservice(self.context, info)
+        self.assertDictSupersetOf(expected, new_service)
+
+    def test_create_vpn_service_without_subnet(self):
+        """Create service w/o subnet (will use endpoint groups for conn)."""
+        private_subnet, router = self.create_basic_topology()
+        info = self.prepare_service_info(private_subnet=None, router=router)
+        expected = {'admin_state_up': True,
+                    'external_v4_ip': None,
+                    'external_v6_ip': None,
+                    'status': 'PENDING_CREATE'}
+        expected.update(info['vpnservice'])
+
         new_service = self.plugin.create_vpnservice(self.context, info)
         self.assertDictSupersetOf(expected, new_service)
 
@@ -1782,7 +1811,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
                                    'type': group_type,
                                    'endpoints': endpoints}}
 
-    def test_endpoint_group_create_and_with_cidrs(self):
+    def test_endpoint_group_create_with_cidrs(self):
         """Verify create endpoint group using CIDRs."""
         info = self.prepare_endpoint_info(constants.CIDR_ENDPOINT,
                                           ['10.10.10.0/24', '20.20.20.0/24'])
@@ -1822,7 +1851,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         self.assertDictSupersetOf(expected, new_endpoint_group)
 
     def helper_create_endpoint_group(self, info):
-        """Helper to create endpoint group database entry."""
+        """Create endpoint group database entry and verify OK."""
         try:
             actual = self.plugin.create_endpoint_group(self.context, info)
         except db_exc.DBError as e:
@@ -1877,7 +1906,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         self.assertDictSupersetOf(expected, actual)
 
     def test_fail_showing_non_existent_endpoint_group(self):
-        """Test failure to show non-existent endpoint gourp."""
+        """Test failure to show non-existent endpoint group."""
         self.assertRaises(vpnaas.VPNEndpointGroupNotFound,
                           self.plugin.get_endpoint_group,
                           self.context, uuidutils.generate_uuid())
@@ -1937,4 +1966,207 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         self.assertRaises(
             vpnaas.VPNEndpointGroupNotFound,
             self.plugin.update_endpoint_group,
-            self.context, uuidutils.generate_uuid(), group_updates)
+            self.context, _uuid(), group_updates)
+
+    def prepare_ike_policy_info(self):
+        return {'ikepolicy': {'name': 'ike policy',
+                              'description': 'my ike policy',
+                              'auth_algorithm': 'sha1',
+                              'encryption_algorithm': 'aes-128',
+                              'phase1_negotiation_mode': 'main',
+                              'lifetime': {'units': 'seconds', 'value': 3600},
+                              'ike_version': 'v1',
+                              'pfs': 'group5'}}
+
+    def test_create_ike_policy(self):
+        """Create IKE policy with all settings specified."""
+        info = self.prepare_ike_policy_info()
+        expected = info['ikepolicy']
+        new_ike_policy = self.plugin.create_ikepolicy(self.context, info)
+        self.assertDictSupersetOf(expected, new_ike_policy)
+
+    def prepare_ipsec_policy_info(self):
+        return {'ipsecpolicy': {'name': 'ipsec policy',
+                                'description': 'my ipsec policy',
+                                'auth_algorithm': 'sha1',
+                                'encryption_algorithm': 'aes-128',
+                                'encapsulation_mode': 'tunnel',
+                                'transform_protocol': 'esp',
+                                'lifetime': {'units': 'seconds',
+                                             'value': 3600},
+                                'pfs': 'group5'}}
+
+    def test_create_ipsec_policy(self):
+        """Create IPsec policy with all settings specified."""
+        info = self.prepare_ipsec_policy_info()
+        expected = info['ipsecpolicy']
+        new_ipsec_policy = self.plugin.create_ipsecpolicy(self.context, info)
+        self.assertDictSupersetOf(expected, new_ipsec_policy)
+
+    def create_vpn_service(self, with_subnet=True):
+        private_subnet, router = self.create_basic_topology()
+        if not with_subnet:
+            private_subnet = None
+        info = self.prepare_service_info(private_subnet, router)
+        return self.plugin.create_vpnservice(self.context, info)
+
+    def create_ike_policy(self):
+        info = self.prepare_ike_policy_info()
+        return self.plugin.create_ikepolicy(self.context, info)
+
+    def create_ipsec_policy(self):
+        info = self.prepare_ipsec_policy_info()
+        return self.plugin.create_ipsecpolicy(self.context, info)
+
+    def create_endpoint_group(self, group_type, endpoints):
+        info = self.prepare_endpoint_info(group_type=group_type,
+                                          endpoints=endpoints)
+        return self.plugin.create_endpoint_group(self.context, info)
+
+    def prepare_connection_info(self, service_id, ike_policy_id,
+                                ipsec_policy_id):
+        """Creates connection request dictionary.
+
+        The peer_cidrs, local_ep_group_id, and peer_ep_group_id are set to
+        defaults. Caller must then fill in either CIDRs or endpoints, before
+        creating a connection.
+        """
+
+        return {'ipsec_site_connection': {'name': 'my connection',
+                                          'description': 'my description',
+                                          'peer_id': '192.168.1.10',
+                                          'peer_address': '192.168.1.10',
+                                          'peer_cidrs': [],
+                                          'mtu': 1500,
+                                          'psk': 'shhhh!!!',
+                                          'initiator': 'bi-directional',
+                                          'dpd_action': 'hold',
+                                          'dpd_interval': 30,
+                                          'dpd_timeout': 120,
+                                          'vpnservice_id': service_id,
+                                          'ikepolicy_id': ike_policy_id,
+                                          'ipsecpolicy_id': ipsec_policy_id,
+                                          'admin_state_up': True,
+                                          'tenant_id': self._tenant_id,
+                                          'local_ep_group_id': None,
+                                          'peer_ep_group_id': None}}
+
+    def build_expected_connection_result(self, info):
+        """Create the expected IPsec connection dict from the request info.
+
+        The DPD information is stored and converted to a nested dict, instead
+        of individual fields.
+        """
+
+        expected = copy.copy(info['ipsec_site_connection'])
+        expected['dpd'] = {'action': expected['dpd_action'],
+                           'interval': expected['dpd_interval'],
+                           'timeout': expected['dpd_timeout']}
+        del expected['dpd_action']
+        del expected['dpd_interval']
+        del expected['dpd_timeout']
+        expected['status'] = 'PENDING_CREATE'
+        return expected
+
+    def prepare_for_ipsec_connection_create(self, with_subnet=True):
+        service = self.create_vpn_service(with_subnet)
+        ike_policy = self.create_ike_policy()
+        ipsec_policy = self.create_ipsec_policy()
+        return self.prepare_connection_info(service['id'],
+                                            ike_policy['id'],
+                                            ipsec_policy['id'])
+
+    def test_create_ipsec_site_connection_with_peer_cidrs(self):
+        """Create connection using old API with peer CIDRs specified."""
+        info = self.prepare_for_ipsec_connection_create()
+        info['ipsec_site_connection']['peer_cidrs'] = ['10.1.0.0/24',
+                                                       '10.2.0.0/24']
+        expected = self.build_expected_connection_result(info)
+
+        new_conn = self.plugin.create_ipsec_site_connection(self.context,
+                                                            info)
+        self.assertDictSupersetOf(expected, new_conn)
+
+    def test_create_ipsec_site_connection_with_endpoint_groups(self):
+        """Create connection using new API with endpoint groups."""
+        # Skip validation, which is tested separately
+        mock.patch.object(self.plugin, '_get_validator').start()
+        local_net = self.create_network(overrides={'name': 'local'})
+        overrides = {'name': 'local-subnet',
+                     'cidr': '30.0.0.0/24',
+                     'gateway_ip': '30.0.0.1',
+                     'network_id': local_net['id']}
+        local_subnet = self.create_subnet(overrides=overrides)
+
+        info = self.prepare_for_ipsec_connection_create(with_subnet=False)
+        local_ep_group = self.create_endpoint_group(
+            group_type='subnet', endpoints=[local_subnet['id']])
+        peer_ep_group = self.create_endpoint_group(
+            group_type='cidr', endpoints=['20.1.0.0/24', '20.2.0.0/24'])
+        info['ipsec_site_connection'].update(
+            {'local_ep_group_id': local_ep_group['id'],
+             'peer_ep_group_id': peer_ep_group['id']})
+        expected = self.build_expected_connection_result(info)
+
+        new_conn = self.plugin.create_ipsec_site_connection(self.context,
+                                                            info)
+        self.assertDictSupersetOf(expected, new_conn)
+
+    def test_fail_endpoint_group_delete_when_in_use_by_ipsec_conn(self):
+        """Ensure endpoint group is not deleted from under IPSec connection."""
+        # Skip validation, which is tested separately
+        mock.patch.object(self.plugin, '_get_validator').start()
+        local_net = self.create_network(overrides={'name': 'local'})
+        overrides = {'name': 'local-subnet',
+                     'cidr': '30.0.0.0/24',
+                     'gateway_ip': '30.0.0.1',
+                     'network_id': local_net['id']}
+        local_subnet = self.create_subnet(overrides=overrides)
+
+        info = self.prepare_for_ipsec_connection_create(with_subnet=False)
+        local_ep_group = self.create_endpoint_group(
+            group_type='subnet', endpoints=[local_subnet['id']])
+        peer_ep_group = self.create_endpoint_group(
+            group_type='cidr', endpoints=['20.1.0.0/24', '20.2.0.0/24'])
+        info['ipsec_site_connection'].update(
+            {'local_ep_group_id': local_ep_group['id'],
+             'peer_ep_group_id': peer_ep_group['id']})
+        self.plugin.create_ipsec_site_connection(self.context, info)
+        self.assertRaises(vpnaas.EndpointGroupInUse,
+                          self.plugin.delete_endpoint_group,
+                          self.context,
+                          local_ep_group['id'])
+        self.assertRaises(vpnaas.EndpointGroupInUse,
+                          self.plugin.delete_endpoint_group,
+                          self.context,
+                          peer_ep_group['id'])
+        unused_ep_group = self.create_endpoint_group(
+            group_type=constants.CIDR_ENDPOINT, endpoints=['30.0.0.0/24'])
+        self.plugin.delete_endpoint_group(self.context, unused_ep_group['id'])
+
+    def test_fail_subnet_delete_when_in_use_by_endpoint_group(self):
+        """Ensure don't delete subnet from under endpoint group."""
+        # mock.patch.object(self.plugin, '_get_validator').start()
+        local_net = self.create_network(overrides={'name': 'local'})
+        overrides = {'name': 'local-subnet',
+                     'cidr': '30.0.0.0/24',
+                     'gateway_ip': '30.0.0.1',
+                     'network_id': local_net['id']}
+        local_subnet = self.create_subnet(overrides=overrides)
+        self.create_endpoint_group(group_type='subnet',
+                                   endpoints=[local_subnet['id']])
+        self.assertRaises(vpnaas.SubnetInUseByEndpointGroup,
+                          self.plugin.check_subnet_in_use_by_endpoint_group,
+                          self.context, local_subnet['id'])
+
+    def test_fail_subnet_change_when_in_use_by_endpoint_group(self):
+        """Prevent subnet changes, when used by endpoint group.
+
+        An IPSec connection *may* be using an endpoint group that includes
+        the subnet being changed.
+
+        TODO(pcm): Either get notify before subnet change, and block if in
+        use, or get notify after change and force a sync operation. Either
+        way, this requires a Neutron change first.
+        """
+        pass

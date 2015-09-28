@@ -8,7 +8,7 @@ conn %default
 {% for ipsec_site_connection in vpnservice.ipsec_site_connections if ipsec_site_connection.admin_state_up
 -%}
 conn {{ipsec_site_connection.id}}
-    {% if vpnservice.subnet.ip_version == 6 -%}
+    {% if ipsec_site_connection['local_ip_vers'] == 6 -%}
     # To recognize the given IP addresses in this config
     # as IPv6 addresses by pluto whack. Default is ipv4
     connaddrfamily=ipv6
@@ -26,8 +26,11 @@ conn {{ipsec_site_connection.id}}
     auto={{ipsec_site_connection.initiator}}
     # NOTE:REQUIRED
     # [subnet]
-    leftsubnet={{vpnservice.subnet.cidr}}
-    # leftsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
+    {% if ipsec_site_connection['local_cidrs']|length == 1 -%}
+    leftsubnet={{ipsec_site_connection['local_cidrs'][0]}}
+    {% else -%}
+    leftsubnets={ {{ipsec_site_connection['local_cidrs']|join(' ')}} }
+    {% endif -%}
     # [updown]
     # What "updown" script to run to adjust routing and/or firewalling when
     # the status of the connection changes (default "ipsec _updown").

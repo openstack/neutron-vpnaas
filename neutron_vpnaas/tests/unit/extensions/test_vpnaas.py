@@ -272,29 +272,50 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         """Test case to delete an ipsecpolicy."""
         self._test_entity_delete('ipsecpolicy')
 
-    def test_vpnservice_create(self):
-        """Test case to create a vpnservice."""
-        vpnservice_id = _uuid()
+    def _test_vpnservice_create(self, more_args, defaulted_args):
+        """Helper to test VPN service creation.
+
+        Allows additional args to be specified for different test cases.
+        Includes expected args, for case where an optional args are not
+        specified and API applies defaults.
+        """
+
         data = {'vpnservice': {'name': 'vpnservice1',
                                'description': 'descr_vpn1',
-                               'subnet_id': _uuid(),
                                'router_id': _uuid(),
                                'admin_state_up': True,
                                'tenant_id': _uuid()}}
-        return_value = copy.copy(data['vpnservice'])
-        return_value.update({'status': "ACTIVE", 'id': vpnservice_id})
+        data['vpnservice'].update(more_args)
 
+        # Add in any default values for args that were not provided
+        actual_args = copy.copy(data)
+        actual_args['vpnservice'].update(defaulted_args)
+
+        return_value = copy.copy(data['vpnservice'])
+        return_value.update({'status': "ACTIVE", 'id': _uuid()})
+        return_value.update(defaulted_args)
         instance = self.plugin.return_value
         instance.create_vpnservice.return_value = return_value
+
         res = self.api.post(_get_path('vpn/vpnservices', fmt=self.fmt),
                             self.serialize(data),
                             content_type='application/%s' % self.fmt)
         instance.create_vpnservice.assert_called_with(mock.ANY,
-                                                      vpnservice=data)
+                                                      vpnservice=actual_args)
         self.assertEqual(exc.HTTPCreated.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('vpnservice', res)
         self.assertEqual(return_value, res['vpnservice'])
+
+    def test_vpnservice_create(self):
+        """Create VPN service using subnet (older API)."""
+        subnet = {'subnet_id': _uuid()}
+        self._test_vpnservice_create(more_args=subnet, defaulted_args={})
+
+    def test_vpnservice_create_no_subnet(self):
+        """Test case to create a vpnservice w/o subnet (newer API)."""
+        no_subnet = {'subnet_id': None}
+        self._test_vpnservice_create(more_args={}, defaulted_args=no_subnet)
 
     def test_vpnservice_list(self):
         """Test case to list all vpnservices."""
@@ -372,8 +393,8 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         """Test case to delete a vpnservice."""
         self._test_entity_delete('vpnservice')
 
-    def test_ipsec_site_connection_create(self):
-        """Test case to create a ipsec_site_connection."""
+    def _test_ipsec_site_connection_create(self, more_args, defaulted_args):
+        """Helper to test creating IPSec connection."""
         ipsecsite_con_id = _uuid()
         ikepolicy_id = _uuid()
         ipsecpolicy_id = _uuid()
@@ -382,8 +403,6 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
                                       'description': 'Remote-connection1',
                                       'peer_address': '192.168.1.10',
                                       'peer_id': '192.168.1.10',
-                                      'peer_cidrs': ['192.168.2.0/24',
-                                                     '192.168.3.0/24'],
                                       'mtu': 1500,
                                       'psk': 'abcd',
                                       'initiator': 'bi-directional',
@@ -397,22 +416,44 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
                                       'admin_state_up': True,
                                       'tenant_id': _uuid()}
         }
+        data['ipsec_site_connection'].update(more_args)
+
+        # Add in any default values for args that were not provided
+        actual_args = copy.copy(data)
+        actual_args['ipsec_site_connection'].update(defaulted_args)
+
         return_value = copy.copy(data['ipsec_site_connection'])
         return_value.update({'status': "ACTIVE", 'id': ipsecsite_con_id})
-
+        return_value.update(defaulted_args)
         instance = self.plugin.return_value
         instance.create_ipsec_site_connection.return_value = return_value
+
         res = self.api.post(_get_path('vpn/ipsec-site-connections',
                                       fmt=self.fmt),
                             self.serialize(data),
                             content_type='application/%s' % self.fmt)
         instance.create_ipsec_site_connection.assert_called_with(
-            mock.ANY, ipsec_site_connection=data
-        )
+            mock.ANY, ipsec_site_connection=actual_args)
         self.assertEqual(exc.HTTPCreated.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('ipsec_site_connection', res)
         self.assertEqual(return_value, res['ipsec_site_connection'])
+
+    def test_ipsec_site_connection_create(self):
+        """Create an IPSec connection with peer CIDRs (old API)."""
+        peer_cidrs = {'peer_cidrs': ['192.168.2.0/24', '192.168.3.0/24']}
+        no_endpoint_groups = {'local_ep_group_id': None,
+                              'peer_ep_group_id': None}
+        self._test_ipsec_site_connection_create(
+            more_args=peer_cidrs, defaulted_args=no_endpoint_groups)
+
+    def test_ipsec_site_connection_create_with_endpoints(self):
+        """Create an IPSec connection with endpoint groups (new API)."""
+        endpoint_groups = {'local_ep_group_id': _uuid(),
+                           'peer_ep_group_id': _uuid()}
+        no_peer_cidrs = {'peer_cidrs': []}
+        self._test_ipsec_site_connection_create(more_args=endpoint_groups,
+                                                defaulted_args=no_peer_cidrs)
 
     def test_ipsec_site_connection_list(self):
         """Test case to list all ipsec_site_connections."""
@@ -422,6 +463,8 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
                          'peer_cidrs': ['192.168.2.0/24', '192.168.3.0/24'],
                          'route_mode': 'static',
                          'auth_mode': 'psk',
+                         'local_ep_group_id': None,
+                         'peer_ep_group_id': None,
                          'tenant_id': _uuid(),
                          'status': 'ACTIVE',
                          'id': ipsecsite_con_id}]
@@ -457,6 +500,8 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
                         'ipsecpolicy_id': _uuid(),
                         'vpnservice_id': _uuid(),
                         'admin_state_up': False,
+                        'local_ep_group_id': None,
+                        'peer_ep_group_id': None,
                         'tenant_id': _uuid(),
                         'status': 'ACTIVE',
                         'id': ipsecsite_con_id}
@@ -499,6 +544,8 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
                         'vpnservice_id': _uuid(),
                         'admin_state_up': True,
                         'tenant_id': _uuid(),
+                        'local_ep_group_id': None,
+                        'peer_ep_group_id': None,
                         'status': 'ACTIVE',
                         'id': ipsecsite_con_id}
 

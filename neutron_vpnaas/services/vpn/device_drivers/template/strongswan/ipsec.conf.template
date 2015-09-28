@@ -12,7 +12,7 @@ conn %default
 conn {{ipsec_site_connection.id}}
     keyexchange={{ipsec_site_connection.ikepolicy.ike_version}}
     left={{ipsec_site_connection.external_ip}}
-    leftsubnet={{vpnservice.subnet.cidr}}
+    leftsubnet={{ipsec_site_connection['local_cidrs']|join(',')}}
     leftid={{ipsec_site_connection.external_ip}}
     leftfirewall=yes
     right={{ipsec_site_connection.peer_address}}
