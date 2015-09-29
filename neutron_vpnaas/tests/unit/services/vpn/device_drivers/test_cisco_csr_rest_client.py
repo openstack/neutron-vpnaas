@@ -1027,7 +1027,7 @@ class TestCsrRestIPSecConnectionCreate(CiscoCsrBaseTestCase):
     """Test IPSec site-to-site connection REST requests.
 
     This requires us to have first created an IKE policy, IPSec policy,
-    and pre-shared key, so it's more of an itegration test, when used
+    and pre-shared key, so it's more of an integration test, when used
     with a real CSR (as we can't mock out these pre-conditions).
     """
 
@@ -1545,7 +1545,7 @@ class TestCsrRestIkeKeepaliveCreate(CiscoCsrBaseTestCase):
 
         Each test case will have a normal authentication, get, and put mock
         responses registered, although the test may replace them, if needed.
-        Dead Peer Detection settions will be saved for each test, and
+        Dead Peer Detection settings will be saved for each test, and
         restored afterwards.
         """
         super(TestCsrRestIkeKeepaliveCreate, self).setUp(host,

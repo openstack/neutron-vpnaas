@@ -1631,7 +1631,7 @@ class TestVpnaas(VPNPluginDbTestCase):
 class NeutronResourcesMixin(object):
 
     def create_network(self, overrides=None):
-        """Create datatbase entry for network."""
+        """Create database entry for network."""
         network_info = {'network': {'name': 'my-net',
                                     'tenant_id': self.tenant_id,
                                     'admin_state_up': True,

@@ -127,7 +127,7 @@ class TestCiscoCsrIPSecConnection(base.BaseTestCase):
         peer networks), and ensure that the create steps are called in
         order (except for create_static_route), and that the delete
         steps are called in reverse order. At the end, there should be no
-        rollback infromation for the connection.
+        rollback information for the connection.
         """
         def fake_route_check_fails(*args):
             if args[0] == 'Static Route':
@@ -755,7 +755,7 @@ class TestCiscoCsrIPsecDeviceDriverSyncStatuses(base.BaseTestCase):
     def test_update_new_service_admin_down(self):
         """Unknown VPN service updated to admin down state - nop.
 
-        Can happen if agent restarts and then gets its first notificaiton
+        Can happen if agent restarts and then gets its first notification
         of a service that is in the admin down state. Structures will be
         created, but forced down.
         """
@@ -900,7 +900,7 @@ class TestCiscoCsrIPsecDeviceDriverSyncStatuses(base.BaseTestCase):
         vpn_service = self.driver.create_vpn_service(self.service123_data)
         connection = vpn_service.create_connection(self.conn1_data)
         self.driver.mark_existing_connections_as_dirty()
-        # Simulate that the update phase visted both of them
+        # Simulate that the update phase visited both of them
         vpn_service.is_dirty = False
         connection.is_dirty = False
         self.driver.remove_unknown_connections(self.context)
@@ -970,7 +970,7 @@ class TestCiscoCsrIPsecDeviceDriverSyncStatuses(base.BaseTestCase):
                                                          connection_state):
         """Create internal structures for single service with connection.
 
-        Creates a service and corresponding connection. Then, simluates
+        Creates a service and corresponding connection. Then, simulates
         the mark/update/sweep operation by marking both the service and
         connection as clean and updating their status. Override the REST
         client created for the service, with a mock, so that all calls

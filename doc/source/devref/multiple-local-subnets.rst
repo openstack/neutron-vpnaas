@@ -186,7 +186,7 @@ VPNaaS.
 There are several attributes that are involve here. One is the subnet ID
 attribute in the VPN service API. The other is the peer CIDR attribute in
 the IPSec connection API. Both would be specified by endpoint groups in
-the new API, and thise groups would be called out in the IPSec connection
+the new API, and these groups would be called out in the IPSec connection
 API.
 
 A plan to meet the backward compatibility goal of allowing both APIs to

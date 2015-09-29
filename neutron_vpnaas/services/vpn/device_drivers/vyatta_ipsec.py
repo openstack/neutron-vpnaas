@@ -109,7 +109,7 @@ class VyattaIPSecDriver(device_drivers.DeviceDriver):
         conn.create_consumer(node_topic, endpoints, fanout=False)
         conn.consume_in_threads()
 
-        # initialize agent ot server RPC link
+        # initialize agent to server RPC link
         self.server_api = NeutronServerAPI(
             topics.BROCADE_IPSEC_DRIVER_TOPIC)
 

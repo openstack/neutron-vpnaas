@@ -92,7 +92,7 @@ class CiscoCsrIPsecDriver(device_drivers.DeviceDriver):
 
     This class is designed for use with L3-agent now.
     However this driver will be used with another agent in future.
-    so the use of "Router" is kept minimul now.
+    so the use of "Router" is kept minimal now.
     Instead of router_id,  we are using process_id in this code.
     """
 

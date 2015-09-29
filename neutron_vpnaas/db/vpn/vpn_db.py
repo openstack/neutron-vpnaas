@@ -44,7 +44,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
     def _get_validator(self):
         """Obtain validator to use for attribute validation.
 
-        Subclasses may override this with a different valdiator, as needed.
+        Subclasses may override this with a different validator, as needed.
         Note: some UTs will directly create a VPNPluginDb object and then
         call its methods, instead of creating a VPNDriverPlugin, which
         will have a service driver associated that will provide a
@@ -584,7 +584,7 @@ class VPNPluginRpcDbMixin(object):
         agent = plugin._get_agent_by_type_and_host(
             context, n_constants.AGENT_TYPE_L3, host)
         agent_conf = plugin.get_configuration_dict(agent)
-        # Retreive the agent_mode to check if this is the
+        # Retrieve the agent_mode to check if this is the
         # right agent to deploy the vpn service. In the
         # case of distributed the vpn service should reside
         # only on a dvr_snat node.
@@ -619,7 +619,7 @@ class VPNPluginRpcDbMixin(object):
               }
           }]
         The agent will set updated_pending_status as True,
-        when agent update any pending status.
+        when agent updates any pending status.
         """
         with context.session.begin(subtransactions=True):
             for vpnservice in service_status_info_list:

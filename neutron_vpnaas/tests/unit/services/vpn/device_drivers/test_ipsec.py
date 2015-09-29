@@ -1077,7 +1077,7 @@ class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
                          ipsec_site_conn[connection_id]['status'])
 
     def test_status_handling_for_active_connection(self):
-        """Test status handling for actived connection."""
+        """Test status handling for active connection."""
         router_id = self.router.router_id
         connection_id = FAKE_IPSEC_SITE_CONNECTION2_ID
         self.driver.ensure_process(router_id, self.vpnservice)

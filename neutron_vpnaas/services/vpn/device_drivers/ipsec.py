@@ -522,9 +522,9 @@ class IPsecDriver(device_drivers.DeviceDriver):
     """VPN Device Driver for IPSec.
 
     This class is designed for use with L3-agent now.
-    However this driver will be used with another agent in future.
-    so the use of "Router" is kept minimul now.
-    Instead of router_id,  we are using process_id in this code.
+    However this driver will be used with another agent in future
+    so the use of "Router" is kept minimal now.
+    Instead of router_id, we are using process_id in this code.
     """
 
     # history
@@ -533,7 +533,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
 
     def __init__(self, vpn_service, host):
         # TODO(pc_m) Replace vpn_service with config arg, once all driver
-        # implemenations no longer need vpn_service.
+        # implementations no longer need vpn_service.
         self.conf = vpn_service.conf
         self.host = host
         self.conn = n_rpc.create_connection(new=True)
@@ -599,7 +599,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
         :param rule: a string of rule
         :param top: if top is true, the rule
             will be placed on the top of chain
-            Note if there is no rotuer, this method do nothing
+            Note if there is no router, this method does nothing
         """
         router = self.routers.get(router_id)
         if not router:
@@ -676,7 +676,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
         """Ensuring process.
 
         If the process doesn't exist, it will create process
-        and store it in self.processs
+        and store it in self.process
         """
         process = self.processes.get(process_id)
         if not process or not process.namespace:
