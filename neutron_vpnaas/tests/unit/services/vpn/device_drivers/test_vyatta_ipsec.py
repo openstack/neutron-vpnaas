@@ -75,7 +75,7 @@ class TestNeutronServerAPI(base.BaseTestCase):
         for connection in svc_connections:
             validate_func.assert_any_call(connection)
 
-        self.assertEqual(len(vpn_services), len(vpn_services_on_host))
+        self.assertEqual(len(vpn_services_on_host), len(vpn_services))
 
     def test_update_status(self):
         context = mock.Mock()
@@ -137,12 +137,12 @@ class TestVyattaDeviceDriver(base.BaseTestCase):
             self.driver.create_router(router)
 
         svc_cache = self.driver._svc_cache
-        self.assertEqual(len(svc_cache), 1)
-        self.assertEqual(svc_cache[0]['router_id'], router_id)
+        self.assertEqual(1, len(svc_cache))
+        self.assertEqual(router_id, svc_cache[0]['router_id'])
         ipsec_connections = svc_cache[0]['ipsec_site_connections']
         self.assertEqual(
-            ipsec_connections[0]['peer_address'],
-            '172.24.4.234')
+            '172.24.4.234',
+            ipsec_connections[0]['peer_address'])
 
     def test_destroy_router(self):
         router_id = _uuid()
