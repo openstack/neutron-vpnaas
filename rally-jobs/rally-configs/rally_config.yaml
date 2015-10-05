@@ -34,3 +34,28 @@
       sla:
         failure_rate:
           max: 0
+
+  TestVPNStatusScenario.check_vpn_status:
+    -
+      args:
+        flavor:
+            name: "m1.tiny"
+        image:
+            name: {{image_name}}
+        nova_server_boot_timeout: 60 * 6
+        vpn_service_creation_timeout: 100
+        ipsec_site_connection_creation_timeout: 400
+        namespace_creation_timeout: 60
+
+      runner:
+        type: "constant"
+        times: 1
+        concurrency: 1
+
+      context:
+        users:
+          tenants: 1
+          users_per_tenant: 1
+      sla:
+        failure_rate:
+          max: 0

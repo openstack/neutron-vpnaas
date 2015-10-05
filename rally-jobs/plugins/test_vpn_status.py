@@ -12,25 +12,19 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from neutron.i18n import _LI
-from rally.common import log as logging
-
 from rally.task import scenario
 from rally.task import types as types
 import vpn_base
 
-LOG = logging.getLogger(__name__)
 
-
-class VpnBasicScenario(vpn_base.VpnBase):
-    """Rally scenarios for VPNaaS"""
-
+class TestVPNStatusScenario(vpn_base.VpnBase):
     @types.set(image=types.ImageResourceType,
                flavor=types.FlavorResourceType)
     @scenario.configure()
-    def create_and_delete_vpn_connection(
+    def check_vpn_status(
             self, **kwargs):
-        """Basic VPN connectivity scenario.
+        """Test VPN's status correctly after bringing router's status to
+         DOWN and back to ACTIVE state
 
         1. Create 2 private networks, subnets and routers
         2. Create public network, subnets and GW IPs on routers, if not present
@@ -43,15 +37,11 @@ class VpnBasicScenario(vpn_base.VpnBase):
         7. Create IKE and IPSEC policies
         8. Create VPN service at each of the routers
         9. Create IPSEC site connections at both endpoints
-        10. Verify that the ipsec-site-connection is ACTIVE (takes upto 30secs)
-        11. To verify the vpn connectivity, get into the first snat
-            namespace and start a tcpdump at the qg-xxxx interface
-        12. SSH into the second instance from the second qrouter namespace
-            and try to ping the first instance
-        14. Verify that the captured packets are encapsulated and encrypted.
-        15. Verify the connectivity in the reverse direction following the
-            steps 11 through 13
-        16. Submit a request to delete all the resources
+        10. Bring both the private router's status to DOWN state
+        11. Verify that vpn-service and ipsec-site-connection is DOWN
+        12. Bring back the router's status to ACTIVE state
+        13. Verify the vpn-service and ipsec-site-connection is back to ACTIVE
+        14. Perform resource cleanup
         """
 
         try:
@@ -63,8 +53,12 @@ class VpnBasicScenario(vpn_base.VpnBase):
             self.create_vpn_services()
             self.create_ipsec_site_connections(**kwargs)
             self.assert_statuses(final_status='ACTIVE', **kwargs)
-            self.assert_vpn_connectivity()
-            LOG.info(_LI("VPN CONNECTIVITY TEST PASSED!!"))
+            self.update_router(self.router_ids[0], admin_state_up=False)
+            self.update_router(self.router_ids[1], admin_state_up=False)
+            self.assert_statuses(final_status='DOWN', **kwargs)
+            self.update_router(self.router_ids[0], admin_state_up=True)
+            self.update_router(self.router_ids[1], admin_state_up=True)
+            self.assert_statuses(final_status='ACTIVE', **kwargs)
 
         finally:
             self.cleanup()

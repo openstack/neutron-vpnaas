@@ -37,6 +37,7 @@ class VpnBase(rally_base.OpenStackScenario):
 
         self.snat_namespaces = []
         self.qrouter_namespaces = []
+        self.router_ids = []
         self.rally_router_gw_ips = []
         self.rally_routers = []
         self.rally_networks = []
@@ -219,34 +220,49 @@ class VpnBase(rally_base.OpenStackScenario):
                     format(resource[resource_tag]['name'], final_status)
                 )
 
-    def _assert_statuses(self, ipsec_site_conn, vpn_service, **kwargs):
+    def _assert_statuses(self, ipsec_site_conn, vpn_service,
+                         final_status, **kwargs):
         """Assert statuses of vpn_service and ipsec_site_connection
 
         :param ipsec_site_conn: ipsec_site_connection object
         :param vpn_service: vpn_service object
+        :param final_status: status of vpn and ipsec_site_connection object
         """
 
         vpn_service = self._wait_for_status_change(
             vpn_service,
             resource_tag="vpnservice",
-            final_status="ACTIVE",
+            final_status=final_status,
             wait_timeout=kwargs.get("vpn_service_creation_timeout"),
             check_interval=5)
-        LOG.debug("VPN SERVICE STATUS %s", vpn_service['vpnservice']['status'])
-        assert('ACTIVE' == vpn_service['vpnservice']['status']), (
-                     "VPN_SERVICE IS NOT IN ACTIVE STATE")
 
         ipsec_site_conn = self._wait_for_status_change(
             ipsec_site_conn,
             resource_tag="ipsec_site_connection",
-            final_status="ACTIVE",
+            final_status=final_status,
             wait_timeout=kwargs.get("ipsec_site_connection_creation_timeout"),
             check_interval=5)
+
+        LOG.debug("VPN SERVICE STATUS %s", vpn_service['vpnservice']['status'])
         LOG.debug("IPSEC_SITE_CONNECTION STATUS: %s",
                   ipsec_site_conn['ipsec_site_connection']['status'])
-        assert('ACTIVE' ==
-            ipsec_site_conn['ipsec_site_connection']['status']), (
-            "THE INSTANCE IS NOT IN ACTIVE STATE")
+
+        self._validate_status(vpn_service, ipsec_site_conn, final_status)
+
+    def _validate_status(self, vpn_service, ipsec_site_conn, final_status):
+        """Validate the statuses of vpn_service, ipsec_site_connection and
+        evaluate the final_status
+
+        :param ipsec_site_conn: ipsec_site_connection of an instance
+        :param vpn_service: vpn_service of an instance
+        :param final_status: status of vpn and ipsec_site_connection instance
+        """
+
+        assert(final_status == vpn_service['vpnservice']['status']), (
+                "VPN SERVICE IS NOT IN %s STATE" % final_status)
+        assert(final_status == ipsec_site_conn['ipsec_site_connection']
+        ['status']), ("THE IPSEC SITE CONNECTION IS NOT IN %s STATE"
+                      % final_status)
 
     @atomic.action_timer("_verify_vpn_connection")
     def _verify_vpn_connection(self, local_index, peer_index):
@@ -337,12 +353,13 @@ class VpnBase(rally_base.OpenStackScenario):
             keypairs = []
             for x in range(MAX_RESOURCES):
                 router, network, subnet, cidr = vpn_utils.create_network(
-                    self.neutron_client, self. neutron_admin_client,
+                    self.neutron_client, self.neutron_admin_client,
                     self.suffixes[x])
                 self.rally_cidrs.append(cidr)
                 self.rally_subnets.append(subnet)
                 self.rally_networks.append(network)
                 self.rally_routers.append(router)
+                self.router_ids.append(router["router"]['id'])
                 self.rally_router_gw_ips.append(
                     router["router"]["external_gateway_info"]
                     ["external_fixed_ips"][0]["ip_address"])
@@ -377,6 +394,16 @@ class VpnBase(rally_base.OpenStackScenario):
                         "PING FAILED FROM NAMESPACE " + ns + " TO IP "
                         + ip)
 
+    def update_router(self, router_id, admin_state_up=False):
+        """Updates router
+
+        :param router_id: router id
+        :param admin_state_up: update 'admin_state_up' of the router
+        :return:
+        """
+        req_body = {'router': {'admin_state_up': admin_state_up}}
+        self.neutron_client.update_router(router_id, req_body)
+
     def create_vpn_services(self):
         with LOCK:
             for x in range(MAX_RESOURCES):
@@ -391,12 +418,12 @@ class VpnBase(rally_base.OpenStackScenario):
                 self._create_ipsec_site_connection(1, 0, **kwargs)
             ]
 
-    def assert_statuses(self, **kwargs):
+    def assert_statuses(self, final_status, **kwargs):
         LOG.debug("ASSERTING ACTIVE STATUSES FOR VPN-SERVICES AND "
                   "VPN-CONNECTIONS")
         for x in range(MAX_RESOURCES):
             self._assert_statuses(self.ipsec_site_connections[x],
-                                  self.vpn_services[x], **kwargs)
+                                  self.vpn_services[x], final_status, **kwargs)
 
     def assert_vpn_connectivity(self):
         LOG.debug("VERIFY THE VPN CONNECTIVITY")
