@@ -38,6 +38,8 @@ function neutron_vpnaas_configure_agent {
         else
             iniset_multiline $conf_file vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.StrongSwanDriver
         fi
+    elif [[ "$IPSEC_PACKAGE" == "libreswan" ]]; then
+        iniset_multiline $Q_VPN_CONF_FILE vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.libreswan_ipsec.LibreSwanDriver
     else
         iniset_multiline $conf_file vpnagent vpn_device_driver $NEUTRON_VPNAAS_DEVICE_DRIVER
     fi
