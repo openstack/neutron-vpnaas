@@ -35,7 +35,8 @@ START_CIDR = "10.2.0.0/24"
 EXT_NET_CIDR = "172.16.1.0/24"
 
 
-def create_network(neutron_client, neutron_admin_client, network_suffix):
+def create_network(neutron_client, neutron_admin_client,
+                   network_suffix, tenant_id=None):
     """Creates neutron network, subnet, router
 
     :param neutron_client: neutron client
@@ -53,6 +54,10 @@ def create_network(neutron_client, neutron_admin_client, network_suffix):
                         "router:external": is_external
                         }
         LOG.debug("ADDING NEW NETWORK: %s", network_name)
+
+        if tenant_id is not None:
+            network_args["tenant_id"] = tenant_id
+
         return neutron_client.create_network({"network": network_args})
 
     def _create_subnet(neutron_client, rally_network, network_suffix, cidr):
@@ -66,6 +71,10 @@ def create_network(neutron_client, neutron_admin_client, network_suffix):
                        "ip_version": SUBNET_IP_VERSION
                        }
         LOG.debug("ADDING SUBNET: %s", subnet_name)
+
+        if tenant_id is not None:
+            subnet_args["tenant_id"] = tenant_id
+
         return neutron_client.create_subnet({"subnet": subnet_args})
 
     def _create_router(neutron_client, ext_network_id, rally_subnet):
@@ -82,9 +91,13 @@ def create_network(neutron_client, neutron_admin_client, network_suffix):
                        "external_gateway_info": gw_info
                        }
         LOG.debug("ADDING ROUTER: %s", router_name)
-        rally_router = neutron_client.create_router({"router": router_args})
-
         LOG.debug("ADDING ROUTER INTERFACE")
+
+        if tenant_id is not None:
+            router_args["tenant_id"] = 'tenant_id'
+
+        rally_router = neutron_client.create_router(
+            {"router": router_args})
         neutron_client.add_interface_router(
             rally_router['router']["id"],
             {"subnet_id": rally_subnet["subnet"]["id"]})
@@ -114,6 +127,24 @@ def create_network(neutron_client, neutron_admin_client, network_suffix):
                                   network_suffix, subnet_cidr)
     rally_router = _create_router(neutron_client, ext_network_id, rally_subnet)
     return rally_router, rally_network, rally_subnet, subnet_cidr
+
+
+def create_tenant(keystone_client, tenant):
+    """Creates keystone tenant with random name.
+    :param tenant: create a tenant with random name
+    :returns:
+    """
+    return keystone_client.tenants.create(tenant)
+
+
+def delete_tenant(keystone_client, tenant):
+    """Deletes keystone tenant
+
+    :returns: delete keystone tenant instance
+    """
+    if tenant:
+        for id in tenant:
+            keystone_client.tenants.delete(id)
 
 
 def create_keypair(nova_client, key_name, key_file_path):

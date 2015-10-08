@@ -32,9 +32,11 @@ MAX_RESOURCES = 2
 
 class VpnBase(rally_base.OpenStackScenario):
 
-    def setup(self):
-        """Creates and initializes data structures to hold various resources"""
-
+    def setup(self, use_admin_client=False):
+        """Creates and initializes data structures to hold various resources
+        :param use_admin_client - Use admin client when it is set to True
+        """
+        self.tenant_ids = []
         self.snat_namespaces = []
         self.qrouter_namespaces = []
         self.router_ids = []
@@ -50,11 +52,16 @@ class VpnBase(rally_base.OpenStackScenario):
         self.servers = []
         self.server_private_ips = []
         self.suffixes = [uuidutils.generate_uuid(), uuidutils.generate_uuid()]
+        self.tenant_names = map(lambda x: "rally_tenant_" + x, self.suffixes)
         self.key_names = map(lambda x: "rally_keypair_" + x, self.suffixes)
         self.key_file_paths = map(lambda x: '/tmp/' + x, self.key_names)
+        self.nova_client = self.clients("nova")
         self.neutron_client = self.clients("neutron")
         self.neutron_admin_client = self.admin_clients("neutron")
-        self.nova_client = self.clients("nova")
+        if use_admin_client is True:
+            self.neutron_client = self.admin_clients("neutron")
+            self.keystone_client = self.admin_clients("keystone")
+            self.nova_client = self.admin_clients("nova")
 
     @atomic.action_timer("cleanup")
     def cleanup(self):
@@ -70,6 +77,9 @@ class VpnBase(rally_base.OpenStackScenario):
         vpn_utils.delete_network(
             self.neutron_client, self.neutron_admin_client, self.rally_routers,
             self.rally_networks, self.rally_subnets)
+        if self.tenant_ids:
+            vpn_utils.delete_tenant(self.keystone_client,
+                                    self.tenant_ids)
 
     @atomic.action_timer("_create_ike_policy")
     def _create_ike_policy(self, **kwargs):
@@ -121,7 +131,8 @@ class VpnBase(rally_base.OpenStackScenario):
         return ipsec_policy
 
     @atomic.action_timer("_create_vpn_service")
-    def _create_vpn_service(self, rally_subnet, rally_router, vpn_suffix=None):
+    def _create_vpn_service(self, rally_subnet,
+                            rally_router, vpn_suffix=None):
         """Creates VPN service endpoints
 
         :param rally_subnet: local subnet
@@ -141,7 +152,8 @@ class VpnBase(rally_base.OpenStackScenario):
         return vpn_service
 
     @atomic.action_timer("_create_ipsec_site_connection")
-    def _create_ipsec_site_connection(self, local_index, peer_index, **kwargs):
+    def _create_ipsec_site_connection(self, local_index,
+                                      peer_index, **kwargs):
         """Creates IPSEC site connection
 
         :param local_index: parameter to point to the local end-point
@@ -181,12 +193,14 @@ class VpnBase(rally_base.OpenStackScenario):
         :return: resource (vpn_service or ipsec_site_connection)
         """
         if resource_tag == "vpnservice":
-            vpn_service = self.neutron_client.show_vpnservice(resource_id)
+            vpn_service = self.neutron_client.show_vpnservice(
+                resource_id)
             if vpn_service:
                 return vpn_service
         elif resource_tag == 'ipsec_site_connection':
-            ipsec_site_conn = self.neutron_client.show_ipsec_site_connection(
-                resource_id)
+            ipsec_site_conn = \
+                self.neutron_client.show_ipsec_site_connection(
+                    resource_id)
             if ipsec_site_conn:
                 return ipsec_site_conn
 
@@ -348,13 +362,31 @@ class VpnBase(rally_base.OpenStackScenario):
             self.neutron_client.delete_ikepolicy(
                 self.ike_policy['ikepolicy']['id'])
 
+    def create_tenant(self):
+        """Creates tenant
+
+        :param keystone_client: keystone_admin_client
+        :param tenant_ids : append created tenant id into the list
+        :return:
+        """
+        with LOCK:
+            for x in range(MAX_RESOURCES):
+                self.tenant_ids.append((vpn_utils.create_tenant(
+                    self.keystone_client,
+                    self.tenant_names[x])).id)
+
     def create_networks_and_servers(self, **kwargs):
         with LOCK:
             keypairs = []
             for x in range(MAX_RESOURCES):
-                router, network, subnet, cidr = vpn_utils.create_network(
-                    self.neutron_client, self.neutron_admin_client,
-                    self.suffixes[x])
+                if self.tenant_ids:
+                    router, network, subnet, cidr = vpn_utils.create_network(
+                        self.neutron_client, self.neutron_admin_client,
+                        self.suffixes[x], self.tenant_ids[x])
+                else:
+                    router, network, subnet, cidr = vpn_utils.create_network(
+                        self.neutron_client, self.neutron_admin_client,
+                        self.suffixes[x])
                 self.rally_cidrs.append(cidr)
                 self.rally_subnets.append(subnet)
                 self.rally_networks.append(network)
