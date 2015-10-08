@@ -68,10 +68,10 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
                             content_type='application/%s' % self.fmt)
         instance.create_ikepolicy.assert_called_with(mock.ANY,
                                                      ikepolicy=data)
-        self.assertEqual(res.status_int, exc.HTTPCreated.code)
+        self.assertEqual(exc.HTTPCreated.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('ikepolicy', res)
-        self.assertEqual(res['ikepolicy'], return_value)
+        self.assertEqual(return_value, res['ikepolicy'])
 
     def test_ikepolicy_list(self):
         """Test case to list all ikepolicies."""
@@ -91,7 +91,7 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         instance.get_ikepolicies.assert_called_with(mock.ANY,
                                                     fields=mock.ANY,
                                                     filters=mock.ANY)
-        self.assertEqual(res.status_int, exc.HTTPOk.code)
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
 
     def test_ikepolicy_update(self):
         """Test case to update an ikepolicy."""
@@ -119,10 +119,10 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
 
         instance.update_ikepolicy.assert_called_with(mock.ANY, ikepolicy_id,
                                                      ikepolicy=update_data)
-        self.assertEqual(res.status_int, exc.HTTPOk.code)
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('ikepolicy', res)
-        self.assertEqual(res['ikepolicy'], return_value)
+        self.assertEqual(return_value, res['ikepolicy'])
 
     def test_ikepolicy_get(self):
         """Test case to get or show an ikepolicy."""
@@ -148,10 +148,10 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         instance.get_ikepolicy.assert_called_with(mock.ANY,
                                                   ikepolicy_id,
                                                   fields=mock.ANY)
-        self.assertEqual(res.status_int, exc.HTTPOk.code)
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('ikepolicy', res)
-        self.assertEqual(res['ikepolicy'], return_value)
+        self.assertEqual(return_value, res['ikepolicy'])
 
     def test_ikepolicy_delete(self):
         """Test case to delete an ikepolicy."""
@@ -181,10 +181,10 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
                             content_type='application/%s' % self.fmt)
         instance.create_ipsecpolicy.assert_called_with(mock.ANY,
                                                        ipsecpolicy=data)
-        self.assertEqual(res.status_int, exc.HTTPCreated.code)
+        self.assertEqual(exc.HTTPCreated.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('ipsecpolicy', res)
-        self.assertEqual(res['ipsecpolicy'], return_value)
+        self.assertEqual(return_value, res['ipsecpolicy'])
 
     def test_ipsecpolicy_list(self):
         """Test case to list an ipsecpolicy."""
@@ -203,7 +203,7 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         instance.get_ipsecpolicies.assert_called_with(mock.ANY,
                                                       fields=mock.ANY,
                                                       filters=mock.ANY)
-        self.assertEqual(res.status_int, exc.HTTPOk.code)
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
 
     def test_ipsecpolicy_update(self):
         """Test case to update an ipsecpolicy."""
@@ -233,10 +233,10 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         instance.update_ipsecpolicy.assert_called_with(mock.ANY,
                                                        ipsecpolicy_id,
                                                        ipsecpolicy=update_data)
-        self.assertEqual(res.status_int, exc.HTTPOk.code)
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('ipsecpolicy', res)
-        self.assertEqual(res['ipsecpolicy'], return_value)
+        self.assertEqual(return_value, res['ipsecpolicy'])
 
     def test_ipsecpolicy_get(self):
         """Test case to get or show an ipsecpolicy."""
@@ -263,10 +263,10 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         instance.get_ipsecpolicy.assert_called_with(mock.ANY,
                                                     ipsecpolicy_id,
                                                     fields=mock.ANY)
-        self.assertEqual(res.status_int, exc.HTTPOk.code)
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('ipsecpolicy', res)
-        self.assertEqual(res['ipsecpolicy'], return_value)
+        self.assertEqual(return_value, res['ipsecpolicy'])
 
     def test_ipsecpolicy_delete(self):
         """Test case to delete an ipsecpolicy."""
@@ -291,10 +291,10 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
                             content_type='application/%s' % self.fmt)
         instance.create_vpnservice.assert_called_with(mock.ANY,
                                                       vpnservice=data)
-        self.assertEqual(res.status_int, exc.HTTPCreated.code)
+        self.assertEqual(exc.HTTPCreated.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('vpnservice', res)
-        self.assertEqual(res['vpnservice'], return_value)
+        self.assertEqual(return_value, res['vpnservice'])
 
     def test_vpnservice_list(self):
         """Test case to list all vpnservices."""
@@ -312,7 +312,7 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         instance.get_vpnservices.assert_called_with(mock.ANY,
                                                     fields=mock.ANY,
                                                     filters=mock.ANY)
-        self.assertEqual(res.status_int, exc.HTTPOk.code)
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
 
     def test_vpnservice_update(self):
         """Test case to update a vpnservice."""
@@ -337,10 +337,10 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         instance.update_vpnservice.assert_called_with(mock.ANY,
                                                       vpnservice_id,
                                                       vpnservice=update_data)
-        self.assertEqual(res.status_int, exc.HTTPOk.code)
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('vpnservice', res)
-        self.assertEqual(res['vpnservice'], return_value)
+        self.assertEqual(return_value, res['vpnservice'])
 
     def test_vpnservice_get(self):
         """Test case to get or show a vpnservice."""
@@ -363,10 +363,10 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         instance.get_vpnservice.assert_called_with(mock.ANY,
                                                    vpnservice_id,
                                                    fields=mock.ANY)
-        self.assertEqual(res.status_int, exc.HTTPOk.code)
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('vpnservice', res)
-        self.assertEqual(res['vpnservice'], return_value)
+        self.assertEqual(return_value, res['vpnservice'])
 
     def test_vpnservice_delete(self):
         """Test case to delete a vpnservice."""
@@ -409,10 +409,10 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         instance.create_ipsec_site_connection.assert_called_with(
             mock.ANY, ipsec_site_connection=data
         )
-        self.assertEqual(res.status_int, exc.HTTPCreated.code)
+        self.assertEqual(exc.HTTPCreated.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('ipsec_site_connection', res)
-        self.assertEqual(res['ipsec_site_connection'], return_value)
+        self.assertEqual(return_value, res['ipsec_site_connection'])
 
     def test_ipsec_site_connection_list(self):
         """Test case to list all ipsec_site_connections."""
@@ -435,7 +435,7 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         instance.get_ipsec_site_connections.assert_called_with(
             mock.ANY, fields=mock.ANY, filters=mock.ANY
         )
-        self.assertEqual(res.status_int, exc.HTTPOk.code)
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
 
     def test_ipsec_site_connection_update(self):
         """Test case to update a ipsec_site_connection."""
@@ -473,10 +473,10 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
             mock.ANY, ipsecsite_con_id, ipsec_site_connection=update_data
         )
 
-        self.assertEqual(res.status_int, exc.HTTPOk.code)
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('ipsec_site_connection', res)
-        self.assertEqual(res['ipsec_site_connection'], return_value)
+        self.assertEqual(return_value, res['ipsec_site_connection'])
 
     def test_ipsec_site_connection_get(self):
         """Test case to get or show a ipsec_site_connection."""
@@ -512,10 +512,10 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         instance.get_ipsec_site_connection.assert_called_with(
             mock.ANY, ipsecsite_con_id, fields=mock.ANY
         )
-        self.assertEqual(res.status_int, exc.HTTPOk.code)
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('ipsec_site_connection', res)
-        self.assertEqual(res['ipsec_site_connection'], return_value)
+        self.assertEqual(return_value, res['ipsec_site_connection'])
 
     def test_ipsec_site_connection_delete(self):
         """Test case to delete a ipsec_site_connection."""

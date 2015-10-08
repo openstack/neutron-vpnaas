@@ -414,7 +414,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         with mock.patch.object(self.driver, 'ensure_process') as ensure_p:
             self.driver._sync_vpn_processes([self.vpnservice],
                                             [router_id_no_vpn])
-            self.assertEqual(ensure_p.call_count, 0)
+            self.assertEqual(0, ensure_p.call_count)
 
     def test__sync_vpn_processes_router_with_no_vpn_and_no_vpn_services(self):
         """No vpn services running and router not hosting vpn svc."""
@@ -424,7 +424,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         with mock.patch.object(self.driver, 'ensure_process') as ensure_p:
             ensure_p.side_effect = self.fake_ensure_process
             self.driver._sync_vpn_processes([], [router_id_no_vpn])
-            self.assertEqual(ensure_p.call_count, 0)
+            self.assertEqual(0, ensure_p.call_count)
 
     def test__sync_vpn_processes_router_with_no_vpn_agent_restarted(self):
         """Test for the router not hosting vpnservice and agent restarted.
@@ -506,14 +506,14 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
                 new_vpn_service]
             self.driver.sync(context, [{'id': FAKE_ROUTER_ID}])
             process = self.driver.processes[FAKE_ROUTER_ID]
-            self.assertEqual(process.vpnservice, new_vpn_service)
+            self.assertEqual(new_vpn_service, process.vpnservice)
             self.driver.agent_rpc.get_vpn_services_on_host.return_value = [
                 updated_vpn_service]
             self.driver.sync(context, [{'id': FAKE_ROUTER_ID}])
             process = self.driver.processes[FAKE_ROUTER_ID]
             process.update_vpnservice.assert_called_once_with(
                 updated_vpn_service)
-            self.assertEqual(process.vpnservice, updated_vpn_service)
+            self.assertEqual(updated_vpn_service, process.vpnservice)
 
     def test_sync_removed(self):
         self.driver.agent_rpc.get_vpn_services_on_host.return_value = []
