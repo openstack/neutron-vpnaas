@@ -101,7 +101,7 @@ class VyattaIPSecDriver(device_drivers.DeviceDriver):
         self.host = host
 
         # register RPC endpoint
-        conn = n_rpc.create_connection(new=True)
+        conn = n_rpc.create_connection()
         node_topic = '%s.%s' % (topics.BROCADE_IPSEC_AGENT_TOPIC,
                                 self.host)
 
