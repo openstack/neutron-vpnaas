@@ -690,12 +690,29 @@ class IPSecDeviceDVR(BaseIPsecDeviceDriver):
 
 
 class TestOpenSwanProcess(BaseIPsecDeviceDriver):
+
+    _test_timeout = 1
+    _test_backoff = 2
+    _test_retries = 5
+
     def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
               ipsec_process=openswan_ipsec.OpenSwanProcess):
         super(TestOpenSwanProcess, self).setUp(driver, ipsec_process)
+        # Insulate tests against changes to configuration defaults.
         self.conf.register_opts(openswan_ipsec.openswan_opts,
                                 'openswan')
         self.conf.set_override('state_path', '/tmp')
+        cfg.CONF.register_opts(openswan_ipsec.pluto_opts,
+                               'pluto')
+        cfg.CONF.set_override('shutdown_check_timeout', self._test_timeout,
+                              group='pluto')
+        cfg.CONF.set_override('shutdown_check_back_off', self._test_backoff,
+                              group='pluto')
+        cfg.CONF.set_override('shutdown_check_retries', self._test_retries,
+                              group='pluto')
+        self.addCleanup(cfg.CONF.reset)
+
+        self.os_remove = mock.patch('os.remove').start()
 
         self.process = openswan_ipsec.OpenSwanProcess(self.conf,
                                                       'foo-process-id',
@@ -810,84 +827,55 @@ class TestOpenSwanProcess(BaseIPsecDeviceDriver):
         self.assertEqual(expected_connection_status_dict,
                          self.process.connection_status)
 
-
-class TestLibreSwanProcess(base.BaseTestCase):
-
-    _test_timeout = 1
-    _test_backoff = 2
-    _test_retries = 5
-
-    def setUp(self):
-        super(TestLibreSwanProcess, self).setUp()
-        # Insulate tests against changes to configuration defaults.
-        cfg.CONF.register_opts(libreswan_ipsec.libreswan_opts,
-                               'libreswan')
-        cfg.CONF.set_override('shutdown_check_timeout', self._test_timeout,
-                              group='libreswan')
-        cfg.CONF.set_override('shutdown_check_back_off', self._test_backoff,
-                              group='libreswan')
-        cfg.CONF.set_override('shutdown_check_retries', self._test_retries,
-                              group='libreswan')
-        self.addCleanup(cfg.CONF.reset)
-        self.vpnservice = copy.deepcopy(FAKE_VPN_SERVICE)
-        self.parent_start = mock.patch('neutron_vpnaas.services.'
-                                       'vpn.device_drivers.ipsec.'
-                                       'OpenSwanProcess.start').start()
-        self.parent_stop = mock.patch('neutron_vpnaas.services.'
-                                      'vpn.device_drivers.ipsec.'
-                                      'OpenSwanProcess.stop').start()
-        self.os_remove = mock.patch('os.remove').start()
-
-        self.ipsec_process = libreswan_ipsec.LibreSwanProcess(cfg.CONF,
-                                                       'foo-process-id',
-                                                       self.vpnservice,
-                                                       mock.ANY)
-
     @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'libreswan_ipsec.LibreSwanProcess._cleanup_control_files')
-    def test_no_cleanups(self, cleanup_mock):
+                'ipsec.OpenSwanProcess._get_nexthop',
+                return_value='172.168.1.2')
+    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
+                'ipsec.OpenSwanProcess._cleanup_control_files')
+    def test_no_cleanups(self, cleanup_mock, hop_mock):
         # Not an "awesome test" but more of a check box item. Basically,
         # what happens if we didn't need to clean up any files.
-        with mock.patch.object(self.ipsec_process,
+        with mock.patch.object(self.process,
                                '_process_running',
                                return_value=True) as query_mock:
-            self.ipsec_process.start()
-            self.assertEqual(1, self.parent_start.call_count)
+            self.process.start()
             self.assertEqual(1, query_mock.call_count)
 
             # This is really what is being tested here. If process is
             # running, we shouldn't attempt a cleanup.
             self.assertFalse(cleanup_mock.called)
 
+    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
+                'ipsec.OpenSwanProcess._get_nexthop',
+                return_value='172.168.1.2')
     @mock.patch('os.path.exists', return_value=True)
-    def test_cleanup_files(self, exists_mock):
+    def test_cleanup_files(self, exists_mock, hop_mock):
         # Tests the 'bones' of things really and kind of check-box-item-bogus
         # test - this really needs exercising through a higher level test.
-        with mock.patch.object(self.ipsec_process,
+        with mock.patch.object(self.process,
                                '_process_running',
                                return_value=False) as query_mock:
             fake_path = '/fake/path/run'
-            self.ipsec_process.pid_path = fake_path
-            self.ipsec_process.pid_file = '%s.pid' % fake_path
-            self.ipsec_process.start()
-            self.assertEqual(1, self.parent_start.call_count)
+            self.process.pid_path = fake_path
+            self.process.pid_file = '%s.pid' % fake_path
+            self.process.start()
             self.assertEqual(1, query_mock.call_count)
             self.assertEqual(2, self.os_remove.call_count)
             self.os_remove.assert_has_calls([mock.call('%s.pid' % fake_path),
                                              mock.call('%s.ctl' % fake_path)])
 
     @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'libreswan_ipsec.LibreSwanProcess._process_running',
-               return_value=False)
+                'ipsec.OpenSwanProcess._get_nexthop',
+                return_value='172.168.1.2')
     @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'libreswan_ipsec.LibreSwanProcess._cleanup_control_files')
+                'ipsec.OpenSwanProcess._process_running',
+                return_value=False)
+    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
+                'ipsec.OpenSwanProcess._cleanup_control_files')
     @mock.patch('eventlet.sleep')
     def test_restart_process_not_running(self, sleep_mock, cleanup_mock,
-                                         query_mock):
-        self.ipsec_process.restart()
-        # Lame checks that are really for sanity
-        self.assertTrue(self.parent_stop.called)
-        self.assertTrue(self.parent_start.called)
+                                         query_mock, hop_mock):
+        self.process.restart()
 
         # Really what is being tested - retry configuration exists and that
         # we do the right things when process check is false.
@@ -896,110 +884,117 @@ class TestLibreSwanProcess(base.BaseTestCase):
         self.assertFalse(sleep_mock.called)
 
     @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'libreswan_ipsec.LibreSwanProcess._process_running',
-               return_value=True)
+                'ipsec.OpenSwanProcess._get_nexthop',
+                return_value='172.168.1.2')
     @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'libreswan_ipsec.LibreSwanProcess._cleanup_control_files')
+                'ipsec.OpenSwanProcess._process_running',
+                return_value=True)
+    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
+                'ipsec.OpenSwanProcess._cleanup_control_files')
     @mock.patch('eventlet.sleep')
     def test_restart_process_doesnt_stop(self, sleep_mock, cleanup_mock,
-                                         query_mock):
-        self.ipsec_process.restart()
-        # Lame checks that are really for sanity
-        self.assertTrue(self.parent_stop.called)
-        self.assertTrue(self.parent_start.called)
+                                         query_mock, hop_mock):
+        self.process.restart()
 
         # Really what is being tested - retry configuration exists and that
         # we do the right things when process check is True.
-        self.assertEqual(5, query_mock.call_count)
+        self.assertEqual(self._test_retries + 1, query_mock.call_count)
         self.assertFalse(cleanup_mock.called)
-        self.assertEqual(5, sleep_mock.call_count)
+        self.assertEqual(self._test_retries, sleep_mock.call_count)
         calls = [mock.call(1), mock.call(2), mock.call(4),
                  mock.call(8), mock.call(16)]
         sleep_mock.assert_has_calls(calls)
 
     @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'libreswan_ipsec.LibreSwanProcess._process_running',
-               side_effect=[True, True, False])
+                'ipsec.OpenSwanProcess._get_nexthop',
+                return_value='172.168.1.2')
     @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'libreswan_ipsec.LibreSwanProcess._cleanup_control_files')
+                'ipsec.OpenSwanProcess._process_running',
+                side_effect=[True, True, False, False])
+    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
+                'ipsec.OpenSwanProcess._cleanup_control_files')
     @mock.patch('eventlet.sleep')
     def test_restart_process_retry_until_stop(self, sleep_mock, cleanup_mock,
-                                              query_mock):
-        self.ipsec_process.restart()
-        # Lame checks that are really for sanity
-        self.assertTrue(self.parent_start.called)
-        self.assertTrue(self.parent_stop.called)
+                                              query_mock, hop_mock):
+        self.process.restart()
 
         # Really what is being tested - retry configuration exists and that
         # we do the right things when process check is True a few times and
         # then returns False.
-        self.assertEqual(3, query_mock.call_count)
+        self.assertEqual(4, query_mock.call_count)
         self.assertTrue(cleanup_mock.called)
         self.assertEqual(2, sleep_mock.call_count)
 
     def test_process_running_no_pid(self):
         with mock.patch('os.path.exists', return_value=False):
             self.assertFalse(
-                self.ipsec_process._process_running())
+                self.process._process_running())
 
     # open() is used elsewhere, so we need to inject a mocked open into the
     # module to be tested.
     @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'libreswan_ipsec.open',
+    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.open',
                 create=True,
                 side_effect=IOError)
     def test_process_running_open_failure(self, mock_open, mock_exists):
-        self.assertFalse(self.ipsec_process._process_running())
+        self.assertFalse(self.process._process_running())
         self.assertTrue(mock_exists.called)
         self.assertTrue(mock_open.called)
 
     @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'libreswan_ipsec.open',
+    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.open',
                 create=True,
                 side_effect=[io.StringIO(u'invalid'),
                              IOError])
     def test_process_running_bogus_pid(self, mock_open, mock_exists):
         with mock.patch.object(libreswan_ipsec.LOG, 'error'):
-            self.assertFalse(self.ipsec_process._process_running())
+            self.assertFalse(self.process._process_running())
             self.assertTrue(mock_exists.called)
             self.assertEqual(2, mock_open.call_count)
 
     @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'libreswan_ipsec.open',
+    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.open',
                 create=True,
                 side_effect=[io.StringIO(u'134'), io.StringIO(u'')])
     def test_process_running_no_cmdline(self, mock_open, mock_exists):
-        with mock.patch.object(libreswan_ipsec.LOG, 'error') as log_mock:
-            self.assertFalse(self.ipsec_process._process_running())
+        with mock.patch.object(openswan_ipsec.LOG, 'error') as log_mock:
+            self.assertFalse(self.process._process_running())
             self.assertFalse(log_mock.called)
             self.assertEqual(2, mock_open.call_count)
 
     @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'libreswan_ipsec.open',
+    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.open',
                 create=True,
                 side_effect=[io.StringIO(u'134'), io.StringIO(u'ps ax')])
     def test_process_running_cmdline_mismatch(self, mock_open, mock_exists):
-        with mock.patch.object(libreswan_ipsec.LOG, 'error') as log_mock:
-            self.assertFalse(self.ipsec_process._process_running())
+        with mock.patch.object(openswan_ipsec.LOG, 'error') as log_mock:
+            self.assertFalse(self.process._process_running())
             self.assertFalse(log_mock.called)
             self.assertEqual(2, mock_open.call_count)
 
     @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'libreswan_ipsec.open',
+    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.open',
                 create=True,
                 side_effect=[io.StringIO(u'134'),
                              io.StringIO(u'/usr/libexec/ipsec/pluto -ctlbase'
                                          '/some/foo/path')])
     def test_process_running_cmdline_match(self, mock_open, mock_exists):
-        self.ipsec_process.pid_path = '/some/foo/path'
-        with mock.patch.object(libreswan_ipsec.LOG, 'error') as log_mock:
-            self.assertTrue(self.ipsec_process._process_running())
+        self.process.pid_path = '/some/foo/path'
+        with mock.patch.object(openswan_ipsec.LOG, 'error') as log_mock:
+            self.assertTrue(self.process._process_running())
             self.assertTrue(log_mock.called)
+
+
+class TestLibreSwanProcess(base.BaseTestCase):
+
+    def setUp(self):
+        super(TestLibreSwanProcess, self).setUp()
+        self.vpnservice = copy.deepcopy(FAKE_VPN_SERVICE)
+
+        self.ipsec_process = libreswan_ipsec.LibreSwanProcess(cfg.CONF,
+                                                       'foo-process-id',
+                                                       self.vpnservice,
+                                                       mock.ANY)
 
     @mock.patch('os.remove')
     @mock.patch('os.path.exists', return_value=True)
