@@ -17,7 +17,7 @@ import os.path
 
 import eventlet
 
-from neutron.i18n import _LE, _LW
+from neutron.i18n import _LE, _LI, _LW
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -58,13 +58,21 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
 
         Initialise the nssdb, otherwise pluto daemon will fail to run.
         """
+
+        # Since we set ipsec.secrets to be owned by root, the standard
+        # mechanisms for setting up the config files will get a permission
+        # problem when attempting to overwrite the file, so we need to
+        # remove it first.
+        secrets_file = self._get_config_filename('ipsec.secrets')
+        if os.path.exists(secrets_file):
+            os.remove(secrets_file)
+
         super(LibreSwanProcess, self).ensure_configs()
 
         # LibreSwan uses the capabilities library to restrict access to
         # ipsec.secrets to users that have explicit access. Since pluto is
         # running as root and the file has 0600 perms, we must set the
         # owner of the file to root.
-        secrets_file = self._get_config_filename('ipsec.secrets')
         self._execute(['chown', '--from=%s' % os.getuid(), 'root:root',
                        secrets_file])
 
@@ -108,9 +116,11 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
                         return True
 
         except IOError as e:
-            LOG.error(_LE('Unable to check control files on startup for '
-                          'router %(router)s: %(msg)s'),
-                      {'router': self.id, 'msg': e})
+            # This is logged as "info" instead of error because it simply
+            # means that we couldn't find the files to check on them.
+            LOG.info(_LI('Unable to find control files on startup for '
+                         'router %(router)s: %(msg)s'),
+                     {'router': self.id, 'msg': e})
         return False
 
     def _cleanup_control_files(self):
