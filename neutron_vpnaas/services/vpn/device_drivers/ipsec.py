@@ -20,6 +20,7 @@ import shutil
 import six
 import socket
 
+import eventlet
 import jinja2
 import netaddr
 from neutron.agent.linux import ip_lib
@@ -28,7 +29,7 @@ from neutron.api.v2 import attributes
 from neutron.common import rpc as n_rpc
 from neutron.common import utils as n_utils
 from neutron import context
-from neutron.i18n import _LE
+from neutron.i18n import _LE, _LI, _LW
 from neutron.plugins.common import constants
 from neutron.plugins.common import utils as plugin_utils
 from oslo_concurrency import lockutils
@@ -76,6 +77,26 @@ openswan_opts = [
 ]
 
 cfg.CONF.register_opts(openswan_opts, 'openswan')
+
+pluto_opts = [
+    cfg.IntOpt('shutdown_check_timeout',
+               default=1,
+               help=_('Initial interval in seconds for checking if pluto '
+                      'daemon is shutdown'),
+               deprecated_group='libreswan'),
+    cfg.IntOpt('shutdown_check_retries',
+               default=5,
+               help=_('The maximum number of retries for checking for '
+                      'pluto daemon shutdown'),
+               deprecated_group='libreswan'),
+    cfg.FloatOpt('shutdown_check_back_off',
+                 default=1.5,
+                 help=_('A factor to increase the retry interval for '
+                        'each retry'),
+                 deprecated_group='libreswan')
+]
+
+cfg.CONF.register_opts(pluto_opts, 'pluto')
 
 JINJA_ENV = None
 
@@ -333,6 +354,7 @@ class OpenSwanProcess(BaseSwanProcess):
             self.etc_dir, 'ipsec.conf')
         self.pid_path = os.path.join(
             self.config_dir, 'var', 'run', 'pluto')
+        self.pid_file = '%s.pid' % self.pid_path
 
     def _execute(self, cmd, check_exit_code=True, extra_ok_codes=None):
         """Execute command on namespace."""
@@ -357,6 +379,61 @@ class OpenSwanProcess(BaseSwanProcess):
             self.vpnservice,
             0o600)
 
+    def _process_running(self):
+        """Checks if process is still running."""
+
+        # If no PID file, we assume the process is not running.
+        if not os.path.exists(self.pid_file):
+            return False
+
+        try:
+            # We take an ask-forgiveness-not-permission approach and rely
+            # on throwing to tell us something. If the pid file exists,
+            # delve into the process information and check if it matches
+            # our expected command line.
+            with open(self.pid_file, 'r') as f:
+                pid = f.readline().strip()
+                with open('/proc/%s/cmdline' % pid) as cmd_line_file:
+                    cmd_line = cmd_line_file.readline()
+                    if self.pid_path in cmd_line and 'pluto' in cmd_line:
+                        # Okay the process is probably a pluto process
+                        # and it contains the pid_path in the command
+                        # line... could be a race. Log to error and return
+                        # that it is *NOT* okay to clean up files. We are
+                        # logging to error instead of debug because it
+                        # indicates something bad has happened and this is
+                        # valuable information for figuring it out.
+                        LOG.error(_LE('Process %(pid)s exists with command '
+                                  'line %(cmd_line)s.') %
+                                  {'pid': pid, 'cmd_line': cmd_line})
+                        return True
+
+        except IOError as e:
+            # This is logged as "info" instead of error because it simply
+            # means that we couldn't find the files to check on them.
+            LOG.info(_LI('Unable to find control files on startup for '
+                         'router %(router)s: %(msg)s'),
+                     {'router': self.id, 'msg': e})
+        return False
+
+    def _cleanup_control_files(self):
+        try:
+            ctl_file = '%s.ctl' % self.pid_path
+            LOG.debug('Removing %(pidfile)s and %(ctlfile)s',
+                      {'pidfile': self.pid_file,
+                       'ctlfile': ctl_file})
+
+            if os.path.exists(self.pid_file):
+                os.remove(self.pid_file)
+
+            if os.path.exists(ctl_file):
+                os.remove(ctl_file)
+
+        except OSError as e:
+            LOG.error(_LE('Unable to remove pluto control '
+                          'files for router %(router)s. %(msg)s'),
+                      {'router': self.id, 'msg': e})
+
     def get_status(self):
         return self._execute([self.binary,
                               'whack',
@@ -366,7 +443,21 @@ class OpenSwanProcess(BaseSwanProcess):
 
     def restart(self):
         """Restart the process."""
+        # stop() followed immediately by a start() runs the risk that the
+        # current pluto daemon has not had a chance to shutdown. We check
+        # the current process information to see if the daemon is still
+        # running and if so, wait a short interval and retry.
         self.stop()
+        wait_interval = cfg.CONF.pluto.shutdown_check_timeout
+        for i in range(cfg.CONF.pluto.shutdown_check_retries):
+            if not self._process_running():
+                self._cleanup_control_files()
+                break
+            eventlet.sleep(wait_interval)
+            wait_interval *= cfg.CONF.pluto.shutdown_check_back_off
+        else:
+            LOG.warning(_LW('Server appears to still be running, restart '
+                            'of router %s may fail'), self.id)
         self.start()
         return
 
@@ -419,6 +510,22 @@ class OpenSwanProcess(BaseSwanProcess):
         """
         if not self.namespace:
             return
+
+        # NOTE: The restart operation calls the parent's start() instead of
+        # this one to avoid having to special case the startup file check.
+        # If anything is added to this method that needs to run whenever
+        # a restart occurs, it should be either added to the restart()
+        # override or things refactored to special-case start() when
+        # called from restart().
+
+        # If, by any reason, ctl and pid  files weren't cleaned up, pluto
+        # won't be able to rewrite them and will fail to start. So we check
+        # to see if the process is running and if not, attempt a cleanup.
+        # In either case we fall through to allow the pluto process to
+        # start or fail in the usual way.
+        if not self._process_running():
+            self._cleanup_control_files()
+
         virtual_private = self._virtual_privates()
         #start pluto IKE keying daemon
         cmd = [self.binary,
