@@ -261,10 +261,20 @@ EXPECTED_IPSEC_STRONGSWAN_SECRET_CONF = '''
 60.0.0.4 60.0.0.6 : PSK "password"
 '''
 
-ACTIVE_STATUS = "%(conn_id)s{1}:  INSTALLED, TUNNEL" % {'conn_id':
-    FAKE_IPSEC_SITE_CONNECTION2_ID}
-DOWN_STATUS = "%(conn_id)s{1}:  ROUTED, TUNNEL" % {'conn_id':
-    FAKE_IPSEC_SITE_CONNECTION2_ID}
+PLUTO_ACTIVE_STATUS = """000 "%(conn_id)s/0x1": erouted;\n
+000 #4: "%(conn_id)s/0x1":500 STATE_QUICK_R2 (IPsec SA established);""" % {
+    'conn_id': FAKE_IPSEC_SITE_CONNECTION2_ID}
+PLUTO_ACTIVE_NO_IPSEC_SA_STATUS = """000 "%(conn_id)s/0x1": erouted;\n
+000 #258: "%(conn_id)s/0x1":500 STATE_MAIN_R2 (sent MR2, expecting MI3);""" % {
+    'conn_id': FAKE_IPSEC_SITE_CONNECTION2_ID}
+PLUTO_DOWN_STATUS = "000 \"%(conn_id)s/0x1\": unrouted;" % {'conn_id':
+                    FAKE_IPSEC_SITE_CONNECTION2_ID}
+
+CHARON_ACTIVE_STATUS = "%(conn_id)s{1}:  INSTALLED, TUNNEL" % {'conn_id':
+                       FAKE_IPSEC_SITE_CONNECTION2_ID}
+CHARON_DOWN_STATUS = "%(conn_id)s{1}:  ROUTED, TUNNEL" % {'conn_id':
+                     FAKE_IPSEC_SITE_CONNECTION2_ID}
+
 NOT_RUNNING_STATUS = "Command: ['ipsec', 'status'] Exit code: 3 Stdout:"
 
 
@@ -614,7 +624,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         with mock.patch.object(self.driver,
                                'ensure_process') as ensure_process:
             ensure_process.side_effect = self.fake_ensure_process
-            new_vpn_service = FAKE_VPN_SERVICE
+            new_vpn_service = self.vpnservice
             updated_vpn_service = copy.deepcopy(new_vpn_service)
             updated_vpn_service['ipsec_site_connections'][1].update(
                 {'peer_cidrs': ['60.0.0.0/24', '70.0.0.0/24']})
@@ -717,6 +727,61 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         missing_conn = new_status['ipsec_site_connections'].get('20')
         self.assertIsNotNone(missing_conn)
         self.assertEqual(constants.DOWN, missing_conn['status'])
+
+    def _test_status_handling_for_downed_connection(self, down_status):
+        """Test status handling for downed connection."""
+        router_id = self.router.router_id
+        connection_id = FAKE_IPSEC_SITE_CONNECTION2_ID
+        self.driver.ensure_process(router_id, self.vpnservice)
+        self._execute.return_value = down_status
+        self.driver.report_status(mock.Mock())
+        process_status = self.driver.process_status_cache[router_id]
+        ipsec_site_conn = process_status['ipsec_site_connections']
+        self.assertEqual(constants.ACTIVE, process_status['status'])
+        self.assertEqual(constants.DOWN,
+                         ipsec_site_conn[connection_id]['status'])
+
+    def _test_status_handling_for_active_connection(self, active_status):
+        """Test status handling for active connection."""
+        router_id = self.router.router_id
+        connection_id = FAKE_IPSEC_SITE_CONNECTION2_ID
+        self.driver.ensure_process(router_id, self.vpnservice)
+        self._execute.return_value = active_status
+        self.driver.report_status(mock.Mock())
+        process_status = self.driver.process_status_cache[
+            router_id]
+        ipsec_site_conn = process_status['ipsec_site_connections']
+        self.assertEqual(constants.ACTIVE, process_status['status'])
+        self.assertEqual(constants.ACTIVE,
+                         ipsec_site_conn[connection_id]['status'])
+
+    def _test_status_handling_for_deleted_connection(self,
+                                                     not_running_status):
+        """Test status handling for deleted connection."""
+        router_id = self.router.router_id
+        self.driver.ensure_process(router_id, self.vpnservice)
+        self._execute.return_value = not_running_status
+        self.driver.report_status(mock.Mock())
+        process_status = self.driver.process_status_cache[router_id]
+        ipsec_site_conn = process_status['ipsec_site_connections']
+        self.assertEqual(constants.DOWN, process_status['status'])
+        self.assertFalse(ipsec_site_conn)
+
+    def _test_parse_connection_status(self, not_running_status,
+                                      active_status, down_status):
+        """Test the status of ipsec-site-connection is parsed correctly."""
+        router_id = self.router.router_id
+        process = self.driver.ensure_process(router_id, self.vpnservice)
+        self._execute.return_value = not_running_status
+        self.assertFalse(process.active)
+        # An empty return value to simulate that the process
+        # does not have any status to report.
+        self._execute.return_value = ''
+        self.assertFalse(process.active)
+        self._execute.return_value = active_status
+        self.assertTrue(process.active)
+        self._execute.return_value = down_status
+        self.assertTrue(process.active)
 
     def test_get_namespace_for_router(self):
         namespace = self.driver.get_namespace(FAKE_ROUTER_ID)
@@ -967,7 +1032,7 @@ class IPsecStrongswanConfigGeneration(BaseIPsecDeviceDriver):
         self.check_config_file(expected, actual)
 
 
-class TestOpenSwanProcess(BaseIPsecDeviceDriver):
+class TestOpenSwanProcess(IPSecDeviceLegacy):
 
     _test_timeout = 1
     _test_backoff = 2
@@ -1226,6 +1291,29 @@ class TestOpenSwanProcess(BaseIPsecDeviceDriver):
             self.assertTrue(self.process._process_running())
             self.assertTrue(log_mock.called)
 
+    def test_status_handling_for_downed_connection(self):
+        """Test status handling for downed connection."""
+        self._test_status_handling_for_downed_connection(PLUTO_DOWN_STATUS)
+
+    def test_status_handling_for_connection_with_no_ipsec_sa(self):
+        """Test status handling for downed connection."""
+        self._test_status_handling_for_downed_connection(
+            PLUTO_ACTIVE_NO_IPSEC_SA_STATUS)
+
+    def test_status_handling_for_active_connection(self):
+        """Test status handling for active connection."""
+        self._test_status_handling_for_active_connection(PLUTO_ACTIVE_STATUS)
+
+    def test_status_handling_for_deleted_connection(self):
+        """Test status handling for deleted connection."""
+        self._test_status_handling_for_deleted_connection(NOT_RUNNING_STATUS)
+
+    def test_parse_connection_status(self):
+        """Test the status of ipsec-site-connection parsed correctly."""
+        self._test_parse_connection_status(NOT_RUNNING_STATUS,
+                                           PLUTO_ACTIVE_STATUS,
+                                           PLUTO_DOWN_STATUS)
+
 
 class TestLibreSwanProcess(base.BaseTestCase):
 
@@ -1309,56 +1397,21 @@ class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
 
     def test_status_handling_for_downed_connection(self):
         """Test status handling for downed connection."""
-        router_id = self.router.router_id
-        connection_id = FAKE_IPSEC_SITE_CONNECTION2_ID
-        self.driver.ensure_process(router_id, self.vpnservice)
-        self._execute.return_value = DOWN_STATUS
-        self.driver.report_status(mock.Mock())
-        process_status = self.driver.process_status_cache[router_id]
-        ipsec_site_conn = process_status['ipsec_site_connections']
-        self.assertEqual(constants.ACTIVE, process_status['status'])
-        self.assertEqual(constants.DOWN,
-                         ipsec_site_conn[connection_id]['status'])
+        self._test_status_handling_for_downed_connection(CHARON_DOWN_STATUS)
 
     def test_status_handling_for_active_connection(self):
         """Test status handling for active connection."""
-        router_id = self.router.router_id
-        connection_id = FAKE_IPSEC_SITE_CONNECTION2_ID
-        self.driver.ensure_process(router_id, self.vpnservice)
-        self._execute.return_value = ACTIVE_STATUS
-        self.driver.report_status(mock.Mock())
-        process_status = self.driver.process_status_cache[
-            router_id]
-        ipsec_site_conn = process_status['ipsec_site_connections']
-        self.assertEqual(constants.ACTIVE, process_status['status'])
-        self.assertEqual(constants.ACTIVE,
-                         ipsec_site_conn[connection_id]['status'])
+        self._test_status_handling_for_active_connection(CHARON_ACTIVE_STATUS)
 
     def test_status_handling_for_deleted_connection(self):
         """Test status handling for deleted connection."""
-        router_id = self.router.router_id
-        self.driver.ensure_process(router_id, self.vpnservice)
-        self._execute.return_value = NOT_RUNNING_STATUS
-        self.driver.report_status(mock.Mock())
-        process_status = self.driver.process_status_cache[router_id]
-        ipsec_site_conn = process_status['ipsec_site_connections']
-        self.assertEqual(constants.DOWN, process_status['status'])
-        self.assertFalse(ipsec_site_conn)
+        self._test_status_handling_for_deleted_connection(NOT_RUNNING_STATUS)
 
-    def test_update_connection_status(self):
+    def test_parse_connection_status(self):
         """Test the status of ipsec-site-connection parsed correctly."""
-        router_id = self.router.router_id
-        process = self.driver.ensure_process(router_id, self.vpnservice)
-        self._execute.return_value = NOT_RUNNING_STATUS
-        self.assertFalse(process.active)
-        # An empty return value to simulate that the StrongSwan process
-        # does not have any status to report.
-        self._execute.return_value = ''
-        self.assertFalse(process.active)
-        self._execute.return_value = ACTIVE_STATUS
-        self.assertTrue(process.active)
-        self._execute.return_value = DOWN_STATUS
-        self.assertTrue(process.active)
+        self._test_parse_connection_status(NOT_RUNNING_STATUS,
+                                           CHARON_ACTIVE_STATUS,
+                                           CHARON_DOWN_STATUS)
 
 
 class IPsecStrongswanDeviceDriverDVR(IPSecDeviceDVR):
