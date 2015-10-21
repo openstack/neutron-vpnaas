@@ -485,15 +485,24 @@ class TestIPSecBase(base.BaseSudoTestCase):
                 break
         return pm.active
 
-    def _wait_for_ipsec_startup(self, router):
+    def _wait_for_ipsec_startup(self, router, driver, conf, should_run=True):
         """Wait for new IPSec process on failover agent to start up."""
         # check for both strongswan and openswan processes
-        path = self.failover_driver.processes[router.router_id].config_dir
+        path = driver.processes[router.router_id].config_dir
         pid_files = ['%s/var/run/charon.pid' % path,
                      '%s/var/run/pluto.pid' % path]
         linux_utils.wait_until_true(
-            lambda: self._ipsec_process_exists(
-                self.failover_agent.conf, router, pid_files))
+            lambda: should_run == self._ipsec_process_exists(
+                conf, router, pid_files))
+
+    @staticmethod
+    def _update_vpnservice(site, **kwargs):
+        site.vpn_service.update(kwargs)
+
+    @staticmethod
+    def _update_ipsec_connection(site, **kwargs):
+        ipsec_connection = site.vpn_service['ipsec_site_connections'][0]
+        ipsec_connection.update(kwargs)
 
 
 class TestIPSecScenario(TestIPSecBase):
@@ -563,8 +572,52 @@ class TestIPSecScenario(TestIPSecBase):
         self.check_ping(site2, site1, 0)
 
         self._failover_ha_router(site2.router, site2.backup_router)
-        self._wait_for_ipsec_startup(site2.backup_router)
+        self._wait_for_ipsec_startup(site2.backup_router,
+                                     self.failover_driver,
+                                     self.failover_agent.conf)
 
         # Test ipsec connection between legacy router and agent2's HA router
         self.check_ping(site1, site2, 0)
         self.check_ping(site2, site1, 0)
+
+    def _test_admin_state_up(self, update_method):
+        # Create ipsec connection between two sites
+        site1 = self.create_site(PUBLIC_NET[4], [self.private_nets[1]])
+        site2 = self.create_site(PUBLIC_NET[5], [self.private_nets[2]])
+
+        self.prepare_ipsec_site_connections(site1, site2)
+        self.sync_to_create_ipsec_connections(site1, site2)
+
+        self.check_ping(site1, site2)
+        self.check_ping(site2, site1)
+
+        # Disable resource on one of the sites and check that
+        # ping no longer passes.
+        update_method(site1, admin_state_up=False)
+        self.sync_to_create_ipsec_connections(site1, site2)
+
+        self.check_ping(site1, site2, 0, success=False)
+        self.check_ping(site2, site1, 0, success=False)
+
+        # Validate that ipsec process for the disabled site was terminated.
+        self._wait_for_ipsec_startup(site1.router, self.driver,
+                                     self.vpn_agent.conf,
+                                     should_run=False)
+
+        # Change admin_state_up of the disabled resource back to True and
+        # check that everything works again.
+        update_method(site1, admin_state_up=True)
+        self.sync_to_create_ipsec_connections(site1, site2)
+
+        self.check_ping(site1, site2)
+        self.check_ping(site2, site1)
+
+    def test_ipsec_site_connections_update_admin_state_up(self):
+        """Test updating admin_state_up of ipsec site connections."""
+
+        self._test_admin_state_up(self._update_ipsec_connection)
+
+    def test_vpnservice_update_admin_state_up(self):
+        """Test updating admin_state_up of a vpn service."""
+
+        self._test_admin_state_up(self._update_vpnservice)
