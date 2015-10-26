@@ -215,7 +215,6 @@ class TestIPSecBase(base.BaseSudoTestCase):
         config.set_override(
             'interface_driver',
             'neutron.agent.linux.interface.OVSInterfaceDriver')
-        config.set_override('router_delete_namespaces', True)
 
         br_int = self.useFixture(net_helpers.OVSBridgeFixture()).bridge
         br_ex = self.useFixture(net_helpers.OVSBridgeFixture()).bridge

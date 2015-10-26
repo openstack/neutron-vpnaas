@@ -120,7 +120,6 @@ class TestStrongSwanDeviceDriver(base.BaseSudoTestCase):
             FAKE_VPN_SERVICE]
         self.addCleanup(self.driver.destroy_router, self.router_id)
 
-        self.conf.set_override('router_delete_namespaces', True)
         self.router.router_namespace.create()
         self.addCleanup(self.router.router_namespace.delete)
 
