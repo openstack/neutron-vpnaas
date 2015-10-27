@@ -51,7 +51,6 @@ class VPNBaseTestCase(base.BaseTestCase):
     def setUp(self):
         super(VPNBaseTestCase, self).setUp()
         self.conf = cfg.CONF
-        self.conf.use_namespaces = True
         self.ri_kwargs = {'router': {'id': FAKE_ROUTER_ID, 'ha': False},
                           'agent_conf': self.conf,
                           'interface_driver': mock.sentinel.interface_driver}

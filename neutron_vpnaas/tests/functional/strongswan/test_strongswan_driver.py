@@ -91,7 +91,6 @@ class TestStrongSwanDeviceDriver(base.BaseSudoTestCase):
     def setUp(self):
         super(TestStrongSwanDeviceDriver, self).setUp()
         self.conf = cfg.CONF
-        self.conf.use_namespaces = True
         self.conf.register_opts(l3_config.OPTS)
         self.conf.register_opts(ipsec.ipsec_opts, 'ipsec')
         self.conf.register_opts(strongswan_ipsec.strongswan_opts,
