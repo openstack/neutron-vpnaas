@@ -45,7 +45,8 @@ class IPsecVpnDriverCallBack(object):
         plugin = self.driver.service_plugin
         vpnservices = plugin._get_agent_hosting_vpn_services(
             context, host)
-        return [self.driver.make_vpnservice_dict(vpnservice)
+        local_cidr_map = plugin._build_local_subnet_cidr_map(context)
+        return [self.driver.make_vpnservice_dict(vpnservice, local_cidr_map)
                 for vpnservice in vpnservices]
 
     def update_status(self, context, status):
@@ -165,15 +166,22 @@ class BaseIPsecVPNDriver(service_drivers.VpnDriver):
         # don't need a check here.
         return ip_to_use
 
-    def make_vpnservice_dict(self, vpnservice):
+    def make_vpnservice_dict(self, vpnservice, local_cidr_map):
         """Convert vpnservice information for vpn agent.
 
         also converting parameter name for vpn agent driver
         """
         vpnservice_dict = dict(vpnservice)
         vpnservice_dict['ipsec_site_connections'] = []
-        vpnservice_dict['subnet'] = dict(
-            vpnservice.subnet)
+        if vpnservice.subnet:
+            vpnservice_dict['subnet'] = dict(vpnservice.subnet)
+        else:
+            vpnservice_dict['subnet'] = None
+            # NOTE: Following is used for rolling upgrades, where agent may be
+            # at version N, and server at N+1. We need to populate the subnet
+            # with (only) the CIDR from the first connection's local endpoint
+            # group.
+            subnet_cidr = None
         # Not removing external_ip from vpnservice_dict, as some providers
         # may be still using it from vpnservice_dict. Will use whichever IP
         # is specified.
@@ -192,11 +200,28 @@ class BaseIPsecVPNDriver(service_drivers.VpnDriver):
                 ipsec_site_connection.ipsecpolicy)
             vpnservice_dict['ipsec_site_connections'].append(
                 ipsec_site_connection_dict)
-            peer_cidrs = [
-                peer_cidr.cidr
-                for peer_cidr in ipsec_site_connection.peer_cidrs]
+            if vpnservice.subnet:
+                local_cidrs = [vpnservice.subnet.cidr]
+                peer_cidrs = [
+                    peer_cidr.cidr
+                    for peer_cidr in ipsec_site_connection.peer_cidrs]
+            else:
+                local_cidrs = [local_cidr_map[ep.endpoint]
+                    for ep in ipsec_site_connection.local_ep_group.endpoints]
+                peer_cidrs = [
+                    ep.endpoint
+                    for ep in ipsec_site_connection.peer_ep_group.endpoints]
+                if not subnet_cidr:
+                    epg = ipsec_site_connection.local_ep_group
+                    subnet_cidr = local_cidr_map[epg.endpoints[0].endpoint]
             ipsec_site_connection_dict['peer_cidrs'] = peer_cidrs
+            ipsec_site_connection_dict['local_cidrs'] = local_cidrs
+            ipsec_site_connection_dict['local_ip_vers'] = netaddr.IPNetwork(
+                local_cidrs[0]).version
             ipsec_site_connection_dict['external_ip'] = (
                 self.get_external_ip_based_on_peer(vpnservice,
                                                    ipsec_site_connection_dict))
+        if not vpnservice.subnet:
+            vpnservice_dict['subnet'] = {'cidr': subnet_cidr}
+
         return vpnservice_dict

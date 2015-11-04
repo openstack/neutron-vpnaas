@@ -14,23 +14,14 @@
 #    under the License.
 
 import mock
-import socket
 
-from neutron.common import exceptions as nexception
 from neutron import context as n_ctx
-from neutron.db import l3_db
-from neutron.db import servicetype_db as st_db
 from neutron.plugins.common import constants as nconstants
-from oslo_config import cfg
 from oslo_utils import uuidutils
 
-from neutron_vpnaas.extensions import vpnaas
-from neutron_vpnaas.services.vpn.common import constants
-from neutron_vpnaas.services.vpn import plugin as vpn_plugin
 from neutron_vpnaas.services.vpn.service_drivers import ipsec as ipsec_driver
-from neutron_vpnaas.services.vpn.service_drivers \
-    import ipsec_validator as vpn_validator
 from neutron_vpnaas.tests import base
+
 
 _uuid = uuidutils.generate_uuid
 
@@ -43,331 +34,10 @@ FAKE_VPN_SERVICE = {
     'router_id': FAKE_ROUTER_ID
 }
 FAKE_HOST = 'fake_host'
-FAKE_ROUTER = {l3_db.EXTERNAL_GW_INFO: FAKE_ROUTER_ID}
-FAKE_SUBNET_ID = _uuid()
-IPV4 = 4
-IPV6 = 6
 FAKE_CONN_ID = _uuid()
 
 IPSEC_SERVICE_DRIVER = ('neutron_vpnaas.services.vpn.service_drivers.'
                         'ipsec.IPsecVPNDriver')
-
-
-class TestValidatorSelection(base.BaseTestCase):
-
-    def setUp(self):
-        super(TestValidatorSelection, self).setUp()
-        # TODO(armax): remove this if branch as soon as the ServiceTypeManager
-        # API for adding provider configurations becomes available
-        if not hasattr(st_db.ServiceTypeManager, 'add_provider_configuration'):
-            vpnaas_provider = (nconstants.VPN + ':vpnaas:' +
-                               IPSEC_SERVICE_DRIVER + ':default')
-            cfg.CONF.set_override(
-                'service_provider', [vpnaas_provider], 'service_providers')
-        else:
-            vpnaas_provider = [{
-                'service_type': nconstants.VPN,
-                'name': 'vpnaas',
-                'driver': IPSEC_SERVICE_DRIVER,
-                'default': True
-            }]
-            # override the default service provider
-            self.service_providers = (
-                mock.patch.object(st_db.ServiceTypeManager,
-                                  'get_service_providers').start())
-            self.service_providers.return_value = vpnaas_provider
-        mock.patch('neutron.common.rpc.create_connection').start()
-        stm = st_db.ServiceTypeManager()
-        mock.patch('neutron.db.servicetype_db.ServiceTypeManager.get_instance',
-                   return_value=stm).start()
-        self.vpn_plugin = vpn_plugin.VPNDriverPlugin()
-
-    def test_reference_driver_used(self):
-        self.assertIsInstance(self.vpn_plugin._get_validator(),
-                              vpn_validator.IpsecVpnValidator)
-
-
-class TestIPsecDriverValidation(base.BaseTestCase):
-
-    def setUp(self):
-        super(TestIPsecDriverValidation, self).setUp()
-        self.l3_plugin = mock.Mock()
-        mock.patch(
-            'neutron.manager.NeutronManager.get_service_plugins',
-            return_value={nconstants.L3_ROUTER_NAT: self.l3_plugin}).start()
-        self.core_plugin = mock.Mock()
-        mock.patch('neutron.manager.NeutronManager.get_plugin',
-                   return_value=self.core_plugin).start()
-        self.context = n_ctx.Context('some_user', 'some_tenant')
-        self.service_plugin = mock.Mock()
-        self.validator = vpn_validator.IpsecVpnValidator(self.service_plugin)
-        self.router = mock.Mock()
-        self.router.gw_port = {'fixed_ips': [{'ip_address': '10.0.0.99'}]}
-
-    def test_non_public_router_for_vpn_service(self):
-        """Failure test of service validate, when router missing ext. I/F."""
-        self.l3_plugin.get_router.return_value = {}  # No external gateway
-        vpnservice = {'router_id': 123, 'subnet_id': 456}
-        self.assertRaises(vpnaas.RouterIsNotExternal,
-                          self.validator.validate_vpnservice,
-                          self.context, vpnservice)
-
-    def test_subnet_not_connected_for_vpn_service(self):
-        """Failure test of service validate, when subnet not on router."""
-        self.l3_plugin.get_router.return_value = FAKE_ROUTER
-        self.core_plugin.get_ports.return_value = None
-        vpnservice = {'router_id': FAKE_ROUTER_ID, 'subnet_id': FAKE_SUBNET_ID}
-        self.assertRaises(vpnaas.SubnetIsNotConnectedToRouter,
-                          self.validator.validate_vpnservice,
-                          self.context, vpnservice)
-
-    def test_defaults_for_ipsec_site_connections_on_create(self):
-        """Check that defaults are applied correctly.
-
-        MTU has a default and will always be present on create.
-        However, the DPD settings do not have a default, so
-        database create method will assign default values for any
-        missing. In addition, the DPD dict will be flattened
-        for storage into the database, so we'll do it as part of
-        assigning defaults.
-        """
-        ipsec_sitecon = {}
-        self.validator.assign_sensible_ipsec_sitecon_defaults(ipsec_sitecon)
-        expected = {
-            'dpd_action': 'hold',
-            'dpd_timeout': 120,
-            'dpd_interval': 30
-        }
-        self.assertEqual(expected, ipsec_sitecon)
-
-        ipsec_sitecon = {'dpd': {'interval': 50}}
-        self.validator.assign_sensible_ipsec_sitecon_defaults(ipsec_sitecon)
-        expected = {
-            'dpd': {'interval': 50},
-            'dpd_action': 'hold',
-            'dpd_timeout': 120,
-            'dpd_interval': 50
-        }
-        self.assertEqual(expected, ipsec_sitecon)
-
-    def test_resolve_peer_address_with_ipaddress(self):
-        ipsec_sitecon = {'peer_address': '10.0.0.9'}
-        self.validator.validate_peer_address = mock.Mock()
-        self.validator.resolve_peer_address(ipsec_sitecon, self.router)
-        self.assertEqual('10.0.0.9', ipsec_sitecon['peer_address'])
-        self.validator.validate_peer_address.assert_called_once_with(
-            IPV4, self.router)
-
-    def test_resolve_peer_address_with_fqdn(self):
-        with mock.patch.object(socket, 'getaddrinfo') as mock_getaddr_info:
-            mock_getaddr_info.return_value = [(2, 1, 6, '',
-                                              ('10.0.0.9', 0))]
-            ipsec_sitecon = {'peer_address': 'fqdn.peer.addr'}
-            self.validator.validate_peer_address = mock.Mock()
-            self.validator.resolve_peer_address(ipsec_sitecon, self.router)
-            self.assertEqual('10.0.0.9', ipsec_sitecon['peer_address'])
-            self.validator.validate_peer_address.assert_called_once_with(
-                IPV4, self.router)
-
-    def test_resolve_peer_address_with_invalid_fqdn(self):
-        with mock.patch.object(socket, 'getaddrinfo') as mock_getaddr_info:
-            def getaddr_info_failer(*args, **kwargs):
-                raise socket.gaierror()
-            mock_getaddr_info.side_effect = getaddr_info_failer
-            ipsec_sitecon = {'peer_address': 'fqdn.invalid'}
-            self.assertRaises(vpnaas.VPNPeerAddressNotResolved,
-                              self.validator.resolve_peer_address,
-                              ipsec_sitecon, self.router)
-
-    def _validate_peer_address(self, fixed_ips, ip_version,
-                               expected_exception=False):
-        self.router.id = FAKE_ROUTER_ID
-        self.router.gw_port = {'fixed_ips': fixed_ips}
-        try:
-            self.validator.validate_peer_address(ip_version, self.router)
-            if expected_exception:
-                self.fail("No exception raised for invalid peer address")
-        except vpnaas.ExternalNetworkHasNoSubnet:
-            if not expected_exception:
-                self.fail("exception for valid peer address raised")
-
-    def test_validate_peer_address(self):
-        # validate ipv4 peer_address with ipv4 gateway
-        fixed_ips = [{'ip_address': '10.0.0.99'}]
-        self._validate_peer_address(fixed_ips, IPV4)
-
-        # validate ipv6 peer_address with ipv6 gateway
-        fixed_ips = [{'ip_address': '2001::1'}]
-        self._validate_peer_address(fixed_ips, IPV6)
-
-        # validate ipv6 peer_address with both ipv4 and ipv6 gateways
-        fixed_ips = [{'ip_address': '2001::1'}, {'ip_address': '10.0.0.99'}]
-        self._validate_peer_address(fixed_ips, IPV6)
-
-        # validate ipv4 peer_address with both ipv4 and ipv6 gateways
-        fixed_ips = [{'ip_address': '2001::1'}, {'ip_address': '10.0.0.99'}]
-        self._validate_peer_address(fixed_ips, IPV4)
-
-        # validate ipv4 peer_address with ipv6 gateway
-        fixed_ips = [{'ip_address': '2001::1'}]
-        self._validate_peer_address(fixed_ips, IPV4, expected_exception=True)
-
-        # validate ipv6 peer_address with ipv4 gateway
-        fixed_ips = [{'ip_address': '10.0.0.99'}]
-        self._validate_peer_address(fixed_ips, IPV6, expected_exception=True)
-
-    def test_validate_ipsec_policy(self):
-        ipsec_policy = {'transform_protocol': 'ah-esp'}
-        self.assertRaises(vpn_validator.IpsecValidationFailure,
-                          self.validator.validate_ipsec_policy,
-                          self.context, ipsec_policy)
-
-    def test_defaults_for_ipsec_site_connections_on_update(self):
-        """Check that defaults are used for any values not specified."""
-        ipsec_sitecon = {}
-        prev_connection = {'dpd_action': 'clear',
-                           'dpd_timeout': 500,
-                           'dpd_interval': 250}
-        self.validator.assign_sensible_ipsec_sitecon_defaults(ipsec_sitecon,
-                                                              prev_connection)
-        expected = {
-            'dpd_action': 'clear',
-            'dpd_timeout': 500,
-            'dpd_interval': 250
-        }
-        self.assertEqual(expected, ipsec_sitecon)
-
-        ipsec_sitecon = {'dpd': {'timeout': 200}}
-        prev_connection = {'dpd_action': 'clear',
-                           'dpd_timeout': 500,
-                           'dpd_interval': 100}
-        self.validator.assign_sensible_ipsec_sitecon_defaults(ipsec_sitecon,
-                                                              prev_connection)
-        expected = {
-            'dpd': {'timeout': 200},
-            'dpd_action': 'clear',
-            'dpd_timeout': 200,
-            'dpd_interval': 100
-        }
-        self.assertEqual(expected, ipsec_sitecon)
-
-    def test_bad_dpd_settings_on_create(self):
-        """Failure tests of DPD settings for IPSec conn during create."""
-        ipsec_sitecon = {'mtu': 1500, 'dpd_action': 'hold',
-                         'dpd_interval': 100, 'dpd_timeout': 100}
-        self.assertRaises(vpnaas.IPsecSiteConnectionDpdIntervalValueError,
-                          self.validator.validate_ipsec_site_connection,
-                          self.context, ipsec_sitecon, IPV4)
-        ipsec_sitecon = {'mtu': 1500, 'dpd_action': 'hold',
-                         'dpd_interval': 100, 'dpd_timeout': 99}
-        self.assertRaises(vpnaas.IPsecSiteConnectionDpdIntervalValueError,
-                          self.validator.validate_ipsec_site_connection,
-                          self.context, ipsec_sitecon, IPV4)
-
-    def test_bad_dpd_settings_on_update(self):
-        """Failure tests of DPD settings for IPSec conn. during update.
-
-        Note: On an update, the user may specify only some of the DPD settings.
-        Previous values will be assigned for any missing items, so by the
-        time the validation occurs, all items will be available for checking.
-        The MTU may not be provided, during validation and will be ignored,
-        if that is the case.
-        """
-        prev_connection = {'mtu': 2000,
-                           'dpd_action': 'hold',
-                           'dpd_interval': 100,
-                           'dpd_timeout': 120}
-        ipsec_sitecon = {'dpd': {'interval': 120}}
-        self.validator.assign_sensible_ipsec_sitecon_defaults(ipsec_sitecon,
-                                                              prev_connection)
-        self.assertRaises(vpnaas.IPsecSiteConnectionDpdIntervalValueError,
-                          self.validator.validate_ipsec_site_connection,
-                          self.context, ipsec_sitecon, IPV4)
-
-        prev_connection = {'mtu': 2000,
-                           'dpd_action': 'hold',
-                           'dpd_interval': 100,
-                           'dpd_timeout': 120}
-        ipsec_sitecon = {'dpd': {'timeout': 99}}
-        self.validator.assign_sensible_ipsec_sitecon_defaults(ipsec_sitecon,
-                                                              prev_connection)
-        self.assertRaises(vpnaas.IPsecSiteConnectionDpdIntervalValueError,
-                          self.validator.validate_ipsec_site_connection,
-                          self.context, ipsec_sitecon, IPV4)
-
-    def test_bad_mtu_for_ipsec_connection(self):
-        """Failure test of invalid MTU values for IPSec conn create/update."""
-        ip_version_limits = vpn_validator.IpsecVpnValidator.IP_MIN_MTU
-        for version, limit in ip_version_limits.items():
-            ipsec_sitecon = {'mtu': limit - 1,
-                             'dpd_action': 'hold',
-                             'dpd_interval': 100,
-                             'dpd_timeout': 120}
-            self.assertRaises(
-                vpnaas.IPsecSiteConnectionMtuError,
-                self.validator.validate_ipsec_site_connection,
-                self.context, ipsec_sitecon, version)
-
-    def test_endpoints_all_cidrs_in_endpoint_group(self):
-        """All endpoints in the endpoint group are valid CIDRs."""
-        endpoint_group = {'type': constants.CIDR_ENDPOINT,
-                          'endpoints': ['10.10.10.0/24', '20.20.20.0/24']}
-        try:
-            self.validator.validate_endpoint_group(self.context,
-                                                   endpoint_group)
-        except Exception:
-            self.fail("All CIDRs in endpoint_group should be valid")
-
-    def test_endpoints_all_subnets_in_endpoint_group(self):
-        """All endpoints in the endpoint group are valid subnets."""
-        endpoint_group = {'type': constants.SUBNET_ENDPOINT,
-                          'endpoints': [_uuid(), _uuid()]}
-        try:
-            self.validator.validate_endpoint_group(self.context,
-                                                   endpoint_group)
-        except Exception:
-            self.fail("All subnets in endpoint_group should be valid")
-
-    def test_mixed_endpoint_types_in_endpoint_group(self):
-        """Fail when mixing types of endpoints in endpoint group."""
-        endpoint_group = {'type': constants.CIDR_ENDPOINT,
-                          'endpoints': ['10.10.10.0/24', _uuid()]}
-        self.assertRaises(vpnaas.InvalidEndpointInEndpointGroup,
-                          self.validator.validate_endpoint_group,
-                          self.context, endpoint_group)
-        endpoint_group = {'type': constants.SUBNET_ENDPOINT,
-                          'endpoints': [_uuid(), '10.10.10.0/24']}
-        self.assertRaises(vpnaas.InvalidEndpointInEndpointGroup,
-                          self.validator.validate_endpoint_group,
-                          self.context, endpoint_group)
-
-    def test_missing_endpoints_for_endpoint_group(self):
-        endpoint_group = {'type': constants.CIDR_ENDPOINT,
-                          'endpoints': []}
-        self.assertRaises(vpnaas.MissingEndpointForEndpointGroup,
-                          self.validator.validate_endpoint_group,
-                          self.context, endpoint_group)
-
-    def test_fail_bad_cidr_in_endpoint_group(self):
-        """Testing catches bad CIDR.
-
-        Just check one case, as CIDR validator used has good test coverage.
-        """
-        endpoint_group = {'type': constants.CIDR_ENDPOINT,
-                          'endpoints': ['10.10.10.10/24', '20.20.20.1']}
-        self.assertRaises(vpnaas.InvalidEndpointInEndpointGroup,
-                          self.validator.validate_endpoint_group,
-                          self.context, endpoint_group)
-
-    def test_unknown_subnet_in_endpoint_group(self):
-        subnet_id = _uuid()
-        self.core_plugin.get_subnet.side_effect = nexception.SubnetNotFound(
-            subnet_id=subnet_id)
-        endpoint_group = {'type': constants.SUBNET_ENDPOINT,
-                          'endpoints': [subnet_id]}
-        self.assertRaises(vpnaas.NonExistingSubnetInEndpointGroup,
-                          self.validator.validate_endpoint_group,
-                          self.context, endpoint_group)
 
 
 class FakeSqlQueryObject(dict):
@@ -442,72 +112,244 @@ class TestIPsecDriver(base.BaseTestCase):
                           [FAKE_VPN_SERVICE],
                           {'router': {'id': FAKE_VPN_SERVICE['router_id']}})
 
-    def _test_make_vpnservice_dict_helper(self, peer_id, expected_peer_id):
-        fake_subnet = FakeSqlQueryObject(id='foo-subnet-id',
-                                         name='foo-subnet',
-                                         network_id='foo-net-id')
+    def prepare_dummy_query_objects(self, info):
+        """Create fake query objects to test dict creation for sync oper."""
+        external_ip = '10.0.0.99'
+        peer_address = '10.0.0.2'
+        peer_endpoints = info.get('peer_endpoints', [])
+        local_endpoints = info.get('local_endpoints', [])
+        peer_cidrs = info.get('peer_cidrs', ['40.4.0.0/24', '50.5.0.0/24'])
+        peer_id = info.get('peer_id', '30.30.0.0')
 
         fake_ikepolicy = FakeSqlQueryObject(id='foo-ike', name='ike-name')
         fake_ipsecpolicy = FakeSqlQueryObject(id='foo-ipsec')
-        fake_peer_address = '10.0.0.2'
 
-        fake_ipsec_conn = FakeSqlQueryObject(peer_id=peer_id,
-                                             peer_address=fake_peer_address,
+        fake_peer_cidrs_list = [
+            FakeSqlQueryObject(cidr=cidr, ipsec_site_connection_id='conn-id')
+            for cidr in peer_cidrs]
+
+        peer_epg_id = 'peer-epg-id' if peer_endpoints else None
+        local_epg_id = 'local-epg-id' if local_endpoints else None
+
+        fake_ipsec_conn = FakeSqlQueryObject(id='conn-id',
+                                             peer_id=peer_id,
+                                             peer_address=peer_address,
                                              ikepolicy=fake_ikepolicy,
                                              ipsecpolicy=fake_ipsecpolicy,
-                                             peer_cidrs=[])
-        fake_external_ip = '10.0.0.99'
-        fake_gw_port = {'fixed_ips': [{'ip_address': fake_external_ip}]}
+                                             peer_ep_group_id=peer_epg_id,
+                                             local_ep_group_id=local_epg_id,
+                                             peer_cidrs=fake_peer_cidrs_list)
+
+        if peer_endpoints:
+            fake_peer_ep_group = FakeSqlQueryObject(id=peer_epg_id)
+            fake_peer_ep_group.endpoints = [
+                FakeSqlQueryObject(endpoint=ep,
+                                   endpoint_group_id=peer_epg_id)
+                for ep in peer_endpoints]
+            fake_ipsec_conn.peer_ep_group = fake_peer_ep_group
+
+        if local_endpoints:
+            fake_local_ep_group = FakeSqlQueryObject(id=local_epg_id)
+            fake_local_ep_group.endpoints = [
+                FakeSqlQueryObject(endpoint=ep,
+                                   endpoint_group_id=local_epg_id)
+                for ep in local_endpoints]
+            fake_ipsec_conn.local_ep_group = fake_local_ep_group
+            subnet_id = None
+        else:
+            subnet_id = 'foo-subnet-id'
+
+        fake_gw_port = {'fixed_ips': [{'ip_address': external_ip}]}
         fake_router = FakeSqlQueryObject(gw_port=fake_gw_port)
         fake_vpnservice = FakeSqlQueryObject(id='foo-vpn-id', name='foo-vpn',
                                              description='foo-vpn-service',
                                              admin_state_up=True,
                                              status='active',
-                                             external_v4_ip=fake_external_ip,
+                                             external_v4_ip=external_ip,
                                              external_v6_ip=None,
-                                             subnet_id='foo-subnet-id',
+                                             subnet_id=subnet_id,
                                              router_id='foo-router-id')
-        fake_vpnservice.subnet = fake_subnet
+        if local_endpoints:
+            fake_vpnservice.subnet = None
+        else:
+            fake_subnet = FakeSqlQueryObject(id=subnet_id,
+                                             name='foo-subnet',
+                                             cidr='9.0.0.0/16',
+                                             network_id='foo-net-id')
+            fake_vpnservice.subnet = fake_subnet
         fake_vpnservice.router = fake_router
         fake_vpnservice.ipsec_site_connections = [fake_ipsec_conn]
+        return fake_vpnservice
 
-        expected_vpnservice_dict = {'name': 'foo-vpn',
-                                    'id': 'foo-vpn-id',
-                                    'description': 'foo-vpn-service',
-                                    'admin_state_up': True,
-                                    'status': 'active',
-                                    'external_v4_ip': fake_external_ip,
-                                    'external_v6_ip': None,
-                                    'subnet_id': 'foo-subnet-id',
-                                    'router_id': 'foo-router-id',
-                                    'subnet': {'id': 'foo-subnet-id',
-                                               'name': 'foo-subnet',
-                                               'network_id': 'foo-net-id'},
-                                    'external_ip': fake_external_ip,
-                                    'ipsec_site_connections': [
-                                        {'peer_id': expected_peer_id,
-                                         'external_ip': fake_external_ip,
-                                         'peer_address': fake_peer_address,
-                                         'ikepolicy': {'id': 'foo-ike',
-                                                       'name': 'ike-name'},
-                                         'ipsecpolicy': {'id': 'foo-ipsec'},
-                                         'peer_cidrs': []}]}
+    def build_expected_dict(self, info):
+        """Create the expected dict used in sync operations.
 
-        actual_vpnservice_dict = self.driver.make_vpnservice_dict(
-            fake_vpnservice)
+        The default is to use non-endpoint groups, where the peer CIDRs come
+        from the peer_cidrs arguments, the local CIDRs come from the (sole)
+        subnet CIDR, and there is subnet info. Tests will customize the peer
+        ID and peer CIDRs.
+        """
 
-        self.assertEqual(expected_vpnservice_dict, actual_vpnservice_dict)
+        external_ip = '10.0.0.99'
+        peer_id = info.get('peer_id', '30.30.0.0')
+        peer_cidrs = info.get('peer_cidrs', ['40.4.0.0/24', '50.5.0.0/24'])
+
+        return {'name': 'foo-vpn',
+                'id': 'foo-vpn-id',
+                'description': 'foo-vpn-service',
+                'admin_state_up': True,
+                'status': 'active',
+                'external_v4_ip': external_ip,
+                'external_v6_ip': None,
+                'router_id': 'foo-router-id',
+                'subnet': {'cidr': '9.0.0.0/16',
+                           'id': 'foo-subnet-id',
+                           'name': 'foo-subnet',
+                           'network_id': 'foo-net-id'},
+                'subnet_id': 'foo-subnet-id',
+                'external_ip': external_ip,
+                'ipsec_site_connections': [
+                    {'id': 'conn-id',
+                     'peer_id': peer_id,
+                     'external_ip': external_ip,
+                     'peer_address': '10.0.0.2',
+                     'ikepolicy': {'id': 'foo-ike',
+                                   'name': 'ike-name'},
+                     'ipsecpolicy': {'id': 'foo-ipsec'},
+                     'peer_ep_group_id': None,
+                     'local_ep_group_id': None,
+                     'peer_cidrs': peer_cidrs,
+                     'local_cidrs': ['9.0.0.0/16'],
+                     'local_ip_vers': 4}
+                ]}
+
+    def build_expected_dict_for_endpoints(self, info):
+        """Create the expected dict used in sync operations for endpoints.
+
+        The local and peer CIDRs come from the endpoint groups (with the
+        local CIDR translated from the corresponding subnets specified).
+        Tests will customize CIDRs, and the subnet, which is needed for
+        backward compatibility with agents, during rolling upgrades.
+        """
+
+        external_ip = '10.0.0.99'
+        peer_id = '30.30.0.0'
+        return {'name': 'foo-vpn',
+                'id': 'foo-vpn-id',
+                'description': 'foo-vpn-service',
+                'admin_state_up': True,
+                'status': 'active',
+                'external_v4_ip': external_ip,
+                'external_v6_ip': None,
+                'router_id': 'foo-router-id',
+                'subnet': None,
+                'subnet_id': None,
+                'external_ip': external_ip,
+                'ipsec_site_connections': [
+                    {'id': 'conn-id',
+                     'peer_id': peer_id,
+                     'external_ip': external_ip,
+                     'peer_address': '10.0.0.2',
+                     'ikepolicy': {'id': 'foo-ike',
+                                   'name': 'ike-name'},
+                     'ipsecpolicy': {'id': 'foo-ipsec'},
+                     'peer_ep_group_id': 'peer-epg-id',
+                     'local_ep_group_id': 'local-epg-id',
+                     'peer_cidrs': info['peers'],
+                     'local_cidrs': info['locals'],
+                     'local_ip_vers': info['vers']}
+                ]}
+
+    def test_make_vpnservice_dict_peer_id_is_ipaddr(self):
+        """Peer ID as IP should be copied as-is, when creating dict."""
+        subnet_cidr_map = {}
+        peer_id_as_ip = {'peer_id': '10.0.0.2'}
+        fake_service = self.prepare_dummy_query_objects(peer_id_as_ip)
+        expected_dict = self.build_expected_dict(peer_id_as_ip)
+        actual_dict = self.driver.make_vpnservice_dict(fake_service,
+                                                       subnet_cidr_map)
+        self.assertEqual(expected_dict, actual_dict)
 
         # make sure that ipsec_site_conn peer_id is not updated by
         # _make_vpnservice_dict (bug #1423244)
-        self.assertEqual(peer_id,
-                         fake_vpnservice.ipsec_site_connections[0].peer_id)
-
-    def test_make_vpnservice_dict_peer_id_is_ipaddr(self):
-        self._test_make_vpnservice_dict_helper('10.0.0.2', '10.0.0.2')
+        self.assertEqual(peer_id_as_ip['peer_id'],
+                         fake_service.ipsec_site_connections[0].peer_id)
 
     def test_make_vpnservice_dict_peer_id_is_string(self):
-        self._test_make_vpnservice_dict_helper('foo.peer.id', '@foo.peer.id')
+        """Peer ID as string should have '@' prepended, when creating dict."""
+        subnet_cidr_map = {}
+        peer_id_as_name = {'peer_id': 'foo.peer.id'}
+        fake_service = self.prepare_dummy_query_objects(peer_id_as_name)
+        expected_peer_id = {'peer_id': '@foo.peer.id'}
+        expected_dict = self.build_expected_dict(expected_peer_id)
+        actual_dict = self.driver.make_vpnservice_dict(fake_service,
+                                                       subnet_cidr_map)
+        self.assertEqual(expected_dict, actual_dict)
+
+        # make sure that ipsec_site_conn peer_id is not updated by
+        # _make_vpnservice_dict (bug #1423244)
+        self.assertEqual(peer_id_as_name['peer_id'],
+                         fake_service.ipsec_site_connections[0].peer_id)
+
+    def test_make_vpnservice_dict_peer_cidrs_from_peer_cidr_table(self):
+        """Peer CIDRs list populated from peer_cidr table.
+
+        User provides peer CIDRs as parameters to IPSec site-to-site
+        connection API, and they are stored in the peercidrs table.
+        """
+        subnet_cidr_map = {}
+        peer_cidrs = {'peer_cidrs': ['80.0.0.0/24', '90.0.0.0/24']}
+        fake_service = self.prepare_dummy_query_objects(peer_cidrs)
+        expected_dict = self.build_expected_dict(peer_cidrs)
+        actual_dict = self.driver.make_vpnservice_dict(fake_service,
+                                                       subnet_cidr_map)
+        self.assertEqual(expected_dict, actual_dict)
+
+    def test_make_vpnservice_dict_cidrs_from_endpoints(self):
+        """CIDRs list populated from local and peer endpoints.
+
+        User provides peer and local endpoint group IDs in the IPSec
+        site-to-site connection API. The endpoint groups contains peer
+        CIDRs and local subnets (which will be mapped to CIDRs).
+        """
+        # Cannot have peer CIDRs specified, when using endpoint group
+        subnet_cidr_map = {'local-sn1': '5.0.0.0/16',
+                           'local-sn2': '5.1.0.0/16'}
+        endpoint_groups = {'peer_cidrs': [],
+                           'peer_endpoints': ['80.0.0.0/24', '90.0.0.0/24'],
+                           'local_endpoints': ['local-sn1', 'local-sn2']}
+
+        expected_cidrs = {'peers': ['80.0.0.0/24', '90.0.0.0/24'],
+                          'locals': ['5.0.0.0/16', '5.1.0.0/16'],
+                          'vers': 4}
+        fake_service = self.prepare_dummy_query_objects(endpoint_groups)
+        expected_dict = self.build_expected_dict_for_endpoints(expected_cidrs)
+        expected_dict['subnet'] = {'cidr': '5.0.0.0/16'}
+        actual_dict = self.driver.make_vpnservice_dict(fake_service,
+                                                       subnet_cidr_map)
+        self.assertEqual(expected_dict, actual_dict)
+
+    def test_make_vpnservice_dict_v6_cidrs_from_endpoints(self):
+        """IPv6 CIDRs list populated from local and peer endpoints."""
+        # Cannot have peer CIDRs specified, when using endpoint group
+        subnet_cidr_map = {'local-sn1': '2002:0a00:0000::/48',
+                           'local-sn2': '2002:1400:0000::/48'}
+        endpoint_groups = {'peer_cidrs': [],
+                           'peer_endpoints': ['2002:5000:0000::/48',
+                                              '2002:5a00:0000::/48'],
+                           'local_endpoints': ['local-sn1', 'local-sn2']}
+
+        expected_cidrs = {'peers': ['2002:5000:0000::/48',
+                                   '2002:5a00:0000::/48'],
+                          'locals': ['2002:0a00:0000::/48',
+                                    '2002:1400:0000::/48'],
+                          'vers': 6}
+        fake_service = self.prepare_dummy_query_objects(endpoint_groups)
+        expected_dict = self.build_expected_dict_for_endpoints(expected_cidrs)
+        expected_dict['subnet'] = {'cidr': '2002:0a00:0000::/48'}
+        actual_dict = self.driver.make_vpnservice_dict(fake_service,
+                                                       subnet_cidr_map)
+        self.assertEqual(expected_dict, actual_dict)
 
     def test_get_external_ip_based_on_ipv4_peer(self):
         vpnservice = mock.Mock()

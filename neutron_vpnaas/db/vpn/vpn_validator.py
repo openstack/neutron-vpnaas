@@ -18,6 +18,7 @@ import socket
 from neutron.api.v2 import attributes
 from neutron.common import exceptions as nexception
 from neutron.db import l3_db
+from neutron.db import models_v2
 from neutron import manager
 from neutron.plugins.common import constants as nconstants
 from oslo_log import log as logging
@@ -62,7 +63,7 @@ class VpnReferenceValidator(object):
             raise vpnaas.IPsecSiteConnectionMtuError(mtu=mtu,
                                                      version=ip_version)
 
-    def validate_peer_address(self, ip_version, router):
+    def _validate_peer_address(self, ip_version, router):
         # NOTE: peer_address ip version should match with
         # at least one external gateway address ip version.
         # ipsec won't work with IPv6 LLA and neutron unaware GUA.
@@ -90,17 +91,128 @@ class VpnReferenceValidator(object):
                 raise vpnaas.VPNPeerAddressNotResolved(peer_address=address)
 
         ip_version = netaddr.IPAddress(ipsec_sitecon['peer_address']).version
-        self.validate_peer_address(ip_version, router)
+        self._validate_peer_address(ip_version, router)
+
+    def _get_local_subnets(self, context, endpoint_group):
+        if endpoint_group['type'] != constants.SUBNET_ENDPOINT:
+            raise vpnaas.WrongEndpointGroupType(
+                group_type=endpoint_group['type'], which=endpoint_group['id'],
+                expected=constants.SUBNET_ENDPOINT)
+        subnet_ids = endpoint_group['endpoints']
+        return context.session.query(models_v2.Subnet).filter(
+            models_v2.Subnet.id.in_(subnet_ids)).all()
+
+    def _get_peer_cidrs(self, endpoint_group):
+        if endpoint_group['type'] != constants.CIDR_ENDPOINT:
+            raise vpnaas.WrongEndpointGroupType(
+                group_type=endpoint_group['type'], which=endpoint_group['id'],
+                expected=constants.CIDR_ENDPOINT)
+        return endpoint_group['endpoints']
+
+    def _check_local_endpoint_ip_versions(self, group_id, local_subnets):
+        """Ensure all subnets in endpoint group have the same IP version.
+
+        Will return the IP version, so it can be used for inter-group testing.
+        """
+        if len(local_subnets) == 1:
+            return local_subnets[0]['ip_version']
+        ip_versions = set([subnet['ip_version'] for subnet in local_subnets])
+        if len(ip_versions) > 1:
+            raise vpnaas.MixedIPVersionsForIPSecEndpoints(group=group_id)
+        return ip_versions.pop()
+
+    def _check_peer_endpoint_ip_versions(self, group_id, peer_cidrs):
+        """Ensure all CIDRs in endpoint group have the same IP version.
+
+        Will return the IP version, so it can be used for inter-group testing.
+        """
+        if len(peer_cidrs) == 1:
+            return netaddr.IPNetwork(peer_cidrs[0]).version
+        ip_versions = set([netaddr.IPNetwork(pc).version for pc in peer_cidrs])
+        if len(ip_versions) > 1:
+            raise vpnaas.MixedIPVersionsForIPSecEndpoints(group=group_id)
+        return ip_versions.pop()
+
+    def _check_peer_cidrs_ip_versions(self, peer_cidrs):
+        """Ensure all CIDRs have the same IP version."""
+        if len(peer_cidrs) == 1:
+            return netaddr.IPNetwork(peer_cidrs[0]).version
+        ip_versions = set([netaddr.IPNetwork(pc).version for pc in peer_cidrs])
+        if len(ip_versions) > 1:
+            raise vpnaas.MixedIPVersionsForPeerCidrs()
+        return ip_versions.pop()
+
+    def _check_local_subnets_on_router(self, context, router, local_subnets):
+        for subnet in local_subnets:
+            self._check_subnet_id(context, router, subnet['id'])
+
+    def _validate_compatible_ip_versions(self, local_ip_version,
+                                         peer_ip_version):
+        if local_ip_version != peer_ip_version:
+            raise vpnaas.MixedIPVersionsForIPSecConnection()
+
+    def validate_ipsec_conn_optional_args(self, ipsec_sitecon, subnet):
+        """Ensure that proper combinations of optional args are used.
+
+        When VPN service has a subnet, then we must have peer_cidrs, and
+        cannot have any endpoint groups. If no subnet for the service, then
+        we must have both endpoint groups, and no peer_cidrs. Method will
+        form a string indicating which endpoints are incorrect, for any
+        exception raised.
+        """
+
+        local_epg_id = ipsec_sitecon.get('local_ep_group_id')
+        peer_epg_id = ipsec_sitecon.get('peer_ep_group_id')
+        peer_cidrs = ipsec_sitecon.get('peer_cidrs')
+        if subnet:
+            if not peer_cidrs:
+                raise vpnaas.MissingPeerCidrs()
+            epgs = []
+            if local_epg_id:
+                epgs.append('local')
+            if peer_epg_id:
+                epgs.append('peer')
+            if epgs:
+                which = ' and '.join(epgs)
+                suffix = 's' if len(epgs) > 1 else ''
+                raise vpnaas.InvalidEndpointGroup(which=which, suffix=suffix)
+        else:
+            if peer_cidrs:
+                raise vpnaas.PeerCidrsInvalid()
+            epgs = []
+            if not local_epg_id:
+                epgs.append('local')
+            if not peer_epg_id:
+                epgs.append('peer')
+            if epgs:
+                which = ' and '.join(epgs)
+                suffix = 's' if len(epgs) > 1 else ''
+                raise vpnaas.MissingRequiredEndpointGroup(which=which,
+                                                          suffix=suffix)
 
     def assign_sensible_ipsec_sitecon_defaults(self, ipsec_sitecon,
                                                prev_conn=None):
         """Provide defaults for optional items, if missing.
 
+        With endpoint groups capabilities, the peer_cidr (legacy mode)
+        and endpoint group IDs (new mode), are optional. For updating,
+        we need to provide the previous values for any missing values,
+        so that we can detect if the update request is attempting to
+        mix modes.
+
         Flatten the nested DPD information, and set default values for
         any missing information. For connection updates, the previous
         values will be used as defaults for any missing items.
         """
-        if not prev_conn:
+
+        if prev_conn:
+            ipsec_sitecon.setdefault(
+                'peer_cidrs', [pc['cidr'] for pc in prev_conn['peer_cidrs']])
+            ipsec_sitecon.setdefault('local_ep_group_id',
+                                     prev_conn['local_ep_group_id'])
+            ipsec_sitecon.setdefault('peer_ep_group_id',
+                                     prev_conn['peer_ep_group_id'])
+        else:
             prev_conn = {'dpd_action': 'hold',
                          'dpd_interval': 30,
                          'dpd_timeout': 120}
@@ -113,12 +225,38 @@ class VpnReferenceValidator(object):
                                                prev_conn['dpd_timeout'])
 
     def validate_ipsec_site_connection(self, context, ipsec_sitecon,
-                                       ip_version):
-        """Reference implementation of validation for IPSec connection."""
+                                       local_ip_version, vpnservice=None):
+        """Reference implementation of validation for IPSec connection.
+
+        This makes sure that IP versions are the same. For endpoint groups,
+        we use the local subnet(s) IP versions, and peer CIDR(s) IP versions.
+        For legacy mode, we use the (sole) subnet IP version, and the peer
+        CIDR(s). All IP versions must be the same.
+
+        This method also checks MTU (based on the local IP version), and
+        DPD settings.
+        """
+        if not local_ip_version:
+            # Using endpoint groups
+            local_subnets = self._get_local_subnets(
+                context, ipsec_sitecon['local_epg_subnets'])
+            self._check_local_subnets_on_router(
+                context, vpnservice['router_id'], local_subnets)
+            local_ip_version = self._check_local_endpoint_ip_versions(
+                ipsec_sitecon['local_ep_group_id'], local_subnets)
+            peer_cidrs = self._get_peer_cidrs(ipsec_sitecon['peer_epg_cidrs'])
+            peer_ip_version = self._check_peer_endpoint_ip_versions(
+                ipsec_sitecon['peer_ep_group_id'], peer_cidrs)
+        else:
+            peer_ip_version = self._check_peer_cidrs_ip_versions(
+                ipsec_sitecon['peer_cidrs'])
+        self._validate_compatible_ip_versions(local_ip_version,
+                                              peer_ip_version)
+
         self._check_dpd(ipsec_sitecon)
         mtu = ipsec_sitecon.get('mtu')
         if mtu:
-            self._check_mtu(context, mtu, ip_version)
+            self._check_mtu(context, mtu, local_ip_version)
 
     def _check_router(self, context, router_id):
         router = self.l3_plugin.get_router(context, router_id)
@@ -138,8 +276,9 @@ class VpnReferenceValidator(object):
 
     def validate_vpnservice(self, context, vpnservice):
         self._check_router(context, vpnservice['router_id'])
-        self._check_subnet_id(context, vpnservice['router_id'],
-                              vpnservice['subnet_id'])
+        if vpnservice['subnet_id'] is not None:
+            self._check_subnet_id(context, vpnservice['router_id'],
+                                  vpnservice['subnet_id'])
 
     def validate_ipsec_policy(self, context, ipsec_policy):
         """Reference implementation of validation for IPSec Policy.

@@ -66,6 +66,10 @@ class SubnetInUseByVPNService(nexception.InUse):
     message = _("Subnet %(subnet_id)s is used by VPNService %(vpnservice_id)s")
 
 
+class SubnetInUseByEndpointGroup(nexception.InUse):
+    message = _("Subnet %(subnet_id)s is used by endpoint group %(group_id)s")
+
+
 class VPNStateInvalidToUpdate(nexception.BadRequest):
     message = _("Invalid state %(state)s of vpnaas resource %(id)s"
                 " for updating")
@@ -115,6 +119,55 @@ class NonExistingSubnetInEndpointGroup(nexception.InvalidInput):
     message = _("Subnet %(subnet)s in endpoint group does not exist")
 
 
+class MixedIPVersionsForIPSecEndpoints(nexception.BadRequest):
+    message = _("Endpoints in group %(group)s do not have the same IP "
+                "version, as required for IPSec site-to-site connection")
+
+
+class MixedIPVersionsForPeerCidrs(nexception.BadRequest):
+    message = _("Peer CIDRs do not have the same IP version, as required "
+                "for IPSec site-to-site connection")
+
+
+class MixedIPVersionsForIPSecConnection(nexception.BadRequest):
+    message = _("IP versions are not compatible between peer and local "
+                "endpoints")
+
+
+class InvalidEndpointGroup(nexception.BadRequest):
+    message = _("Endpoint group%(suffix)s %(which)s cannot be specified, "
+                "when VPN Service has subnet specified")
+
+
+class WrongEndpointGroupType(nexception.BadRequest):
+    message = _("Endpoint group %(which)s type is '%(group_type)s' and "
+                "should be '%(expected)s'")
+
+
+class PeerCidrsInvalid(nexception.BadRequest):
+    message = _("Peer CIDRs cannot be specified, when using endpoint "
+                "groups")
+
+
+class MissingPeerCidrs(nexception.BadRequest):
+    message = _("Missing peer CIDRs for IPsec site-to-site connection")
+
+
+class MissingRequiredEndpointGroup(nexception.BadRequest):
+    message = _("Missing endpoint group%(suffix)s %(which)s for IPSec "
+                "site-to-site connection")
+
+
+class EndpointGroupInUse(nexception.BadRequest):
+    message = _("Endpoint group %(group_id)s is in use and cannot be deleted")
+
+
+def _validate_subnet_list_or_none(data, key_specs=None):
+    if data is not None:
+        attr._validate_subnet_list(data, key_specs)
+
+attr.validators['type:subnet_list_or_none'] = _validate_subnet_list_or_none
+
 vpn_supported_initiators = ['bi-directional', 'response-only']
 vpn_supported_encryption_algorithms = ['3des', 'aes-128',
                                        'aes-192', 'aes-256']
@@ -152,8 +205,8 @@ RESOURCE_ATTRIBUTE_MAP = {
                         'validate': {'type:string': None},
                         'is_visible': True, 'default': ''},
         'subnet_id': {'allow_post': True, 'allow_put': False,
-                      'validate': {'type:uuid': None},
-                      'is_visible': True},
+                      'validate': {'type:uuid_or_none': None},
+                      'is_visible': True, 'default': None},
         'router_id': {'allow_post': True, 'allow_put': False,
                       'validate': {'type:uuid': None},
                       'is_visible': True},
@@ -192,8 +245,15 @@ RESOURCE_ATTRIBUTE_MAP = {
                     'is_visible': True},
         'peer_cidrs': {'allow_post': True, 'allow_put': True,
                        'convert_to': attr.convert_to_list,
-                       'validate': {'type:subnet_list': None},
-                       'is_visible': True},
+                       'validate': {'type:subnet_list_or_none': None},
+                       'is_visible': True,
+                       'default': None},
+        'local_ep_group_id': {'allow_post': True, 'allow_put': True,
+                              'validate': {'type:uuid_or_none': None},
+                              'is_visible': True, 'default': None},
+        'peer_ep_group_id': {'allow_post': True, 'allow_put': True,
+                             'validate': {'type:uuid_or_none': None},
+                             'is_visible': True, 'default': None},
         'route_mode': {'allow_post': False, 'allow_put': False,
                        'default': 'static',
                        'is_visible': True},

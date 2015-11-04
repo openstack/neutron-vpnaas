@@ -124,6 +124,14 @@ class IPsecSiteConnection(model_base.BASEV2,
                                   backref='ipsec_site_connection',
                                   lazy='joined',
                                   cascade='all, delete, delete-orphan')
+    local_ep_group_id = sa.Column(sa.String(36),
+                                  sa.ForeignKey('vpn_endpoint_groups.id'))
+    peer_ep_group_id = sa.Column(sa.String(36),
+                                 sa.ForeignKey('vpn_endpoint_groups.id'))
+    local_ep_group = orm.relationship("VPNEndpointGroup",
+                                      foreign_keys=local_ep_group_id)
+    peer_ep_group = orm.relationship("VPNEndpointGroup",
+                                     foreign_keys=peer_ep_group_id)
 
 
 class VPNService(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
@@ -134,8 +142,7 @@ class VPNService(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
     admin_state_up = sa.Column(sa.Boolean(), nullable=False)
     external_v4_ip = sa.Column(sa.String(16))
     external_v6_ip = sa.Column(sa.String(64))
-    subnet_id = sa.Column(sa.String(36), sa.ForeignKey('subnets.id'),
-                          nullable=False)
+    subnet_id = sa.Column(sa.String(36), sa.ForeignKey('subnets.id'))
     router_id = sa.Column(sa.String(36), sa.ForeignKey('routers.id'),
                           nullable=False)
     subnet = orm.relationship(models_v2.Subnet)

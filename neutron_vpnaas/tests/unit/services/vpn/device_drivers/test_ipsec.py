@@ -49,7 +49,8 @@ FAKE_IKE_POLICY = {
 FAKE_IPSEC_POLICY = {
     'encryption_algorithm': 'aes-128',
     'auth_algorithm': 'sha1',
-    'pfs': 'group5'
+    'pfs': 'group5',
+    'transform_protocol': 'esp'
 }
 
 FAKE_VPN_SERVICE = {
@@ -58,17 +59,18 @@ FAKE_VPN_SERVICE = {
     'name': 'myvpn',
     'admin_state_up': True,
     'status': constants.PENDING_CREATE,
-    'external_ip': '50.0.0.4',
-    'subnet': {'cidr': '10.0.0.0/24'},
+    'external_ip': '60.0.0.4',
     'ipsec_site_connections': [
         {'peer_cidrs': ['20.0.0.0/24',
                         '30.0.0.0/24'],
+         'local_cidrs': ['10.0.0.0/24'],
+         'local_ip_vers': 4,
          'admin_state_up': True,
          'id': FAKE_IPSEC_SITE_CONNECTION1_ID,
-         'external_ip': '50.0.0.4',
-         'peer_address': '30.0.0.5',
+         'external_ip': '60.0.0.4',
+         'peer_address': '60.0.0.5',
          'mtu': 1500,
-         'peer_id': '30.0.0.5',
+         'peer_id': '60.0.0.5',
          'psk': 'password',
          'initiator': 'bi-directional',
          'ikepolicy': FAKE_IKE_POLICY,
@@ -76,10 +78,12 @@ FAKE_VPN_SERVICE = {
          'status': constants.PENDING_CREATE},
         {'peer_cidrs': ['40.0.0.0/24',
                         '50.0.0.0/24'],
+         'local_cidrs': ['11.0.0.0/24'],
+         'local_ip_vers': 4,
          'admin_state_up': True,
-         'external_ip': '50.0.0.4',
-         'peer_address': '50.0.0.5',
-         'peer_id': '50.0.0.5',
+         'external_ip': '60.0.0.4',
+         'peer_address': '60.0.0.6',
+         'peer_id': '60.0.0.6',
          'mtu': 1500,
          'psk': 'password',
          'id': FAKE_IPSEC_SITE_CONNECTION2_ID,
@@ -88,7 +92,6 @@ FAKE_VPN_SERVICE = {
          'ipsecpolicy': FAKE_IPSEC_POLICY,
          'status': constants.PENDING_CREATE}]
 }
-
 
 AUTH_ESP = '''esp
     # [encryption_algorithm]-[auth_algorithm]-[pfs]
@@ -133,26 +136,34 @@ OPENSWAN_CONNECTION_DETAILS = '''# rightsubnet=networkA/netmaskA, networkB/netma
     # lifebytes=100000 if lifetime_units=kilobytes (IKEv2 only)
 '''
 
+IPV4_NEXT_HOP = '''# NOTE: a default route is required for %defaultroute to work...
+    leftnexthop=%defaultroute
+    rightnexthop=%defaultroute'''
+
+IPV6_NEXT_HOP = '''# To recognize the given IP addresses in this config
+    # as IPv6 addresses by pluto whack. Default is ipv4
+    connaddrfamily=ipv6
+    # openswan can't process defaultroute for ipv6.
+    # Assign gateway address as leftnexthop
+    leftnexthop=%s
+    # rightnexthop is not mandatory for ipsec, so no need in ipv6.'''
 
 EXPECTED_OPENSWAN_CONF = """
 # Configuration for myvpn
 config setup
     nat_traversal=yes
-conn %(default_id)s
+conn %%default
     ikelifetime=480m
     keylife=60m
     keyingtries=%%forever
 conn %(conn1_id)s
-    # NOTE: a default route is required for %%defaultroute to work...
-    leftnexthop=%%defaultroute
-    rightnexthop=%%defaultroute
-    left=50.0.0.4
-    leftid=50.0.0.4
+    %(next_hop)s
+    left=%(left)s
+    leftid=%(left)s
     auto=start
     # NOTE:REQUIRED
     # [subnet]
-    leftsubnet=10.0.0.0/24
-    # leftsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
+    leftsubnet%(local_cidrs1)s
     # [updown]
     # What "updown" script to run to adjust routing and/or firewalling when
     # the status of the connection changes (default "ipsec _updown").
@@ -162,22 +173,19 @@ conn %(conn1_id)s
     # ipsec_site_connections
     ######################
     # [peer_address]
-    right=30.0.0.5
+    right=%(right1)s
     # [peer_id]
-    rightid=30.0.0.5
+    rightid=%(right1)s
     # [peer_cidrs]
-    rightsubnets={ 20.0.0.0/24 30.0.0.0/24 }
+    rightsubnets={ %(peer_cidrs1)s }
     %(conn_details)sconn %(conn2_id)s
-    # NOTE: a default route is required for %%defaultroute to work...
-    leftnexthop=%%defaultroute
-    rightnexthop=%%defaultroute
-    left=50.0.0.4
-    leftid=50.0.0.4
+    %(next_hop)s
+    left=%(left)s
+    leftid=%(left)s
     auto=start
     # NOTE:REQUIRED
     # [subnet]
-    leftsubnet=10.0.0.0/24
-    # leftsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
+    leftsubnet%(local_cidrs2)s
     # [updown]
     # What "updown" script to run to adjust routing and/or firewalling when
     # the status of the connection changes (default "ipsec _updown").
@@ -187,24 +195,24 @@ conn %(conn1_id)s
     # ipsec_site_connections
     ######################
     # [peer_address]
-    right=50.0.0.5
+    right=%(right2)s
     # [peer_id]
-    rightid=50.0.0.5
+    rightid=%(right2)s
     # [peer_cidrs]
-    rightsubnets={ 40.0.0.0/24 50.0.0.0/24 }
+    rightsubnets={ %(peer_cidrs2)s }
     %(conn_details)s
 """
 
 EXPECTED_IPSEC_OPENSWAN_SECRET_CONF = '''
 # Configuration for myvpn
-50.0.0.4 30.0.0.5 : PSK "password"
-50.0.0.4 50.0.0.5 : PSK "password"'''
+60.0.0.4 60.0.0.5 : PSK "password"
+60.0.0.4 60.0.0.6 : PSK "password"'''
 
 EXPECTED_IPSEC_STRONGSWAN_CONF = '''
 # Configuration for myvpn
 config setup
 
-conn %(default_id)s
+conn %%default
         ikelifetime=60m
         keylife=20m
         rekeymargin=3m
@@ -214,28 +222,26 @@ conn %(default_id)s
 
 conn %(conn1_id)s
     keyexchange=ikev1
-    left=50.0.0.4
-    leftsubnet=10.0.0.0/24
-    leftid=50.0.0.4
+    left=%(left)s
+    leftsubnet=%(local_cidrs1)s
+    leftid=%(left)s
     leftfirewall=yes
-    right=30.0.0.5
-    rightsubnet=20.0.0.0/24,30.0.0.0/24
-    rightid=30.0.0.5
+    right=%(right1)s
+    rightsubnet=%(peer_cidrs1)s
+    rightid=%(right1)s
     auto=route
 
 conn %(conn2_id)s
     keyexchange=ikev1
-    left=50.0.0.4
-    leftsubnet=10.0.0.0/24
-    leftid=50.0.0.4
+    left=%(left)s
+    leftsubnet=%(local_cidrs2)s
+    leftid=%(left)s
     leftfirewall=yes
-    right=50.0.0.5
-    rightsubnet=40.0.0.0/24,50.0.0.0/24
-    rightid=50.0.0.5
+    right=%(right2)s
+    rightsubnet=%(peer_cidrs2)s
+    rightid=%(right2)s
     auto=route
-''' % {'default_id': '%default',
-       'conn1_id': FAKE_IPSEC_SITE_CONNECTION1_ID,
-       'conn2_id': FAKE_IPSEC_SITE_CONNECTION2_ID}
+'''
 
 EXPECTED_STRONGSWAN_DEFAULT_CONF = '''
 charon {
@@ -250,9 +256,9 @@ include strongswan.d/*.conf
 
 EXPECTED_IPSEC_STRONGSWAN_SECRET_CONF = '''
 # Configuration for myvpn
-50.0.0.4 30.0.0.5 : PSK "password"
+60.0.0.4 60.0.0.5 : PSK "password"
 
-50.0.0.4 50.0.0.5 : PSK "password"
+60.0.0.4 60.0.0.6 : PSK "password"
 '''
 
 ACTIVE_STATUS = "%(conn_id)s{1}:  INSTALLED, TUNNEL" % {'conn_id':
@@ -264,7 +270,8 @@ NOT_RUNNING_STATUS = "Command: ['ipsec', 'status'] Exit code: 3 Stdout:"
 
 class BaseIPsecDeviceDriver(base.BaseTestCase):
     def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
-              ipsec_process=openswan_ipsec.OpenSwanProcess):
+              ipsec_process=openswan_ipsec.OpenSwanProcess,
+              vpnservice=FAKE_VPN_SERVICE):
         super(BaseIPsecDeviceDriver, self).setUp()
         for klass in [
             'neutron.common.rpc.create_connection',
@@ -285,7 +292,7 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
                           'interface_driver': mock.sentinel.interface_driver}
         self.iptables = mock.Mock()
         self.apply_mock = mock.Mock()
-        self.vpnservice = copy.deepcopy(FAKE_VPN_SERVICE)
+        self.vpnservice = copy.deepcopy(vpnservice)
 
     @staticmethod
     def generate_diff(a, b):
@@ -295,6 +302,65 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
         diff = difflib.unified_diff(a, b, fromfile="expected",
                                     tofile="actual")
         return diff
+
+    def modify_config_for_test(self, overrides):
+        """Revise service/connection settings to test variations.
+
+        Must update service, so that dialect mappings occur for any changes
+        that are made.
+        """
+        ipsec_auth_protocol = overrides.get('ipsec_auth')
+        if ipsec_auth_protocol:
+            auth_proto = {'transform_protocol': ipsec_auth_protocol}
+            for conn in self.vpnservice['ipsec_site_connections']:
+                conn['ipsecpolicy'].update(auth_proto)
+
+        local_cidrs = overrides.get('local_cidrs')
+        if local_cidrs:
+            for i, conn in enumerate(
+                    self.vpnservice['ipsec_site_connections']):
+                conn['local_cidrs'] = local_cidrs[i]
+
+        local_ip_version = overrides.get('local_ip_vers', 4)
+        for conn in self.vpnservice['ipsec_site_connections']:
+            conn['local_ip_vers'] = local_ip_version
+
+        peer_cidrs = overrides.get('peer_cidrs')
+        if peer_cidrs:
+            for i, conn in enumerate(
+                    self.vpnservice['ipsec_site_connections']):
+                conn['peer_cidrs'] = peer_cidrs[i]
+
+        peers = overrides.get('peers')
+        if peers:
+            for i, conn in enumerate(
+                    self.vpnservice['ipsec_site_connections']):
+                conn['peer_id'] = peers[i]
+                conn['peer_address'] = peers[i]
+
+        local_ip = overrides.get('local')
+        if local_ip:
+            for conn in self.vpnservice['ipsec_site_connections']:
+                conn['external_ip'] = local_ip
+
+    def check_config_file(self, expected, actual):
+        expected = expected.strip()
+        actual = actual.strip()
+        res_diff = self.generate_diff(expected, actual)
+        self.assertEqual(expected, actual, message=''.join(res_diff))
+
+    def _test_ipsec_connection_config(self, info):
+        """Check config file string for service/connection.
+
+        Calls test specific method to create (and override as needed) the
+        expected config file string, generates the config using the test's
+        IPSec template, and then compares the results.
+        """
+
+        expected = self.build_ipsec_expected_config_for_test(info)
+        actual = self.process._gen_config_content(self.ipsec_template,
+                                                  self.vpnservice)
+        self.check_config_file(expected, actual)
 
 
 class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
@@ -332,7 +398,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         self.driver.processes = {
             FAKE_ROUTER_ID: process}
         self.driver.create_router(self.router)
-        self._test_add_nat_rule_helper()
+        self._test_add_nat_rule()
         process.enable.assert_called_once_with()
 
     def test_destroy_router(self):
@@ -345,7 +411,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         process.disable.assert_called_once_with()
         self.assertNotIn(process_id, self.driver.processes)
 
-    def _test_add_nat_rule_helper(self):
+    def _test_add_nat_rule(self):
         self.router.iptables_manager.ipv4['nat'].assert_has_calls([
             mock.call.add_rule(
                 'POSTROUTING',
@@ -359,12 +425,57 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
                 top=True),
             mock.call.add_rule(
                 'POSTROUTING',
-                '-s 10.0.0.0/24 -d 40.0.0.0/24 -m policy '
+                '-s 11.0.0.0/24 -d 40.0.0.0/24 -m policy '
                 '--dir out --pol ipsec -j ACCEPT ',
                 top=True),
             mock.call.add_rule(
                 'POSTROUTING',
-                '-s 10.0.0.0/24 -d 50.0.0.0/24 -m policy '
+                '-s 11.0.0.0/24 -d 50.0.0.0/24 -m policy '
+                '--dir out --pol ipsec -j ACCEPT ',
+                top=True)
+        ])
+        self.router.iptables_manager.apply.assert_called_once_with()
+
+    def _test_add_nat_rule_with_multiple_locals(self):
+        self.router.iptables_manager.ipv4['nat'].assert_has_calls([
+            mock.call.add_rule(
+                'POSTROUTING',
+                '-s 10.0.0.0/24 -d 20.0.0.0/24 -m policy '
+                '--dir out --pol ipsec -j ACCEPT ',
+                top=True),
+            mock.call.add_rule(
+                'POSTROUTING',
+                '-s 10.0.0.0/24 -d 30.0.0.0/24 -m policy '
+                '--dir out --pol ipsec -j ACCEPT ',
+                top=True),
+            mock.call.add_rule(
+                'POSTROUTING',
+                '-s 11.0.0.0/24 -d 20.0.0.0/24 -m policy '
+                '--dir out --pol ipsec -j ACCEPT ',
+                top=True),
+            mock.call.add_rule(
+                'POSTROUTING',
+                '-s 11.0.0.0/24 -d 30.0.0.0/24 -m policy '
+                '--dir out --pol ipsec -j ACCEPT ',
+                top=True),
+            mock.call.add_rule(
+                'POSTROUTING',
+                '-s 12.0.0.0/24 -d 40.0.0.0/24 -m policy '
+                '--dir out --pol ipsec -j ACCEPT ',
+                top=True),
+            mock.call.add_rule(
+                'POSTROUTING',
+                '-s 12.0.0.0/24 -d 50.0.0.0/24 -m policy '
+                '--dir out --pol ipsec -j ACCEPT ',
+                top=True),
+            mock.call.add_rule(
+                'POSTROUTING',
+                '-s 13.0.0.0/24 -d 40.0.0.0/24 -m policy '
+                '--dir out --pol ipsec -j ACCEPT ',
+                top=True),
+            mock.call.add_rule(
+                'POSTROUTING',
+                '-s 13.0.0.0/24 -d 50.0.0.0/24 -m policy '
                 '--dir out --pol ipsec -j ACCEPT ',
                 top=True)
         ])
@@ -395,8 +506,16 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         with mock.patch.object(self.driver, 'ensure_process') as ensure_p:
             ensure_p.side_effect = self.fake_ensure_process
             self.driver._sync_vpn_processes([new_vpnservice], router_id)
-            self._test_add_nat_rule_helper()
+            self._test_add_nat_rule()
             self.driver.processes[router_id].update.assert_called_once_with()
+
+    def test_add_nat_rules_with_multiple_local_subnets(self):
+        """Ensure that add nat rule combinations are correct."""
+        overrides = {'local_cidrs': [['10.0.0.0/24', '11.0.0.0/24'],
+                                     ['12.0.0.0/24', '13.0.0.0/24']]}
+        self.modify_config_for_test(overrides)
+        self.driver._update_nat(self.vpnservice, self.driver.add_nat_rule)
+        self._test_add_nat_rule_with_multiple_locals()
 
     def test__sync_vpn_processes_router_with_no_vpn(self):
         """Test _sync_vpn_processes with a router not hosting vpnservice.
@@ -439,7 +558,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         with mock.patch.object(self.driver, 'ensure_process') as ensure_p:
             ensure_p.side_effect = self.fake_ensure_process
             self.driver._sync_vpn_processes([self.vpnservice], [router_id])
-            self._test_add_nat_rule_helper()
+            self._test_add_nat_rule()
             self.driver.processes[router_id].update.assert_called_once_with()
 
     def test_delete_vpn_processes(self):
@@ -497,9 +616,8 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
             ensure_process.side_effect = self.fake_ensure_process
             new_vpn_service = FAKE_VPN_SERVICE
             updated_vpn_service = copy.deepcopy(new_vpn_service)
-            updated_vpn_service['ipsec_site_connections'].append(
-                {'peer_cidrs': ['60.0.0.0/24',
-                                '70.0.0.0/24']})
+            updated_vpn_service['ipsec_site_connections'][1].update(
+                {'peer_cidrs': ['60.0.0.0/24', '70.0.0.0/24']})
             context = mock.Mock()
             self.driver.process_status_cache = {}
             self.driver.agent_rpc.get_vpn_services_on_host.return_value = [
@@ -689,6 +807,166 @@ class IPSecDeviceDVR(BaseIPsecDeviceDriver):
             'fake_chain', 'fake_rule', top=True)
 
 
+class TestOpenSwanConfigGeneration(BaseIPsecDeviceDriver):
+
+    """Verify that configuration files are generated correctly.
+
+    Besides the normal translation of some settings, when creating the config
+    file, the generated file can also vary based on the following
+    special conditions:
+
+        - IPv6 versus IPv4
+        - Multiple left subnets versus a single left subnet
+        - IPSec policy using AH transform
+
+    The tests will focus on these variations.
+    """
+
+    def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
+              ipsec_process=openswan_ipsec.OpenSwanProcess):
+        super(TestOpenSwanConfigGeneration, self).setUp(
+            driver, ipsec_process, vpnservice=FAKE_VPN_SERVICE)
+        self.conf.register_opts(openswan_ipsec.openswan_opts, 'openswan')
+        self.conf.set_override('state_path', '/tmp')
+        self.ipsec_template = self.conf.openswan.ipsec_config_template
+        self.process = openswan_ipsec.OpenSwanProcess(self.conf,
+                                                      'foo-process-id',
+                                                      self.vpnservice,
+                                                      mock.ANY)
+
+    def build_ipsec_expected_config_for_test(self, info):
+        """Modify OpenSwan ipsec expected config files for test variations."""
+        auth_mode = info.get('ipsec_auth', AUTH_ESP)
+        conn_details = OPENSWAN_CONNECTION_DETAILS % {'auth_mode': auth_mode}
+        # Convert local CIDRs into assignment strings. IF more than one,
+        # pluralize the attribute name and enclose in brackets.
+        cidrs = info.get('local_cidrs', [['10.0.0.0/24'], ['11.0.0.0/24']])
+        local_cidrs = []
+        for cidr in cidrs:
+            if len(cidr) == 2:
+                local_cidrs.append("s={ %s }" % ' '.join(cidr))
+            else:
+                local_cidrs.append("=%s" % cidr[0])
+        # Convert peer CIDRs into space separated strings
+        cidrs = info.get('peer_cidrs', [['20.0.0.0/24', '30.0.0.0/24'],
+                                        ['40.0.0.0/24', '50.0.0.0/24']])
+        peer_cidrs = [' '.join(cidr) for cidr in cidrs]
+        local_ip = info.get('local', '60.0.0.4')
+        version = info.get('local_ip_vers', 4)
+        next_hop = IPV4_NEXT_HOP if version == 4 else IPV6_NEXT_HOP % local_ip
+        peer_ips = info.get('peers', ['60.0.0.5', '60.0.0.6'])
+        return EXPECTED_OPENSWAN_CONF % {
+            'next_hop': next_hop,
+            'local_cidrs1': local_cidrs[0], 'local_cidrs2': local_cidrs[1],
+            'local_ver': version,
+            'peer_cidrs1': peer_cidrs[0], 'peer_cidrs2': peer_cidrs[1],
+            'left': local_ip,
+            'right1': peer_ips[0], 'right2': peer_ips[1],
+            'conn1_id': FAKE_IPSEC_SITE_CONNECTION1_ID,
+            'conn2_id': FAKE_IPSEC_SITE_CONNECTION2_ID,
+            'conn_details': conn_details}
+
+    def test_connections_with_esp_transform_protocol(self):
+        """Test config file with IPSec policy using ESP."""
+        self._test_ipsec_connection_config({})
+
+    def test_connections_with_ah_transform_protocol(self):
+        """Test config file with IPSec policy using ESP."""
+        overrides = {'ipsec_auth': 'ah'}
+        self.modify_config_for_test(overrides)
+        self.process.update_vpnservice(self.vpnservice)
+        info = {'ipsec_auth': AUTH_AH}
+        self._test_ipsec_connection_config(info)
+
+    def test_connections_with_multiple_left_subnets(self):
+        """Test multiple local subnets.
+
+        The configure uses the 'leftsubnets' attribute, instead of the
+        'leftsubnet' attribute.
+        """
+
+        overrides = {'local_cidrs': [['10.0.0.0/24', '11.0.0.0/24'],
+                                     ['12.0.0.0/24', '13.0.0.0/24']]}
+        self.modify_config_for_test(overrides)
+        self.process.update_vpnservice(self.vpnservice)
+        self._test_ipsec_connection_config(overrides)
+
+    def test_config_files_with_ipv6_addresses(self):
+        """Test creating config files using IPv6 addressing."""
+        overrides = {'local_cidrs': [['2002:0a00::/48'], ['2002:0b00::/48']],
+                     'local_ip_vers': 6,
+                     'peer_cidrs': [['2002:1400::/48', '2002:1e00::/48'],
+                                    ['2002:2800::/48', '2002:3200::/48']],
+                     'local': '2002:3c00:0004::',
+                     'peers': ['2002:3c00:0005::', '2002:3c00:0006::']}
+        self.modify_config_for_test(overrides)
+        self.process.update_vpnservice(self.vpnservice)
+        self._test_ipsec_connection_config(overrides)
+
+    def test_secrets_config_file(self):
+        expected = EXPECTED_IPSEC_OPENSWAN_SECRET_CONF
+        actual = self.process._gen_config_content(
+            self.conf.openswan.ipsec_secret_template, self.vpnservice)
+        self.check_config_file(expected, actual)
+
+
+class IPsecStrongswanConfigGeneration(BaseIPsecDeviceDriver):
+
+    def setUp(self, driver=strongswan_ipsec.StrongSwanDriver,
+              ipsec_process=strongswan_ipsec.StrongSwanProcess):
+        super(IPsecStrongswanConfigGeneration, self).setUp(
+            driver, ipsec_process, vpnservice=FAKE_VPN_SERVICE)
+        self.conf.register_opts(strongswan_ipsec.strongswan_opts,
+            'strongswan')
+        self.conf.set_override('state_path', '/tmp')
+        self.ipsec_template = self.conf.strongswan.ipsec_config_template
+        self.process = strongswan_ipsec.StrongSwanProcess(self.conf,
+                                                          'foo-process-id',
+                                                          self.vpnservice,
+                                                          mock.ANY)
+
+    def build_ipsec_expected_config_for_test(self, info):
+        cidrs = info.get('local_cidrs', [['10.0.0.0/24'], ['11.0.0.0/24']])
+        local_cidrs = [','.join(cidr) for cidr in cidrs]
+        cidrs = info.get('peer_cidrs', [['20.0.0.0/24', '30.0.0.0/24'],
+                                        ['40.0.0.0/24', '50.0.0.0/24']])
+        peer_cidrs = [','.join(cidr) for cidr in cidrs]
+        local_ip = info.get('local', '60.0.0.4')
+        peer_ips = info.get('peers', ['60.0.0.5', '60.0.0.6'])
+        return EXPECTED_IPSEC_STRONGSWAN_CONF % {
+            'local_cidrs1': local_cidrs[0], 'local_cidrs2': local_cidrs[1],
+            'peer_cidrs1': peer_cidrs[0], 'peer_cidrs2': peer_cidrs[1],
+            'left': local_ip,
+            'right1': peer_ips[0], 'right2': peer_ips[1],
+            'conn1_id': FAKE_IPSEC_SITE_CONNECTION1_ID,
+            'conn2_id': FAKE_IPSEC_SITE_CONNECTION2_ID}
+
+    def test_ipsec_config_file(self):
+        self._test_ipsec_connection_config({})
+
+    def test_ipsec_config_file_for_v6(self):
+        overrides = {'local_cidrs': [['2002:0a00::/48'], ['2002:0b00::/48']],
+                     'peer_cidrs': [['2002:1400::/48', '2002:1e00::/48'],
+                                    ['2002:2800::/48', '2002:3200::/48']],
+                     'local': '2002:3c00:0004::',
+                     'peers': ['2002:3c00:0005::', '2002:3c00:0006::']}
+        self.modify_config_for_test(overrides)
+        self.process.update_vpnservice(self.vpnservice)
+        self._test_ipsec_connection_config(overrides)
+
+    def test_strongswan_default_config_file(self):
+        expected = EXPECTED_STRONGSWAN_DEFAULT_CONF
+        actual = self.process._gen_config_content(
+            self.conf.strongswan.strongswan_config_template, self.vpnservice)
+        self.check_config_file(expected, actual)
+
+    def test_secrets_config_file(self):
+        expected = EXPECTED_IPSEC_STRONGSWAN_SECRET_CONF
+        actual = self.process._gen_config_content(
+            self.conf.strongswan.ipsec_secret_template, self.vpnservice)
+        self.check_config_file(expected, actual)
+
+
 class TestOpenSwanProcess(BaseIPsecDeviceDriver):
 
     _test_timeout = 1
@@ -698,7 +976,6 @@ class TestOpenSwanProcess(BaseIPsecDeviceDriver):
     def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
               ipsec_process=openswan_ipsec.OpenSwanProcess):
         super(TestOpenSwanProcess, self).setUp(driver, ipsec_process)
-        # Insulate tests against changes to configuration defaults.
         self.conf.register_opts(openswan_ipsec.openswan_opts,
                                 'openswan')
         self.conf.set_override('state_path', '/tmp')
@@ -718,41 +995,6 @@ class TestOpenSwanProcess(BaseIPsecDeviceDriver):
                                                       'foo-process-id',
                                                       self.vpnservice,
                                                       mock.ANY)
-
-    def _test_config_files_on_create(self, proto, auth_mode):
-        """Verify that the content of config files are correct on create."""
-        auth_proto = {'transform_protocol': proto}
-        for conn in self.vpnservice['ipsec_site_connections']:
-            conn['ipsecpolicy'].update(auth_proto)
-        content = self.process._gen_config_content(
-            self.conf.openswan.ipsec_config_template,
-            self.vpnservice)
-        conn_details = OPENSWAN_CONNECTION_DETAILS % {'auth_mode': auth_mode}
-        expected_openswan_conf = EXPECTED_OPENSWAN_CONF % {
-            'default_id': '%default',
-            'conn1_id': FAKE_IPSEC_SITE_CONNECTION1_ID,
-            'conn2_id': FAKE_IPSEC_SITE_CONNECTION2_ID,
-            'conn_details': conn_details}
-
-        res_diff = self.generate_diff(expected_openswan_conf.strip(),
-                                      content.strip())
-
-        self.assertEqual(expected_openswan_conf.strip(),
-                         str(content.strip()), message=''.join(res_diff))
-        content = self.process._gen_config_content(
-            self.conf.openswan.ipsec_secret_template,
-            self.vpnservice)
-        res_diff = self.generate_diff(
-            EXPECTED_IPSEC_OPENSWAN_SECRET_CONF.strip(),
-            content.strip())
-        self.assertEqual(EXPECTED_IPSEC_OPENSWAN_SECRET_CONF.strip(),
-                         str(content.strip()), message=''.join(res_diff))
-
-    def test_config_files_on_create_esp_transform_protocol(self):
-        self._test_config_files_on_create('esp', AUTH_ESP)
-
-    def test_config_files_on_create_ah_transform_protocol(self):
-        self._test_config_files_on_create('ah', AUTH_AH)
 
     def test__resolve_fqdn(self):
         with mock.patch.object(socket, 'getaddrinfo') as mock_getaddr_info:
@@ -1064,26 +1306,6 @@ class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
         self.conf.set_override('state_path', '/tmp')
         self.driver.agent_rpc.get_vpn_services_on_host.return_value = [
             self.vpnservice]
-
-    def test_config_files_on_create(self):
-        """Verify that the content of config files are correct on create."""
-        process = self.driver.ensure_process(self.router.router_id,
-                                             self.vpnservice)
-        content = process._gen_config_content(
-            self.conf.strongswan.ipsec_config_template,
-            self.vpnservice)
-        self.assertEqual(EXPECTED_IPSEC_STRONGSWAN_CONF.strip(),
-                         str(content.strip()))
-        content = process._gen_config_content(
-            self.conf.strongswan.strongswan_config_template,
-            self.vpnservice)
-        self.assertEqual(EXPECTED_STRONGSWAN_DEFAULT_CONF.strip(),
-                         str(content.strip()))
-        content = process._gen_config_content(
-            self.conf.strongswan.ipsec_secret_template,
-            self.vpnservice)
-        self.assertEqual(EXPECTED_IPSEC_STRONGSWAN_SECRET_CONF.strip(),
-                         str(content.strip()))
 
     def test_status_handling_for_downed_connection(self):
         """Test status handling for downed connection."""

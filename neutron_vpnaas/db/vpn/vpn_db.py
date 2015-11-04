@@ -1,4 +1,5 @@
 #    (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+#    (c) Copyright 2015 Cisco Systems Inc.
 #    All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -13,27 +14,28 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import netaddr
-
 from neutron.callbacks import events
 from neutron.callbacks import registry
 from neutron.callbacks import resources
 from neutron.common import constants as n_constants
 from neutron.db import common_db_mixin as base_db
 from neutron.db import l3_agentschedulers_db as l3_agent_db
+from neutron.db import models_v2
 from neutron.extensions import l3 as l3_exception
 from neutron.i18n import _LW
 from neutron import manager
-from neutron.plugins.common import constants
+from neutron.plugins.common import constants as p_constants
 from neutron.plugins.common import utils
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import uuidutils
+import sqlalchemy as sa
 from sqlalchemy.orm import exc
 
 from neutron_vpnaas.db.vpn import vpn_models
 from neutron_vpnaas.db.vpn import vpn_validator
 from neutron_vpnaas.extensions import vpnaas
+from neutron_vpnaas.services.vpn.common import constants as v_constants
 
 LOG = logging.getLogger(__name__)
 
@@ -108,16 +110,39 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
                'ikepolicy_id': ipsec_site_conn['ikepolicy_id'],
                'ipsecpolicy_id': ipsec_site_conn['ipsecpolicy_id'],
                'peer_cidrs': [pcidr['cidr']
-                              for pcidr in ipsec_site_conn['peer_cidrs']]
+                              for pcidr in ipsec_site_conn['peer_cidrs']],
+               'local_ep_group_id': ipsec_site_conn['local_ep_group_id'],
+               'peer_ep_group_id': ipsec_site_conn['peer_ep_group_id'],
                }
 
         return self._fields(res, fields)
 
-    def _get_subnet_ip_version(self, context, vpnservice_id):
-        vpn_service_db = self._get_vpnservice(context, vpnservice_id)
-        subnet = vpn_service_db.subnet['cidr']
-        ip_version = netaddr.IPNetwork(subnet).version
-        return ip_version
+    def get_endpoint_info(self, context, ipsec_sitecon):
+        """Obtain all endpoint info, and store in connection for validation."""
+        ipsec_sitecon['local_epg_subnets'] = self.get_endpoint_group(
+            context, ipsec_sitecon['local_ep_group_id'])
+        ipsec_sitecon['peer_epg_cidrs'] = self.get_endpoint_group(
+            context, ipsec_sitecon['peer_ep_group_id'])
+
+    def validate_connection_info(self, context, validator, ipsec_sitecon,
+                                 vpnservice):
+        """Collect info and validate connection.
+
+        If endpoint groups used (default), collect the group info and
+        do not specify the IP version (as it will come from endpoints).
+        Otherwise, get the IP version from the (legacy) subnet for
+        validation purposes.
+
+        NOTE: Once the deprecated subnet is removed, the caller can just
+        call get_endpoint_info() and validate_ipsec_site_connection().
+        """
+        if ipsec_sitecon['local_ep_group_id']:
+            self.get_endpoint_info(context, ipsec_sitecon)
+            ip_version = None
+        else:
+            ip_version = vpnservice.subnet.ip_version
+        validator.validate_ipsec_site_connection(context, ipsec_sitecon,
+                                                 ip_version, vpnservice)
 
     def create_ipsec_site_connection(self, context, ipsec_site_connection):
         ipsec_sitecon = ipsec_site_connection['ipsec_site_connection']
@@ -126,19 +151,19 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
         tenant_id = self._get_tenant_id_for_create(context, ipsec_sitecon)
         with context.session.begin(subtransactions=True):
             #Check permissions
-            self._get_resource(context, vpn_models.VPNService,
-                               ipsec_sitecon['vpnservice_id'])
+            vpnservice_id = ipsec_sitecon['vpnservice_id']
+            self._get_resource(context, vpn_models.VPNService, vpnservice_id)
             self._get_resource(context, vpn_models.IKEPolicy,
                                ipsec_sitecon['ikepolicy_id'])
             self._get_resource(context, vpn_models.IPsecPolicy,
                                ipsec_sitecon['ipsecpolicy_id'])
-            vpnservice_id = ipsec_sitecon['vpnservice_id']
-            ip_version = self._get_subnet_ip_version(context, vpnservice_id)
-            validator.validate_ipsec_site_connection(context,
-                                                     ipsec_sitecon,
-                                                     ip_version)
             vpnservice = self._get_vpnservice(context, vpnservice_id)
+            validator.validate_ipsec_conn_optional_args(ipsec_sitecon,
+                                                        vpnservice.subnet)
+            self.validate_connection_info(context, validator, ipsec_sitecon,
+                                          vpnservice)
             validator.resolve_peer_address(ipsec_sitecon, vpnservice.router)
+
             ipsec_site_conn_db = vpn_models.IPsecSiteConnection(
                 id=uuidutils.generate_uuid(),
                 tenant_id=tenant_id,
@@ -155,10 +180,12 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
                 dpd_interval=ipsec_sitecon['dpd_interval'],
                 dpd_timeout=ipsec_sitecon['dpd_timeout'],
                 admin_state_up=ipsec_sitecon['admin_state_up'],
-                status=constants.PENDING_CREATE,
+                status=p_constants.PENDING_CREATE,
                 vpnservice_id=vpnservice_id,
                 ikepolicy_id=ipsec_sitecon['ikepolicy_id'],
-                ipsecpolicy_id=ipsec_sitecon['ipsecpolicy_id']
+                ipsecpolicy_id=ipsec_sitecon['ipsecpolicy_id'],
+                local_ep_group_id=ipsec_sitecon['local_ep_group_id'],
+                peer_ep_group_id=ipsec_sitecon['peer_ep_group_id']
             )
             context.session.add(ipsec_site_conn_db)
             for cidr in ipsec_sitecon['peer_cidrs']:
@@ -179,15 +206,15 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
             ipsec_site_conn_db = self._get_resource(
                 context, vpn_models.IPsecSiteConnection, ipsec_site_conn_id)
             vpnservice_id = ipsec_site_conn_db['vpnservice_id']
-            ip_version = self._get_subnet_ip_version(context, vpnservice_id)
+            vpnservice = self._get_vpnservice(context, vpnservice_id)
+
             validator.assign_sensible_ipsec_sitecon_defaults(
                 ipsec_sitecon, ipsec_site_conn_db)
-            validator.validate_ipsec_site_connection(
-                context,
-                ipsec_sitecon,
-                ip_version)
+            validator.validate_ipsec_conn_optional_args(ipsec_sitecon,
+                                                        vpnservice.subnet)
+            self.validate_connection_info(context, validator, ipsec_sitecon,
+                                          vpnservice)
             if 'peer_address' in ipsec_sitecon:
-                vpnservice = self._get_vpnservice(context, vpnservice_id)
                 validator.resolve_peer_address(ipsec_sitecon,
                                                vpnservice.router)
             self.assert_update_allowed(ipsec_site_conn_db)
@@ -209,7 +236,9 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
                         cidr=peer_cidr,
                         ipsec_site_connection_id=ipsec_site_conn_id)
                     context.session.add(pcidr)
-                del ipsec_sitecon["peer_cidrs"]
+            # Note: Unconditionally remove peer_cidrs, as they will be set to
+            # previous, if unchanged (to be able to validate above).
+            del ipsec_sitecon["peer_cidrs"]
             if ipsec_sitecon:
                 ipsec_site_conn_db.update(ipsec_sitecon)
         result = self._make_ipsec_site_connection_dict(ipsec_site_conn_db)
@@ -280,7 +309,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
     def create_ikepolicy(self, context, ikepolicy):
         ike = ikepolicy['ikepolicy']
         tenant_id = self._get_tenant_id_for_create(context, ike)
-        lifetime_info = ike.get('lifetime', [])
+        lifetime_info = ike['lifetime']
         lifetime_units = lifetime_info.get('units', 'seconds')
         lifetime_value = lifetime_info.get('value', 3600)
 
@@ -449,7 +478,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
                 subnet_id=vpns['subnet_id'],
                 router_id=vpns['router_id'],
                 admin_state_up=vpns['admin_state_up'],
-                status=constants.PENDING_CREATE)
+                status=p_constants.PENDING_CREATE)
             context.session.add(vpnservice_db)
         return self._make_vpnservice_dict(vpnservice_db)
 
@@ -518,6 +547,21 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
                     subnet_id=subnet_id,
                     vpnservice_id=vpnservices['id'])
 
+    def check_subnet_in_use_by_endpoint_group(self, context, subnet_id):
+        with context.session.begin(subtransactions=True):
+            query = context.session.query(vpn_models.VPNEndpointGroup)
+            query = query.filter(vpn_models.VPNEndpointGroup.endpoint_type ==
+                                 v_constants.SUBNET_ENDPOINT)
+            query = query.join(
+                vpn_models.VPNEndpoint,
+                sa.and_(vpn_models.VPNEndpoint.endpoint_group_id ==
+                     vpn_models.VPNEndpointGroup.id,
+                     vpn_models.VPNEndpoint.endpoint == subnet_id))
+            group = query.first()
+            if group:
+                raise vpnaas.SubnetInUseByEndpointGroup(
+                    subnet_id=subnet_id, group_id=group['id'])
+
     def _make_endpoint_group_dict(self, endpoint_group, fields=None):
         res = {'id': endpoint_group['id'],
                'tenant_id': endpoint_group['tenant_id'],
@@ -562,6 +606,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
 
     def delete_endpoint_group(self, context, endpoint_group_id):
         with context.session.begin(subtransactions=True):
+            self.check_endpoint_group_not_in_use(context, endpoint_group_id)
             endpoint_group_db = self._get_resource(
                 context, vpn_models.VPNEndpointGroup, endpoint_group_id)
             context.session.delete(endpoint_group_db)
@@ -575,6 +620,16 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
         return self._get_collection(context, vpn_models.VPNEndpointGroup,
                                     self._make_endpoint_group_dict,
                                     filters=filters, fields=fields)
+
+    def check_endpoint_group_not_in_use(self, context, group_id):
+        query = context.session.query(vpn_models.IPsecSiteConnection)
+        query = query.filter(
+            sa.or_(
+                vpn_models.IPsecSiteConnection.local_ep_group_id == group_id,
+                vpn_models.IPsecSiteConnection.peer_ep_group_id == group_id)
+        )
+        if query.first():
+            raise vpnaas.EndpointGroupInUse(group_id=group_id)
 
 
 class VPNPluginRpcDbMixin(object):
@@ -593,15 +648,27 @@ class VPNPluginRpcDbMixin(object):
             return []
         query = context.session.query(vpn_models.VPNService)
         query = query.join(vpn_models.IPsecSiteConnection)
-        query = query.join(vpn_models.IKEPolicy)
-        query = query.join(vpn_models.IPsecPolicy)
-        query = query.join(vpn_models.IPsecPeerCidr)
         query = query.join(l3_agent_db.RouterL3AgentBinding,
                            l3_agent_db.RouterL3AgentBinding.router_id ==
                            vpn_models.VPNService.router_id)
         query = query.filter(
             l3_agent_db.RouterL3AgentBinding.l3_agent_id == agent.id)
         return query
+
+    def _build_local_subnet_cidr_map(self, context):
+        """Build a dict of all local endpoint subnets, with list of CIDRs."""
+        query = context.session.query(models_v2.Subnet.id,
+                                      models_v2.Subnet.cidr)
+        query = query.join(vpn_models.VPNEndpoint,
+                           vpn_models.VPNEndpoint.endpoint ==
+                           models_v2.Subnet.id)
+        query = query.join(vpn_models.VPNEndpointGroup,
+                           vpn_models.VPNEndpointGroup.id ==
+                           vpn_models.VPNEndpoint.endpoint_group_id)
+        query = query.join(vpn_models.IPsecSiteConnection,
+                           vpn_models.IPsecSiteConnection.local_ep_group_id ==
+                           vpn_models.VPNEndpointGroup.id)
+        return {sn.id: sn.cidr for sn in query.all()}
 
     def update_status_by_agent(self, context, service_status_info_list):
         """Updating vpnservice and vpnconnection status.
@@ -642,15 +709,15 @@ class VPNPluginRpcDbMixin(object):
 
 
 def vpn_callback(resource, event, trigger, **kwargs):
-    vpnservice = manager.NeutronManager.get_service_plugins().get(
-        constants.VPN)
-    if vpnservice:
+    vpn_plugin = manager.NeutronManager.get_service_plugins().get(
+        p_constants.VPN)
+    if vpn_plugin:
         context = kwargs.get('context')
         if resource == resources.ROUTER_GATEWAY:
-            check_func = vpnservice.check_router_in_use
+            check_func = vpn_plugin.check_router_in_use
             resource_id = kwargs.get('router_id')
         elif resource == resources.ROUTER_INTERFACE:
-            check_func = vpnservice.check_subnet_in_use
+            check_func = vpn_plugin.check_subnet_in_use
             resource_id = kwargs.get('subnet_id')
         check_func(context, resource_id)
 
@@ -658,11 +725,21 @@ def vpn_callback(resource, event, trigger, **kwargs):
 def migration_callback(resource, event, trigger, **kwargs):
     context = kwargs['context']
     router = kwargs['router']
-    vpnservice = manager.NeutronManager.get_service_plugins().get(
-        constants.VPN)
-    if vpnservice:
-        vpnservice.check_router_in_use(context, router['id'])
+    vpn_plugin = manager.NeutronManager.get_service_plugins().get(
+        p_constants.VPN)
+    if vpn_plugin:
+        vpn_plugin.check_router_in_use(context, router['id'])
     return True
+
+
+def subnet_callback(resource, event, trigger, **kwargs):
+    """Respond to subnet based notifications - see if subnet in use."""
+    context = kwargs['context']
+    subnet_id = kwargs['subnet_id']
+    vpn_plugin = manager.NeutronManager.get_service_plugins().get(
+        p_constants.VPN)
+    if vpn_plugin:
+        vpn_plugin.check_subnet_in_use_by_endpoint_group(context, subnet_id)
 
 
 def subscribe():
@@ -672,6 +749,9 @@ def subscribe():
         vpn_callback, resources.ROUTER_INTERFACE, events.BEFORE_DELETE)
     registry.subscribe(
         migration_callback, resources.ROUTER, events.BEFORE_UPDATE)
+    registry.subscribe(
+        subnet_callback, resources.SUBNET, events.BEFORE_DELETE)
+
 
 # NOTE(armax): multiple VPN service plugins (potentially out of tree) may
 # inherit from vpn_db and may need the callbacks to be processed. Having an

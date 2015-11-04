@@ -494,8 +494,9 @@ class OpenSwanProcess(BaseSwanProcess):
         that are allowed as subnet for the remote client.
         """
         virtual_privates = []
-        nets = [self.vpnservice['subnet']['cidr']]
+        nets = []
         for ipsec_site_conn in self.vpnservice['ipsec_site_connections']:
+            nets += ipsec_site_conn['local_cidrs']
             nets += ipsec_site_conn['peer_cidrs']
         for net in nets:
             version = netaddr.IPNetwork(net).version
@@ -748,21 +749,20 @@ class IPsecDriver(device_drivers.DeviceDriver):
         :param vpnservice: vpnservices
         :param func: self.add_nat_rule or self.remove_nat_rule
         """
-        local_cidr = vpnservice['subnet']['cidr']
-        # This ipsec rule is not needed for ipv6.
-        if netaddr.IPNetwork(local_cidr).version == 6:
-            return
-
         router_id = vpnservice['router_id']
         for ipsec_site_connection in vpnservice['ipsec_site_connections']:
-            for peer_cidr in ipsec_site_connection['peer_cidrs']:
-                func(
-                    router_id,
-                    'POSTROUTING',
-                    '-s %s -d %s -m policy '
-                    '--dir out --pol ipsec '
-                    '-j ACCEPT ' % (local_cidr, peer_cidr),
-                    top=True)
+            for local_cidr in ipsec_site_connection['local_cidrs']:
+                # This ipsec rule is not needed for ipv6.
+                if netaddr.IPNetwork(local_cidr).version == 6:
+                    continue
+
+                for peer_cidr in ipsec_site_connection['peer_cidrs']:
+                    func(router_id,
+                         'POSTROUTING',
+                         '-s %s -d %s -m policy '
+                         '--dir out --pol ipsec '
+                         '-j ACCEPT ' % (local_cidr, peer_cidr),
+                         top=True)
         self.iptables_apply(router_id)
 
     def vpnservice_updated(self, context, **kwargs):

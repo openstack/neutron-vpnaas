@@ -320,7 +320,9 @@ class TestIPSecBase(base.BaseSudoTestCase):
             'external_ip': vpn_service['external_ip'],
             'peer_cidrs': [peer_vpn_service['subnet']['cidr']],
             'peer_address': peer_vpn_service['external_ip'],
-            'peer_id': peer_vpn_service['external_ip']
+            'peer_id': peer_vpn_service['external_ip'],
+            'local_cidrs': [vpn_service['subnet']['cidr']],
+            'local_ip_vers': 4
         })
         vpn_service['ipsec_site_connections'] = [ipsec_conn]
 
