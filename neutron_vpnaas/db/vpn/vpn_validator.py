@@ -21,12 +21,9 @@ from neutron.db import l3_db
 from neutron.db import models_v2
 from neutron import manager
 from neutron.plugins.common import constants as nconstants
-from oslo_log import log as logging
 
 from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.common import constants
-
-LOG = logging.getLogger(__name__)
 
 
 class VpnReferenceValidator(object):

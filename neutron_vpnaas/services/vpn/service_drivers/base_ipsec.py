@@ -15,14 +15,11 @@
 import abc
 
 import netaddr
-from oslo_log import log as logging
 import oslo_messaging
 import six
 
 from neutron_vpnaas.services.vpn import service_drivers
 
-
-LOG = logging.getLogger(__name__)
 
 IPSEC = 'ipsec'
 BASE_IPSEC_VERSION = '1.0'

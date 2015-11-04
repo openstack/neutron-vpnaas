@@ -16,12 +16,10 @@
 import os
 
 from oslo_config import cfg
-from oslo_log import log as logging
 
 from neutron_vpnaas.services.vpn.device_drivers import ipsec
 from neutron_vpnaas.services.vpn.device_drivers import strongswan_ipsec
 
-LOG = logging.getLogger(__name__)
 TEMPLATE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 cfg.CONF.set_default(name='default_config_area',

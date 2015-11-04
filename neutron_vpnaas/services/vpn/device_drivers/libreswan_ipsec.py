@@ -15,11 +15,7 @@
 import os
 import os.path
 
-from oslo_log import log as logging
-
 from neutron_vpnaas.services.vpn.device_drivers import ipsec
-
-LOG = logging.getLogger(__name__)
 
 
 class LibreSwanProcess(ipsec.OpenSwanProcess):
