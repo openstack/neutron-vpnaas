@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import copy
 import functools
 import mock
@@ -18,7 +19,7 @@ import os
 
 from neutron.agent.common import config as agent_config
 from neutron.agent.common import ovs_lib
-from neutron.agent.l3 import namespaces
+from neutron.agent.l3 import namespaces as n_namespaces
 from neutron.agent.l3 import router_info
 from neutron.agent import l3_agent as l3_agent_main
 from neutron.agent.linux import external_process
@@ -68,8 +69,7 @@ FAKE_VPN_SERVICE = {
     "router_id": _uuid(),
     "status": constants.PENDING_CREATE,
     "admin_state_up": True,
-    'external_ip': "172.24.4.8",
-    'subnet': {'cidr': "10.100.255.224/28"}
+    'external_ip': "172.24.4.8"
 }
 
 FAKE_IPSEC_CONNECTION = {
@@ -100,31 +100,6 @@ FAKE_PRIVATE_SUBNET_ID = _uuid()
 
 MAC_BASE = cfg.CONF.base_mac.split(':')
 FAKE_ROUTER = {
-    'id': _uuid(),
-    '_interfaces': [
-        {
-            'id': _uuid(),
-            'admin_state_up': True,
-            'network_id': _uuid(),
-            'mac_address': common_utils.get_random_mac(MAC_BASE),
-            'subnets': [
-                {
-                    'ipv6_ra_mode': None,
-                    'cidr': str(PRIVATE_NET),
-                    'gateway_ip': str(PRIVATE_NET[1]),
-                    'id': FAKE_PRIVATE_SUBNET_ID,
-                    'ipv6_address_mode': None
-                }
-            ],
-            'fixed_ips': [
-                {
-                    'subnet_id': FAKE_PRIVATE_SUBNET_ID,
-                    'prefixlen': 24,
-                    'ip_address': PRIVATE_NET[4]
-                }
-            ]
-        }
-    ],
     'enable_snat': True,
     'gw_port': {
         'network_id': _uuid(),
@@ -139,11 +114,8 @@ FAKE_ROUTER = {
             {
                 'subnet_id': FAKE_PUBLIC_SUBNET_ID,
                 'prefixlen': PUBLIC_NET.prefixlen,
-                'ip_address': str(PUBLIC_NET[4])
             }
         ],
-        'id': _uuid(),
-        'mac_address': common_utils.get_random_mac(MAC_BASE)
     },
     'distributed': False,
     '_floatingips': [],
@@ -153,6 +125,111 @@ FAKE_ROUTER = {
 
 def get_ovs_bridge(br_name):
     return ovs_lib.OVSBridge(br_name)
+
+
+Vm = collections.namedtuple('Vm', ['namespace', 'port_ip'])
+
+
+class SiteInfo(object):
+
+    """Holds info on the router, ports, service, and connection."""
+
+    def __init__(self, public_net, private_nets):
+        self.public_net = public_net
+        self.private_nets = private_nets
+        self.generate_router_info()
+        self._prepare_vpn_service_info()
+
+    def _generate_private_interface_for_router(self, subnet):
+        subnet_id = _uuid()
+        return {
+            'id': _uuid(),
+            'admin_state_up': True,
+            'network_id': _uuid(),
+            'mac_address': common_utils.get_random_mac(MAC_BASE),
+            'subnets': [
+                {
+                    'ipv6_ra_mode': None,
+                    'cidr': str(subnet),
+                    'gateway_ip': str(subnet[1]),
+                    'id': subnet_id,
+                    'ipv6_address_mode': None
+                }
+            ],
+            'fixed_ips': [
+                {
+                    'subnet_id': subnet_id,
+                    'prefixlen': 24,
+                    'ip_address': str(subnet[4])
+                }
+            ]
+        }
+
+    def generate_router_info(self):
+        self.info = copy.deepcopy(FAKE_ROUTER)
+        self.info['id'] = _uuid()
+        self.info['_interfaces'] = [
+            self._generate_private_interface_for_router(subnet)
+            for subnet in self.private_nets]
+        self.info['gw_port']['id'] = _uuid()
+        self.info['gw_port']['fixed_ips'][0]['ip_address'] = str(
+            self.public_net)
+        self.info['gw_port']['mac_address'] = (
+            common_utils.get_random_mac(MAC_BASE))
+        self.info['ha'] = False
+
+    def _prepare_vpn_service_info(self):
+        self.vpn_service = copy.deepcopy(FAKE_VPN_SERVICE)
+        self.vpn_service.update({'id': _uuid(),
+                                 'router_id': self.info['id'],
+                                 'external_ip': str(self.public_net)})
+
+    def prepare_ipsec_conn_info(self, peer):
+        ipsec_connection = copy.deepcopy(FAKE_IPSEC_CONNECTION)
+        local_cidrs = [str(s) for s in self.private_nets]
+        peer_cidrs = [str(s) for s in peer.private_nets]
+        ipsec_connection.update({
+            'id': _uuid(),
+            'vpnservice_id': self.vpn_service['id'],
+            'external_ip': self.vpn_service['external_ip'],
+            'peer_cidrs': peer_cidrs,
+            'peer_address': peer.vpn_service['external_ip'],
+            'peer_id': peer.vpn_service['external_ip'],
+            'local_cidrs': local_cidrs,
+            'local_ip_vers': 4
+        })
+        self.vpn_service['ipsec_site_connections'] = [ipsec_connection]
+
+
+class SiteInfoWithHaRouter(SiteInfo):
+
+    def __init__(self, public_net, private_nets, host, failover_host):
+        self.host = host
+        self.failover_host = failover_host
+        self.get_ns_name = mock.patch.object(n_namespaces.RouterNamespace,
+                                             '_get_ns_name').start()
+        super(SiteInfoWithHaRouter, self).__init__(public_net, private_nets)
+
+    def generate_router_info(self):
+        super(SiteInfoWithHaRouter, self).generate_router_info()
+        self.info['ha'] = True
+        self.info['ha_vr_id'] = 1
+        self.info[l3_constants.HA_INTERFACE_KEY] = (
+            l3_test_common.get_ha_interface())
+        # Mock router namespace name, for when router is created
+        self.get_ns_name.return_value = "qrouter-{0}-{1}".format(
+            self.info['id'], self.host)
+
+    def generate_backup_router_info(self):
+        # Clone router info, using different HA interface (using same ID)
+        info = copy.deepcopy(self.info)
+        info[l3_constants.HA_INTERFACE_KEY] = (
+            l3_test_common.get_ha_interface(ip='169.254.192.2',
+                                            mac='22:22:22:22:22:22'))
+        # Mock router namespace name, for when router is created
+        self.get_ns_name.return_value = "qrouter-{0}-{1}".format(
+            info['id'], self.failover_host)
+        return info
 
 
 class TestIPSecBase(base.BaseSudoTestCase):
@@ -172,13 +249,24 @@ class TestIPSecBase(base.BaseSudoTestCase):
         # https://bugs.launchpad.net/neutron/+bug/1482622
         cfg.CONF.set_override('root_helper_daemon', None, group='AGENT')
 
-        self.fake_vpn_service = copy.deepcopy(FAKE_VPN_SERVICE)
-        self.fake_ipsec_connection = copy.deepcopy(FAKE_IPSEC_CONNECTION)
+        # Mock the method below because it causes Exception:
+        #   RuntimeError: Second simultaneous read on fileno 5 detected.
+        #   Unless you really know what you're doing, make sure that only
+        #   one greenthread can read any particular socket.  Consider using
+        #   a pools.Pool. If you do know what you're doing and want to disable
+        #   this error, call eventlet.debug.hub_prevent_multiple_readers(False)
+        # Can reproduce the exception in the test only
+        ip_lib.send_ip_addr_adv_notif = mock.Mock()
 
         self.vpn_agent = self._configure_agent('agent1')
         self.driver = self.vpn_agent.device_drivers[0]
+        self.driver.agent_rpc.get_vpn_services_on_host = mock.Mock(
+            return_value=[])
+        self.driver.report_status = mock.Mock()
 
-    def connect_agents(self, agent1, agent2):
+        self.private_nets = list(PRIVATE_NET.subnet(24))
+
+    def _connect_agents(self, agent1, agent2):
         """Simulate both agents in the same host.
 
          For packet flow between resources connected to these two agents,
@@ -244,33 +332,17 @@ class TestIPSecBase(base.BaseSudoTestCase):
 
         return vpn_agent.VPNAgent(host, config)
 
-    def _generate_info(self, public_ip, private_cidr, enable_ha=False):
-        """Generate router info"""
-        info = copy.deepcopy(FAKE_ROUTER)
-        info['id'] = _uuid()
-        info['_interfaces'][0]['id'] = _uuid()
-        (info['_interfaces'][0]
-         ['mac_address']) = common_utils.get_random_mac(MAC_BASE)
-        (info['_interfaces'][0]['fixed_ips'][0]
-         ['ip_address']) = str(private_cidr[4])
-        info['_interfaces'][0]['subnets'][0].update({
-            'cidr': str(private_cidr),
-            'gateway_ip': str(private_cidr[1])})
-        info['gw_port']['id'] = _uuid()
-        info['gw_port']['fixed_ips'][0]['ip_address'] = str(public_ip)
-        info['gw_port']['mac_address'] = common_utils.get_random_mac(MAC_BASE)
-        if enable_ha:
-            info['ha'] = True
-            info['ha_vr_id'] = 1
-            info[l3_constants.HA_INTERFACE_KEY] = (
-                l3_test_common.get_ha_interface())
-        else:
-            info['ha'] = False
-        return info
+    def _setup_failover_agent(self):
+        self.failover_agent = self._configure_agent('agent2')
+        self._connect_agents(self.vpn_agent, self.failover_agent)
+        self.failover_driver = self.failover_agent.device_drivers[0]
+        self.failover_driver.agent_rpc.get_vpn_services_on_host = (
+            mock.Mock(return_value=[]))
+        self.failover_driver.report_status = mock.Mock()
 
-    def manage_router(self, agent, router):
-        """Create router from router_info"""
-        self.addCleanup(agent._safe_router_removed, router['id'])
+    def create_router(self, agent, info):
+        """Create router for agent from router info."""
+        self.addCleanup(agent._safe_router_removed, info['id'])
 
         # Generate unique internal and external router device names using the
         # agent's hostname. This is to allow multiple HA router replicas to
@@ -284,12 +356,12 @@ class TestIPSecBase(base.BaseSudoTestCase):
 
         def get_internal_device_name(port_id):
             return _append_suffix(
-                (namespaces.INTERNAL_DEV_PREFIX + port_id)
+                (n_namespaces.INTERNAL_DEV_PREFIX + port_id)
                 [:interface.LinuxInterfaceDriver.DEV_NAME_LEN])
 
         def get_external_device_name(port_id):
             return _append_suffix(
-                (namespaces.EXTERNAL_DEV_PREFIX + port_id)
+                (n_namespaces.EXTERNAL_DEV_PREFIX + port_id)
                 [:interface.LinuxInterfaceDriver.DEV_NAME_LEN])
 
         mock_get_internal_device_name = mock.patch.object(
@@ -299,102 +371,108 @@ class TestIPSecBase(base.BaseSudoTestCase):
             router_info.RouterInfo, 'get_external_device_name').start()
         mock_get_external_device_name.side_effect = get_external_device_name
 
-        agent._process_added_router(router)
+        agent._process_added_router(info)
 
-        return agent.router_info[router['id']]
-
-    def prepare_vpn_service_info(self, router_id, external_ip, subnet_cidr):
-        service = copy.deepcopy(self.fake_vpn_service)
-        service.update({
-            'id': _uuid(),
-            'router_id': router_id,
-            'external_ip': str(external_ip),
-            'subnet': {'cidr': str(subnet_cidr)}})
-        return service
-
-    def prepare_ipsec_conn_info(self, vpn_service, peer_vpn_service):
-        ipsec_conn = copy.deepcopy(self.fake_ipsec_connection)
-        ipsec_conn.update({
-            'id': _uuid(),
-            'vpnservice_id': vpn_service['id'],
-            'external_ip': vpn_service['external_ip'],
-            'peer_cidrs': [peer_vpn_service['subnet']['cidr']],
-            'peer_address': peer_vpn_service['external_ip'],
-            'peer_id': peer_vpn_service['external_ip'],
-            'local_cidrs': [vpn_service['subnet']['cidr']],
-            'local_ip_vers': 4
-        })
-        vpn_service['ipsec_site_connections'] = [ipsec_conn]
-
-    def port_setup(self, router, bridge=None, offset=1, namespace=None):
-        """Creates namespace and a port inside it on a client site."""
-        if not namespace:
-            client_ns = self.useFixture(
-                net_helpers.NamespaceFixture()).ip_wrapper
-            namespace = client_ns.namespace
-        router_ip_cidr = self._port_first_ip_cidr(router.internal_ports[0])
-
-        port_ip_cidr = net_helpers.increment_ip_cidr(router_ip_cidr, offset)
-
-        if not bridge:
-            bridge = get_ovs_bridge(self.vpn_agent.conf.ovs_integration_bridge)
-
-        port = self.useFixture(
-            net_helpers.OVSPortFixture(bridge, namespace)).port
-        port.addr.add(port_ip_cidr)
-        port.route.add_gateway(router_ip_cidr.partition('/')[0])
-        return namespace, port_ip_cidr.partition('/')[0]
+        return agent.router_info[info['id']]
 
     def _port_first_ip_cidr(self, port):
         fixed_ip = port['fixed_ips'][0]
         return common_utils.ip_to_cidr(fixed_ip['ip_address'],
                                        fixed_ip['prefixlen'])
 
-    def site_setup(self, router_public_ip, private_net_cidr):
-        router_info = self._generate_info(router_public_ip, private_net_cidr)
-        router = self.manage_router(self.vpn_agent, router_info)
-        port_namespace, port_ip = self.port_setup(router)
+    def create_ports_for(self, site):
+        """Creates namespaces and ports for simulated VM.
 
-        vpn_service = self.prepare_vpn_service_info(
-            router.router_id, router_public_ip, private_net_cidr)
-        return {"router": router, "port_namespace": port_namespace,
-                "port_ip": port_ip, "vpn_service": vpn_service}
+        There will be a unique namespace for each port, which is representing
+        a VM for the test.
+        """
+        bridge = get_ovs_bridge(self.vpn_agent.conf.ovs_integration_bridge)
+        site.vm = []
+        for internal_port in site.router.internal_ports:
+            router_ip_cidr = self._port_first_ip_cidr(internal_port)
+            port_ip_cidr = net_helpers.increment_ip_cidr(router_ip_cidr, 1)
+            client_ns = self.useFixture(
+                net_helpers.NamespaceFixture()).ip_wrapper
+            namespace = client_ns.namespace
+            port = self.useFixture(
+                net_helpers.OVSPortFixture(bridge, namespace)).port
+            port.addr.add(port_ip_cidr)
+            port.route.add_gateway(router_ip_cidr.partition('/')[0])
+            site.vm.append(Vm(namespace, port_ip_cidr.partition('/')[0]))
 
-    def setup_ha_routers(self, router_public_ip, private_net_cidr):
-        """Setup HA master router on agent1 and backup router on agent2"""
-        router_info = self._generate_info(router_public_ip,
-            private_net_cidr, enable_ha=True)
-        get_ns_name = mock.patch.object(
-            namespaces.RouterNamespace, '_get_ns_name').start()
-        get_ns_name.return_value = "qrouter-{0}-{1}".format(
-            router_info['id'], self.vpn_agent.host)
+    def create_site(self, public_net, private_nets, l3ha=False):
+        """Build router(s), namespaces, and ports for a site.
 
-        router1 = self.manage_router(self.vpn_agent, router_info)
+        For HA, we'll create a backup router and wait for both routers
+        to be ready, so that we can test pings after failover.
+        """
+        if l3ha:
+            site = SiteInfoWithHaRouter(public_net, private_nets,
+                                        self.vpn_agent.host,
+                                        self.failover_agent.host)
+        else:
+            site = SiteInfo(public_net, private_nets)
 
-        router_info_2 = copy.deepcopy(router_info)
-        router_info_2[l3_constants.HA_INTERFACE_KEY] = (
-            l3_test_common.get_ha_interface(ip='169.254.192.2',
-                                            mac='22:22:22:22:22:22'))
-        get_ns_name.return_value = "qrouter-{0}-{1}".format(
-            router_info['id'], self.failover_agent.host)
-        router2 = self.manage_router(self.failover_agent, router_info_2)
+        site.router = self.create_router(self.vpn_agent, site.info)
+        if l3ha:
+            backup_info = site.generate_backup_router_info()
+            site.backup_router = self.create_router(self.failover_agent,
+                                                    backup_info)
+            linux_utils.wait_until_true(
+                lambda: site.router.ha_state == 'master')
+            linux_utils.wait_until_true(
+                lambda: site.backup_router.ha_state == 'backup')
 
-        linux_utils.wait_until_true(lambda: router1.ha_state == 'master')
-        linux_utils.wait_until_true(lambda: router2.ha_state == 'backup')
+        self.create_ports_for(site)
+        return site
 
-        port_namespace, port_ip = self.port_setup(router1)
+    def prepare_ipsec_site_connections(self, site1, site2):
+        """Builds info for connections in both directions in prep for sync."""
+        site1.prepare_ipsec_conn_info(site2)
+        site2.prepare_ipsec_conn_info(site1)
 
-        vpn_service = self.prepare_vpn_service_info(
-            router1.router_id, router_public_ip, private_net_cidr)
-        return {"router1": router1, "router2": router2,
-                "port_namespace": port_namespace, "port_ip": port_ip,
-                "vpn_service": vpn_service}
+    def sync_to_create_ipsec_connections(self, site1, site2):
+        """Perform a sync, so that connections are created."""
+        # Provide service info to sync
+        self.driver.agent_rpc.get_vpn_services_on_host = mock.Mock(
+            return_value=[site1.vpn_service, site2.vpn_service])
 
-    def _fail_ha_router(self, router):
-        """Down the HA router."""
-        device_name = router.get_ha_device_name()
-        ha_device = ip_lib.IPDevice(device_name, router.ns_name)
+        local_router_id = site1.router.router_id
+        peer_router_id = site2.router.router_id
+        self.driver.sync(mock.Mock(), [{'id': local_router_id},
+                                       {'id': peer_router_id}])
+        self.addCleanup(self.driver._delete_vpn_processes,
+                        [local_router_id, peer_router_id], [])
+
+    def sync_failover_agent(self, site):
+        """Perform a sync on failover agent associated w/backup router."""
+        self.failover_driver.agent_rpc.get_vpn_services_on_host = mock.Mock(
+            return_value=[site.vpn_service])
+        self.failover_driver.sync(mock.Mock(),
+                                  [{'id': site.backup_router.router_id}])
+
+    def check_ping(self, from_site, to_site, instance=0, success=True):
+        if success:
+            net_helpers.assert_ping(from_site.vm[instance].namespace,
+                                    to_site.vm[instance].port_ip,
+                                    timeout=8, count=4)
+        else:
+            net_helpers.assert_no_ping(from_site.vm[instance].namespace,
+                                       to_site.vm[instance].port_ip,
+                                       timeout=8, count=4)
+
+    def _failover_ha_router(self, router1, router2):
+        """Cause a failover of HA router.
+
+        Fail the agent1's HA router. Agent1's HA router will transition
+        to backup and agent2's HA router will become master. Wait for
+        the failover to complete.
+        """
+        device_name = router1.get_ha_device_name()
+        ha_device = ip_lib.IPDevice(device_name, router1.ns_name)
         ha_device.link.set_down()
+        linux_utils.wait_until_true(lambda: router2.ha_state == 'master')
+        linux_utils.wait_until_true(lambda: router1.ha_state == 'backup')
 
     def _ipsec_process_exists(self, conf, router, pid_files):
         """Check if *Swan process has started up."""
@@ -407,66 +485,48 @@ class TestIPSecBase(base.BaseSudoTestCase):
                 break
         return pm.active
 
-    def _create_ipsec_site_connection(self, l3ha=False):
-        # Mock the method below because it causes Exception:
-        #   RuntimeError: Second simultaneous read on fileno 5 detected.
-        #   Unless you really know what you're doing, make sure that only
-        #   one greenthread can read any particular socket.  Consider using
-        #   a pools.Pool. If you do know what you're doing and want to disable
-        #   this error, call eventlet.debug.hub_prevent_multiple_readers(False)
-        # Can reproduce the exception in the test only
-        ip_lib.send_ip_addr_adv_notif = mock.Mock()
-        # There are no vpn services yet. get_vpn_services_on_host returns
-        # empty list
-        self.driver.agent_rpc.get_vpn_services_on_host = mock.Mock(
-            return_value=[])
-        # instantiate network resources "router", "private network"
-        private_nets = list(PRIVATE_NET.subnet(24))
-        site1 = self.site_setup(PUBLIC_NET[4], private_nets[1])
-        if l3ha:
-            site2 = self.setup_ha_routers(PUBLIC_NET[5], private_nets[2])
-        else:
-            site2 = self.site_setup(PUBLIC_NET[5], private_nets[2])
-        # build vpn resources
-        self.prepare_ipsec_conn_info(site1['vpn_service'],
-                                     site2['vpn_service'])
-        self.prepare_ipsec_conn_info(site2['vpn_service'],
-                                     site1['vpn_service'])
-
-        self.driver.report_status = mock.Mock()
-        self.driver.agent_rpc.get_vpn_services_on_host = mock.Mock(
-            return_value=[site1['vpn_service'],
-                          site2['vpn_service']])
-        if l3ha:
-            self.failover_agent_driver.agent_rpc.get_vpn_services_on_host = (
-                mock.Mock(return_value=[]))
-            self.failover_agent_driver.report_status = mock.Mock()
-            self.failover_agent_driver.agent_rpc.get_vpn_services_on_host = (
-                mock.Mock(return_value=[site2['vpn_service']]))
-
-        return site1, site2
+    def _wait_for_ipsec_startup(self, router):
+        """Wait for new IPSec process on failover agent to start up."""
+        # check for both strongswan and openswan processes
+        path = self.failover_driver.processes[router.router_id].config_dir
+        pid_files = ['%s/var/run/charon.pid' % path,
+                     '%s/var/run/pluto.pid' % path]
+        linux_utils.wait_until_true(
+            lambda: self._ipsec_process_exists(
+                self.failover_agent.conf, router, pid_files))
 
 
 class TestIPSecScenario(TestIPSecBase):
 
-    def test_ipsec_site_connections(self):
-        site1, site2 = self._create_ipsec_site_connection()
+    def test_single_ipsec_connection(self):
+        site1 = self.create_site(PUBLIC_NET[4], [self.private_nets[1]])
+        site2 = self.create_site(PUBLIC_NET[5], [self.private_nets[2]])
 
-        net_helpers.assert_no_ping(site1['port_namespace'], site2['port_ip'],
-                                   timeout=8, count=4)
-        net_helpers.assert_no_ping(site2['port_namespace'], site1['port_ip'],
-                                   timeout=8, count=4)
+        self.check_ping(site1, site2, success=False)
+        self.check_ping(site2, site1, success=False)
 
-        self.driver.sync(mock.Mock(), [{'id': site1['router'].router_id},
-                                       {'id': site2['router'].router_id}])
-        self.addCleanup(
-            self.driver._delete_vpn_processes,
-            [site1['router'].router_id, site2['router'].router_id], [])
+        self.prepare_ipsec_site_connections(site1, site2)
+        self.sync_to_create_ipsec_connections(site1, site2)
 
-        net_helpers.assert_ping(site1['port_namespace'], site2['port_ip'],
-                                timeout=8, count=4)
-        net_helpers.assert_ping(site2['port_namespace'], site1['port_ip'],
-                                timeout=8, count=4)
+        self.check_ping(site1, site2)
+        self.check_ping(site2, site1)
+
+    def test_ipsec_site_connections_with_mulitple_subnets(self):
+        """Check with a pair of subnets on each end of connection."""
+        site1 = self.create_site(PUBLIC_NET[4], self.private_nets[1:3])
+        site2 = self.create_site(PUBLIC_NET[5], self.private_nets[3:5])
+
+        # Just check from each VM, not every combination
+        for i in [0, 1]:
+            self.check_ping(site1, site2, instance=i, success=False)
+            self.check_ping(site2, site1, instance=i, success=False)
+
+        self.prepare_ipsec_site_connections(site1, site2)
+        self.sync_to_create_ipsec_connections(site1, site2)
+
+        for i in [0, 1]:
+            self.check_ping(site1, site2, instance=i)
+            self.check_ping(site2, site1, instance=i)
 
     def test_ipsec_site_connections_with_l3ha_routers(self):
         """Test ipsec site connection with HA routers.
@@ -483,59 +543,28 @@ class TestIPSecScenario(TestIPSecBase):
         Now ipsec connection will be established between legacy router and
         agent2's master HA router
         """
-        self.failover_agent = self._configure_agent('agent2')
-        self.connect_agents(self.vpn_agent, self.failover_agent)
 
-        vpn_agent_driver = self.vpn_agent.device_drivers[0]
-        self.failover_agent_driver = self.failover_agent.device_drivers[0]
+        self._setup_failover_agent()
 
-        site1, site2 = self._create_ipsec_site_connection(l3ha=True)
-
-        router = site1['router']
-        router1 = site2['router1']
-        router2 = site2['router2']
+        site1 = self.create_site(PUBLIC_NET[4], [self.private_nets[1]])
+        site2 = self.create_site(PUBLIC_NET[5], [self.private_nets[2]],
+                                 l3ha=True)
 
         # No ipsec connection between legacy router and HA routers
-        net_helpers.assert_no_ping(site1['port_namespace'], site2['port_ip'],
-                                   timeout=8, count=4)
-        net_helpers.assert_no_ping(site2['port_namespace'], site1['port_ip'],
-                                   timeout=8, count=4)
+        self.check_ping(site1, site2, 0, success=False)
+        self.check_ping(site2, site1, 0, success=False)
 
-        # sync the routers
-        vpn_agent_driver.sync(mock.Mock(), [{'id': router.router_id},
-                                  {'id': router1.router_id}])
-        self.failover_agent_driver.sync(mock.Mock(),
-                                        [{'id': router1.router_id}])
-
-        self.addCleanup(
-            vpn_agent_driver._delete_vpn_processes,
-            [router.router_id, router1.router_id], [])
+        self.prepare_ipsec_site_connections(site1, site2)
+        self.sync_to_create_ipsec_connections(site1, site2)
+        self.sync_failover_agent(site2)
 
         # Test ipsec connection between legacy router and agent2's HA router
-        net_helpers.assert_ping(site1['port_namespace'], site2['port_ip'],
-                                timeout=8, count=4)
-        net_helpers.assert_ping(site2['port_namespace'], site1['port_ip'],
-                                timeout=8, count=4)
+        self.check_ping(site1, site2, 0)
+        self.check_ping(site2, site1, 0)
 
-        # Fail the agent1's HA router. Agent1's HA router will transition
-        # to backup and agent2's HA router will become master.
-        self._fail_ha_router(router1)
-
-        linux_utils.wait_until_true(lambda: router2.ha_state == 'master')
-        linux_utils.wait_until_true(lambda: router1.ha_state == 'backup')
-
-        # wait until ipsec process running in failover agent's HA router
-        # check for both strongswan and openswan processes
-        path = self.failover_agent_driver.processes[
-            router2.router_id].config_dir
-        pid_files = ['%s/var/run/charon.pid' % path,
-                     '%s/var/run/pluto.pid' % path]
-        linux_utils.wait_until_true(
-            lambda: self._ipsec_process_exists(
-                self.failover_agent.conf, router2, pid_files))
+        self._failover_ha_router(site2.router, site2.backup_router)
+        self._wait_for_ipsec_startup(site2.backup_router)
 
         # Test ipsec connection between legacy router and agent2's HA router
-        net_helpers.assert_ping(site1['port_namespace'], site2['port_ip'],
-                                timeout=8, count=4)
-        net_helpers.assert_ping(site2['port_namespace'], site1['port_ip'],
-                                timeout=8, count=4)
+        self.check_ping(site1, site2, 0)
+        self.check_ping(site2, site1, 0)
