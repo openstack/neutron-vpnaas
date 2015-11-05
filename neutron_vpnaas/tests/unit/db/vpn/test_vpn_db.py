@@ -1818,7 +1818,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         expected = info['endpoint_group']
         new_endpoint_group = self.plugin.create_endpoint_group(self.context,
                                                                info)
-        self.assertDictSupersetOf(expected, new_endpoint_group)
+        self._compare_groups(expected, new_endpoint_group)
 
     def test_endpoint_group_create_with_subnets(self):
         """Verify create endpoint group using subnets."""
@@ -1839,7 +1839,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         expected = info['endpoint_group']
         new_endpoint_group = self.plugin.create_endpoint_group(self.context,
                                                                info)
-        self.assertDictSupersetOf(expected, new_endpoint_group)
+        self._compare_groups(expected, new_endpoint_group)
 
     def test_endpoint_group_create_with_vlans(self):
         """Verify endpoint group using VLANs."""
@@ -1848,15 +1848,31 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         expected = info['endpoint_group']
         new_endpoint_group = self.plugin.create_endpoint_group(self.context,
                                                                info)
-        self.assertDictSupersetOf(expected, new_endpoint_group)
+        self._compare_groups(expected, new_endpoint_group)
+
+    def _compare_groups(self, expected_group, actual_group):
+        # Callers may want to reuse passed dicts later
+        expected_group = copy.deepcopy(expected_group)
+        actual_group = copy.deepcopy(actual_group)
+
+        # We need to compare endpoints separately because their order is
+        # not defined
+        check_endpoints = 'endpoints' in expected_group
+        expected_endpoints = set(expected_group.pop('endpoints', []))
+        actual_endpoints = set(actual_group.pop('endpoints', []))
+
+        self.assertDictSupersetOf(expected_group, actual_group)
+        if check_endpoints:
+            self.assertEqual(expected_endpoints, actual_endpoints)
 
     def helper_create_endpoint_group(self, info):
         """Create endpoint group database entry and verify OK."""
+        group = info['endpoint_group']
         try:
             actual = self.plugin.create_endpoint_group(self.context, info)
         except db_exc.DBError as e:
             self.fail("Endpoint create in prep for test failed: %s" % e)
-        self.assertDictSupersetOf(info['endpoint_group'], actual)
+        self._compare_groups(group, actual)
         self.assertIn('id', actual)
         return actual['id']
 
@@ -1877,7 +1893,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
                       {'expected': '' if should_exist else ' not',
                        'actual': '' if is_found else ' not'})
         if is_found:
-            self.assertDictSupersetOf(expected_info, endpoint_group)
+            self._compare_groups(expected_info, endpoint_group)
 
     def test_delete_endpoint_group(self):
         """Test that endpoint group is deleted."""
@@ -1903,7 +1919,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         self.check_endpoint_group_entry(group_id, expected, should_exist=True)
 
         actual = self.plugin.get_endpoint_group(self.context, group_id)
-        self.assertDictSupersetOf(expected, actual)
+        self._compare_groups(expected, actual)
 
     def test_fail_showing_non_existent_endpoint_group(self):
         """Test failure to show non-existent endpoint group."""
@@ -1931,13 +1947,13 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
                                         should_exist=True)
         expected1.update({'id': group_id1})
         expected2.update({'id': group_id2})
-        # Note: Subnet IDs could be in any order - force ascending
-        expected2['endpoints'].sort()
-        expected = [expected1, expected2]
-        actual = self.plugin.get_endpoint_groups(self.context,
+        expected_groups = [expected1, expected2]
+        actual_groups = self.plugin.get_endpoint_groups(self.context,
             fields=('type', 'tenant_id', 'endpoints',
                     'name', 'description', 'id'))
-        self.assertEqual(expected, actual)
+        for expected_group, actual_group in zip(expected_groups,
+                                                actual_groups):
+            self._compare_groups(expected_group, actual_group)
 
     def test_update_endpoint_group(self):
         """Test updating endpoint group information."""
@@ -1954,8 +1970,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
                                                           group_updates)
 
         # Check what was returned, and what is stored in database
-        self.assertDictSupersetOf(group_updates['endpoint_group'],
-                                  updated_group)
+        self._compare_groups(group_updates['endpoint_group'], updated_group)
         expected.update(group_updates['endpoint_group'])
         self.check_endpoint_group_entry(group_id, expected,
                                         should_exist=True)
