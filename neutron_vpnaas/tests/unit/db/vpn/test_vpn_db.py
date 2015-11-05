@@ -2158,15 +2158,3 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         self.assertRaises(vpnaas.SubnetInUseByEndpointGroup,
                           self.plugin.check_subnet_in_use_by_endpoint_group,
                           self.context, local_subnet['id'])
-
-    def test_fail_subnet_change_when_in_use_by_endpoint_group(self):
-        """Prevent subnet changes, when used by endpoint group.
-
-        An IPSec connection *may* be using an endpoint group that includes
-        the subnet being changed.
-
-        TODO(pcm): Either get notify before subnet change, and block if in
-        use, or get notify after change and force a sync operation. Either
-        way, this requires a Neutron change first.
-        """
-        pass
