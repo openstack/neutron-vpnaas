@@ -30,7 +30,7 @@ class VyattaIPsecDriver(base_ipsec.BaseIPsecVPNDriver):
 
     def create_rpc_conn(self):
         self.endpoints = [base_ipsec.IPsecVpnDriverCallBack(self)]
-        self.conn = n_rpc.create_connection(new=True)
+        self.conn = n_rpc.create_connection()
         self.conn.create_consumer(
             topics.BROCADE_IPSEC_DRIVER_TOPIC, self.endpoints, fanout=False)
         self.conn.consume_in_threads()
