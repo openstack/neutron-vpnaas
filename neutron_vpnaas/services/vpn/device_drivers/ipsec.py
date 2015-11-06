@@ -157,6 +157,8 @@ class BaseSwanProcess(object):
     }
     STATUS_RE = '\d\d\d "([a-f0-9\-]+).* (unrouted|erouted);'
     STATUS_NOT_RUNNING_RE = 'Command:.*ipsec.*status.*Exit code: [1|3]$'
+    STATUS_IPSEC_SA_ESTABLISHED_RE = (
+        '\d{3} #\d+: "([a-f0-9\-]+).*IPsec SA established.*')
 
     def __init__(self, conf, process_id, vpnservice, namespace):
         self.conf = conf
@@ -172,6 +174,8 @@ class BaseSwanProcess(object):
         self.STATUS_PATTERN = re.compile(self.STATUS_RE)
         self.STATUS_NOT_RUNNING_PATTERN = re.compile(
             self.STATUS_NOT_RUNNING_RE)
+        self.STATUS_IPSEC_SA_ESTABLISHED_PATTERN = re.compile(
+            self.STATUS_IPSEC_SA_ESTABLISHED_RE)
         self.STATUS_MAP = self.STATUS_DICT
 
     def translate_dialect(self):
@@ -307,21 +311,42 @@ class BaseSwanProcess(object):
     def stop(self):
         """Stop process."""
 
+    def _check_status_line(self, line):
+        """Parse a line and search for status information.
+
+        If a connection has an established Security Association,
+        it will be considered ACTIVE. Otherwise, even if a status
+        line shows that a connection is active, it will be marked
+        as DOWN-ed.
+        """
+
+        # pluto is not running so just exit
+        if self.STATUS_NOT_RUNNING_PATTERN.search(line):
+            self.connection_status = {}
+            raise StopIteration()
+
+        m = self.STATUS_IPSEC_SA_ESTABLISHED_PATTERN.search(line)
+        if m:
+            connection_id = m.group(1)
+            return connection_id, constants.ACTIVE
+        else:
+            m = self.STATUS_PATTERN.search(line)
+            if m:
+                connection_id = m.group(1)
+                return connection_id, constants.DOWN
+        return None, None
+
     def _extract_and_record_connection_status(self, status_output):
         if not status_output:
             self.connection_status = {}
             return
         for line in status_output.split('\n'):
-            if self.STATUS_NOT_RUNNING_PATTERN.search(line):
-                self.connection_status = {}
+            try:
+                conn_id, conn_status = self._check_status_line(line)
+            except StopIteration:
                 break
-            m = self.STATUS_PATTERN.search(line)
-            if not m:
-                continue
-            connection_id = m.group(1)
-            status = m.group(2)
-            self._record_connection_status(connection_id,
-                                           self.STATUS_MAP[status])
+            if conn_id:
+                self._record_connection_status(conn_id, conn_status)
 
     def _record_connection_status(self, connection_id, status,
                                   force_status_update=False):

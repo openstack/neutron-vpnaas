@@ -81,6 +81,20 @@ class StrongSwanProcess(ipsec.BaseSwanProcess):
         super(StrongSwanProcess, self).__init__(conf, process_id,
                                                 vpnservice, namespace)
 
+    def _check_status_line(self, line):
+        """Parse a line and search for status information.
+
+        If a given line contains status information for a connection,
+        extract the status and mark the connection as ACTIVE or DOWN
+        according to the STATUS_MAP.
+        """
+        m = self.STATUS_PATTERN.search(line)
+        if m:
+            connection_id = m.group(1)
+            status = self.STATUS_MAP[m.group(2)]
+            return connection_id, status
+        return None, None
+
     def _execute(self, cmd, check_exit_code=True, extra_ok_codes=None):
         """Execute command on namespace.
 
