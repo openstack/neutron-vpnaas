@@ -30,6 +30,7 @@ elif [ $neutron_installed -eq 0 ]; then
     location=$(python -c "import neutron; print(neutron.__file__)")
     echo "ALREADY INSTALLED at $location"
 elif [ -x "$ZUUL_CLONER" ]; then
+    export ZUUL_BRANCH=${ZUUL_BRANCH-$BRANCH}
     echo "USING ZUUL CLONER to obtain Neutron code"
     cwd=$(/bin/pwd)
     cd /tmp
