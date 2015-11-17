@@ -24,7 +24,6 @@ import eventlet
 import jinja2
 import netaddr
 from neutron.agent.linux import ip_lib
-from neutron.agent.linux import utils
 from neutron.api.v2 import attributes
 from neutron.common import rpc as n_rpc
 from neutron.common import utils as n_utils
@@ -206,9 +205,9 @@ class BaseSwanProcess(object):
         config_str = self._gen_config_content(template, vpnservice)
         config_file_name = self._get_config_filename(kind)
         if file_mode is None:
-            utils.replace_file(config_file_name, config_str)
+            n_utils.replace_file(config_file_name, config_str)
         else:
-            utils.replace_file(config_file_name, config_str, file_mode)
+            n_utils.replace_file(config_file_name, config_str, file_mode)
 
     def remove_config(self):
         """Remove whole config file."""
