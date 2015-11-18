@@ -53,10 +53,10 @@ ipsec_opts = [
                default=60,
                help=_("Interval for checking ipsec status")),
     cfg.BoolOpt('enable_detailed_logging',
-               default=False,
-               help=_("Enable detail logging for ipsec pluto process. "
-                      "If the flag set to True, the detailed logging will "
-                      "be written into config_base_dir/<pid>/logs.")),
+                default=False,
+                help=_("Enable detail logging for ipsec pluto process. "
+                       "If the flag set to True, the detailed logging will "
+                       "be written into config_base_dir/<pid>/log.")),
 ]
 cfg.CONF.register_opts(ipsec_opts, 'ipsec')
 
@@ -168,7 +168,7 @@ class BaseSwanProcess(object):
         self.config_dir = os.path.join(
             self.conf.ipsec.config_base_dir, self.id)
         self.etc_dir = os.path.join(self.config_dir, 'etc')
-        self.log_dir = os.path.join(self.config_dir, 'logs')
+        self.log_dir = os.path.join(self.config_dir, 'log')
         self.update_vpnservice(vpnservice)
         self.STATUS_PATTERN = re.compile(self.STATUS_RE)
         self.STATUS_NOT_RUNNING_PATTERN = re.compile(
@@ -564,7 +564,7 @@ class OpenSwanProcess(BaseSwanProcess):
                '--virtual_private', virtual_private]
 
         if self.conf.ipsec.enable_detailed_logging:
-            cmd += ['--perpeerlogbase', self.log_dir]
+            cmd += ['--perpeerlog', '--perpeerlogbase', self.log_dir]
         self._execute(cmd)
         #add connections
         for ipsec_site_conn in self.vpnservice['ipsec_site_connections']:
