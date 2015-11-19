@@ -256,7 +256,14 @@ class BaseSwanProcess(object):
 
     def update(self):
         """Update Status based on vpnservice configuration."""
-        if self.vpnservice and not self.vpnservice['admin_state_up']:
+
+        # Disable the process if a vpnservice is disabled or it has no
+        # enabled IPSec site connections.
+        vpnservice_has_active_ipsec_site_conns = any(
+            [ipsec_site_conn['admin_state_up']
+             for ipsec_site_conn in self.vpnservice['ipsec_site_connections']])
+        if (not self.vpnservice['admin_state_up'] or
+                not vpnservice_has_active_ipsec_site_conns):
             self.disable()
         else:
             self.enable()
@@ -568,6 +575,9 @@ class OpenSwanProcess(BaseSwanProcess):
         self._execute(cmd)
         #add connections
         for ipsec_site_conn in self.vpnservice['ipsec_site_connections']:
+            # Don't add a connection if its admin state is down
+            if not ipsec_site_conn['admin_state_up']:
+                continue
             nexthop = self._get_nexthop(ipsec_site_conn['peer_address'],
                                         ipsec_site_conn['id'])
             self._execute([self.binary,
@@ -587,7 +597,8 @@ class OpenSwanProcess(BaseSwanProcess):
                        ], check_exit_code=False)
 
         for ipsec_site_conn in self.vpnservice['ipsec_site_connections']:
-            if not ipsec_site_conn['initiator'] == 'start':
+            if (not ipsec_site_conn['initiator'] == 'start' or
+                    not ipsec_site_conn['admin_state_up']):
                 continue
             #initiate ipsec connection
             self._execute([self.binary,
