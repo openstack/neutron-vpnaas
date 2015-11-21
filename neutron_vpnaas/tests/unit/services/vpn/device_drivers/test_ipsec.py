@@ -295,7 +295,6 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
         self.driver = driver(
             self.agent,
             FAKE_HOST)
-        self.conf.use_namespaces = True
         self.driver.agent_rpc = mock.Mock()
         self.ri_kwargs = {'router': {'id': FAKE_ROUTER_ID, 'ha': False},
                           'agent_conf': self.conf,
