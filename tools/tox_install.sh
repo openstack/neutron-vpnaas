@@ -23,9 +23,16 @@ NEUTRON_DIR=$HOME/neutron
 
 set -e
 
+install_cmd="pip install"
+if [ "$1" = "constrained" ]; then
+    install_cmd="$install_cmd $2"
+    shift
+fi
+shift
+
 if [ -d "$NEUTRON_DIR" ]; then
     echo "FOUND Neutron code at $NEUTRON_DIR - using"
-    pip install -U -e $NEUTRON_DIR
+    $install_cmd -U -e $NEUTRON_DIR
 elif [ $neutron_installed -eq 0 ]; then
     location=$(python -c "import neutron; print(neutron.__file__)")
     echo "ALREADY INSTALLED at $location"
@@ -39,12 +46,12 @@ elif [ -x "$ZUUL_CLONER" ]; then
         git://git.openstack.org \
         openstack/neutron
     cd openstack/neutron
-    pip install -e .
+    $install_cmd -e .
     cd "$cwd"
 else
     echo "LOCAL - Obtaining Neutron code from git.openstack.org"
-    pip install -U -egit+https://git.openstack.org/openstack/neutron#egg=neutron
+    $install_cmd -U -egit+https://git.openstack.org/openstack/neutron#egg=neutron
 fi
 
-pip install -U $*
+$install_cmd -U $*
 exit $?

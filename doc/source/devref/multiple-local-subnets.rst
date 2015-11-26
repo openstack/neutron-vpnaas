@@ -44,40 +44,42 @@ Client CLI API
 --------------
 
 The originally implemented client CLI APIs (which are still available
-for backward compatibility) for an IPsec connection are:
-  |    neutron vpn-service-create ROUTER SUBNET
-  |    neutron ipsec-site-connection-create
-  |       --vpnservice-id VPNSERVICE
-  |        --ikepolicy-id IKEPOLICY
-  |        --ipsecpolicy-id IPSECPOLICY
-  |        --peer-address PEER_ADDRESS
-  |        --peer-id PEER_ID
-  |        --peer-cidr PEER_CIDRS
-  |        --dpd action=ACTION,interval=INTERVAL,timeout=TIMEOUT
-  |        --initiator {bi-directional | response-only}
-  |        --mtu MTU
-  |        --psk PSK
+for backward compatibility) for an IPsec connection are::
+
+    neutron vpn-service-create ROUTER SUBNET
+    neutron ipsec-site-connection-create
+       --vpnservice-id VPNSERVICE
+        --ikepolicy-id IKEPOLICY
+        --ipsecpolicy-id IPSECPOLICY
+        --peer-address PEER_ADDRESS
+        --peer-id PEER_ID
+        --peer-cidr PEER_CIDRS
+        --dpd action=ACTION,interval=INTERVAL,timeout=TIMEOUT
+        --initiator {bi-directional | response-only}
+        --mtu MTU
+        --psk PSK
 
 Changes to the API, to support multiple local subnets, are shown in
-**bold** text:
-  |    neutron vpn-service-create ROUTER
-  |    **neutron vpn-endpoint-groups-create**
-  |        **--name OPTIONAL-NAME**
-  |        **--description OPTIONAL-DESCRIPTION**
-  |        **--ep-type={subnet,cidr,network,vlan,router}**
-  |        **--ep-value=[list-of-endpoints-of-type]**
-  |    neutron ipsec-site-connection-create
-  |        --vpnservice-id VPNSERVICE
-  |        --ikepolicy-id IKEPOLICY
-  |        --ipsecpolicy-id IPSECPOLICY
-  |        --peer-address PEER_ADDRESS
-  |        --peer-id PEER_ID
-  |        --dpd action=ACTION,interval=INTERVAL,timeout=TIMEOUT
-  |        --initiator {bi-directional | response-only}
-  |        --mtu MTU
-  |        --psk PSK
-  |        **--local-endpoints ENDPOINT-GROUPS-UUID**
-  |        **--peer-endpoints ENDPOINT-GROUPS-UUID**
+**bold** text::
+
+    neutron vpn-service-create ROUTER
+    **neutron vpn-endpoint-groups-create**
+        **--name OPTIONAL-NAME**
+        **--description OPTIONAL-DESCRIPTION**
+        **--ep-type={subnet,cidr,network,vlan,router}**
+        **--ep-value=[list-of-endpoints-of-type]**
+    neutron ipsec-site-connection-create
+        --vpnservice-id VPNSERVICE
+        --ikepolicy-id IKEPOLICY
+        --ipsecpolicy-id IPSECPOLICY
+        --peer-address PEER_ADDRESS
+        --peer-id PEER_ID
+        --dpd action=ACTION,interval=INTERVAL,timeout=TIMEOUT
+        --initiator {bi-directional | response-only}
+        --mtu MTU
+        --psk PSK
+        **--local-endpoints ENDPOINT-GROUPS-UUID**
+        **--peer-endpoints ENDPOINT-GROUPS-UUID**
 
 The SUBNET in the original service API is optional, and will be used as an
 indicator of whether or not the multiple local subnets feature is active.
@@ -110,46 +112,48 @@ Examples
 --------
 
 The original APIs to create one side of an IPSec connection with
-only one local and peer subnet:
-  |    neutron vpn-ikepolicy-create ikepolicy
-  |    neutron vpn-ipsecpolicy-create ipsecpolicy
-  |    neutron vpn-service-create --name myvpn router1 privateA
-  |    neutron ipsec-site-connection-create
-  |        --name vpnconnection1
-  |        --vpnservice-id myvpn
-  |        --ikepolicy-id ikepolicy
-  |        --ipsecpolicy-id ipsecpolicy
-  |        --peer-address 172.24.4.13
-  |        --peer-id 172.24.4.13
-  |        --peer-cidr 10.3.0.0/24
-  |        --psk secret
+only one local and peer subnet::
+
+    neutron vpn-ikepolicy-create ikepolicy
+    neutron vpn-ipsecpolicy-create ipsecpolicy
+    neutron vpn-service-create --name myvpn router1 privateA
+    neutron ipsec-site-connection-create
+        --name vpnconnection1
+        --vpnservice-id myvpn
+        --ikepolicy-id ikepolicy
+        --ipsecpolicy-id ipsecpolicy
+        --peer-address 172.24.4.13
+        --peer-id 172.24.4.13
+        --peer-cidr 10.3.0.0/24
+        --psk secret
 
 The local CIDR is obtained from the subnet, privateA. In this example,
 that would be 10.1.0.0/24 (because that's how privateA was created).
 
 Using the multiple local subnet feature, the APIs (with changes shown
-in **bold** below:
-  |    neutron vpn-ikepolicy-create ikepolicy
-  |    neutron vpn-ipsecpolicy-create ipsecpolicy
-  |    neutron vpn-service-create --name myvpn router1
-  |    **neutron vpn-endpoint-group-create**
-  |        **--name local-eps**
-  |        **--ep-type=subnet**
-  |        **--ep-value=privateA**
-  |        **--ep-value=privateB**
-  |    **neutron vpn-endpoint-group-create**
-  |        **--name peer-eps**
-  |        **--ep-type=cidr**
-  |        **--ep-vallue=10.3.0.0/24**
-  |    neutron ipsec-site-connection-create
-  |        --name vpnconnection1
-  |        --vpnservice-id myvpn
-  |        --ikepolicy-id ikepolicy
-  |        --ipsecpolicy-id ipsecpolicy
-  |        --peer-address 172.24.4.13
-  |        --psk secret
-  |        **--local-endpoints local-eps**
-  |        **--peer-endpoints peer-eps**
+in **bold** below::
+
+    neutron vpn-ikepolicy-create ikepolicy
+    neutron vpn-ipsecpolicy-create ipsecpolicy
+    neutron vpn-service-create --name myvpn router1
+    **neutron vpn-endpoint-group-create**
+        **--name local-eps**
+        **--ep-type=subnet**
+        **--ep-value=privateA**
+        **--ep-value=privateB**
+    **neutron vpn-endpoint-group-create**
+        **--name peer-eps**
+        **--ep-type=cidr**
+        **--ep-vallue=10.3.0.0/24**
+    neutron ipsec-site-connection-create
+        --name vpnconnection1
+        --vpnservice-id myvpn
+        --ikepolicy-id ikepolicy
+        --ipsecpolicy-id ipsecpolicy
+        --peer-address 172.24.4.13
+        --psk secret
+        **--local-endpoints local-eps**
+        **--peer-endpoints peer-eps**
 
 The subnets privateA and privateB are used for local endpoints and the
 10.3.0.0/24 CIDR is used for the peer endpoint.
