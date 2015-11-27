@@ -3,7 +3,7 @@
 # process, which may cause wedges in the gate later.
 pbr>=1.6
 
-requests!=2.8.0,>=2.5.2
+requests>=2.8.1
 Jinja2>=2.8 # BSD License (3 clause)
 netaddr!=0.7.16,>=0.7.12
 SQLAlchemy<1.1.0,>=0.9.9
