@@ -15,11 +15,12 @@
 import time
 
 import netaddr
-from neutron.i18n import _LE, _LW
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
 import requests
 from requests import exceptions as r_exc
+
+from neutron_vpnaas._i18n import _LE, _LW
 
 
 TIMEOUT = 20.0

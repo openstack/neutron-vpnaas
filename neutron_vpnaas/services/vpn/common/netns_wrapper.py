@@ -20,11 +20,12 @@ import sys
 from eventlet.green import subprocess
 from neutron.common import config
 from neutron.common import utils
-from neutron.i18n import _LE, _LI
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_rootwrap import wrapper
 import six
+
+from neutron_vpnaas._i18n import _LE, _LI
 
 if six.PY3:
     import configparser as ConfigParser

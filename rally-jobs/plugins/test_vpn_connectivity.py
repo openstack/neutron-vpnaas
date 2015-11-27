@@ -12,7 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from neutron.i18n import _LI
+from neutron_vpnaas._i18n import _LI
 from rally.common import log as logging
 
 from rally.task import scenario

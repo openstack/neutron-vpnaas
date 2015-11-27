@@ -21,7 +21,6 @@ from networking_brocade.vyatta.common import vrouter_config
 from networking_brocade.vyatta.vpn import config as vyatta_vpn_config
 from neutron.common import rpc as n_rpc
 from neutron import context as n_ctx
-from neutron.i18n import _LE, _LW
 from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging as messaging
@@ -29,6 +28,7 @@ from oslo_service import loopingcall
 from oslo_service import periodic_task
 import six
 
+from neutron_vpnaas._i18n import _LE, _LW
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import device_drivers
 

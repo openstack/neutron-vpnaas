@@ -28,7 +28,6 @@ from neutron.api.v2 import attributes
 from neutron.common import rpc as n_rpc
 from neutron.common import utils as n_utils
 from neutron import context
-from neutron.i18n import _LE, _LI, _LW
 from neutron.plugins.common import constants
 from neutron.plugins.common import utils as plugin_utils
 from oslo_concurrency import lockutils
@@ -37,6 +36,7 @@ from oslo_log import log as logging
 import oslo_messaging
 from oslo_service import loopingcall
 
+from neutron_vpnaas._i18n import _LE, _LI, _LW
 from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import device_drivers

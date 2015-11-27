@@ -22,7 +22,6 @@ from neutron.db import common_db_mixin as base_db
 from neutron.db import l3_agentschedulers_db as l3_agent_db
 from neutron.db import models_v2
 from neutron.extensions import l3 as l3_exception
-from neutron.i18n import _LW
 from neutron import manager
 from neutron.plugins.common import constants as p_constants
 from neutron.plugins.common import utils
@@ -32,6 +31,7 @@ from oslo_utils import uuidutils
 import sqlalchemy as sa
 from sqlalchemy.orm import exc
 
+from neutron_vpnaas._i18n import _LW
 from neutron_vpnaas.db.vpn import vpn_models
 from neutron_vpnaas.db.vpn import vpn_validator
 from neutron_vpnaas.extensions import vpnaas

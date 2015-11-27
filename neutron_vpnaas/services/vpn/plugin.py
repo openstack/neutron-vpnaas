@@ -15,12 +15,12 @@
 #    under the License.
 
 from neutron.db import servicetype_db as st_db
-from neutron.i18n import _LI
 from neutron.plugins.common import constants
 from neutron.services import provider_configuration as pconf
 from neutron.services import service_base
 from oslo_log import log as logging
 
+from neutron_vpnaas._i18n import _LI
 from neutron_vpnaas.db.vpn import vpn_db
 
 LOG = logging.getLogger(__name__)
