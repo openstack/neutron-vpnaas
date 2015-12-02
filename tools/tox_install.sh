@@ -15,8 +15,6 @@
 
 set -x
 
-exec > /tmp/tox_install.txt 2>&1
-
 ZUUL_CLONER=/usr/zuul-env/bin/zuul-cloner
 neutron_installed=$(echo "import neutron" | python 2>/dev/null ; echo $?)
 NEUTRON_DIR=$HOME/neutron
