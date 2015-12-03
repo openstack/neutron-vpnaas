@@ -12,13 +12,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from rally.common import log as logging
 from rally.task import scenario
 from rally.task import types as types
 
 import vpn_base
-
-LOG = logging.getLogger(__name__)
 
 
 class VpnTenantScenario(vpn_base.VpnBase):

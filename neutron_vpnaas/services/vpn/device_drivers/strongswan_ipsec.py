@@ -17,13 +17,11 @@ import os
 import shutil
 
 from oslo_config import cfg
-from oslo_log import log as logging
 
 from neutron.agent.linux import ip_lib
 from neutron.plugins.common import constants
 from neutron_vpnaas.services.vpn.device_drivers import ipsec
 
-LOG = logging.getLogger(__name__)
 TEMPLATE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 strongswan_opts = [

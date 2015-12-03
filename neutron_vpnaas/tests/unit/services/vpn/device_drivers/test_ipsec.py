@@ -1253,7 +1253,7 @@ class TestOpenSwanProcess(IPSecDeviceLegacy):
                 side_effect=[io.StringIO(u'invalid'),
                              IOError])
     def test_process_running_bogus_pid(self, mock_open, mock_exists):
-        with mock.patch.object(libreswan_ipsec.LOG, 'error'):
+        with mock.patch.object(openswan_ipsec.LOG, 'error'):
             self.assertFalse(self.process._process_running())
             self.assertTrue(mock_exists.called)
             self.assertEqual(2, mock_open.call_count)

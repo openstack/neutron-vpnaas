@@ -14,14 +14,11 @@
 #    under the License.
 
 from neutron.common import rpc as n_rpc
-from oslo_log import log as logging
 
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn.service_drivers import base_ipsec
 from neutron_vpnaas.services.vpn.service_drivers import ipsec_validator
 
-
-LOG = logging.getLogger(__name__)
 
 IPSEC = 'ipsec'
 BASE_IPSEC_VERSION = '1.0'

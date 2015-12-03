@@ -13,12 +13,8 @@
 #    under the License.
 
 from neutron.common import exceptions
-from oslo_log import log as logging
 
 from neutron_vpnaas.db.vpn import vpn_validator
-
-
-LOG = logging.getLogger(__name__)
 
 
 class IpsecValidationFailure(exceptions.BadRequest):
