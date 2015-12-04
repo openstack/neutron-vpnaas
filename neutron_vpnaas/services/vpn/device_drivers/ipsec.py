@@ -56,7 +56,9 @@ ipsec_opts = [
                 default=False,
                 help=_("Enable detail logging for ipsec pluto process. "
                        "If the flag set to True, the detailed logging will "
-                       "be written into config_base_dir/<pid>/log.")),
+                       "be written into config_base_dir/<pid>/log. "
+                       "Note: This setting applies to OpenSwan and LibreSwan "
+                       "only. StrongSwan logs to syslog.")),
 ]
 cfg.CONF.register_opts(ipsec_opts, 'ipsec')
 

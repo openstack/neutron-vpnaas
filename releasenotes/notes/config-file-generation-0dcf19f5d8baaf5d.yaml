@@ -1,0 +1,7 @@
+---
+prelude: >
+    Generation of sample Neutron VPNaaS configuration files.
+features:
+  - Neutron VPNaaS no longer includes static example configuration files.
+    Instead, use tools/generate_config_file_samples.sh to generate them.
+    The files are generated with a .sample extension.

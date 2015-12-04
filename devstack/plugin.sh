@@ -20,7 +20,7 @@ function neutron_agent_vpnaas_install_agent_packages {
 }
 
 function neutron_vpnaas_configure_common {
-    cp $NEUTRON_VPNAAS_DIR/etc/neutron_vpnaas.conf $NEUTRON_VPNAAS_CONF
+    cp $NEUTRON_VPNAAS_DIR/etc/neutron_vpnaas.conf.sample $NEUTRON_VPNAAS_CONF
     _neutron_service_plugin_class_add $VPN_PLUGIN
     _neutron_deploy_rootwrap_filters $NEUTRON_VPNAAS_DIR
     inicomment $NEUTRON_VPNAAS_CONF service_providers service_provider
@@ -31,7 +31,7 @@ function neutron_vpnaas_configure_common {
 
 function neutron_vpnaas_configure_agent {
     local conf_file=${1:-$Q_VPN_CONF_FILE}
-    cp $NEUTRON_VPNAAS_DIR/etc/vpn_agent.ini $conf_file
+    cp $NEUTRON_VPNAAS_DIR/etc/vpn_agent.ini.sample $conf_file
     if [[ "$IPSEC_PACKAGE" == "strongswan" ]]; then
         if is_fedora; then
             iniset_multiline $conf_file vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.fedora_strongswan_ipsec.FedoraStrongSwanDriver
@@ -69,6 +69,11 @@ function neutron_vpnaas_stop {
     stop_process neutron-vpnaas
 }
 
+function neutron_vpnaas_generate_config_files {
+    # Uses oslo config generator to generate VPNaaS sample configuration files
+    (cd $NEUTRON_VPNAAS_DIR && exec sudo ./tools/generate_config_file_samples.sh)
+}
+
 # Main plugin processing
 
 # NOP for pre-install step
@@ -79,6 +84,7 @@ if [[ "$1" == "stack" && "$2" == "install" ]]; then
 
 elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
     echo_summary "Configuring neutron-vpnaas"
+    neutron_vpnaas_generate_config_files
     neutron_vpnaas_configure_common
     neutron_vpnaas_configure_agent
 
