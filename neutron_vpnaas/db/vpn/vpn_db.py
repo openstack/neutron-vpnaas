@@ -148,7 +148,6 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
         ipsec_sitecon = ipsec_site_connection['ipsec_site_connection']
         validator = self._get_validator()
         validator.assign_sensible_ipsec_sitecon_defaults(ipsec_sitecon)
-        tenant_id = self._get_tenant_id_for_create(context, ipsec_sitecon)
         with context.session.begin(subtransactions=True):
             #Check permissions
             vpnservice_id = ipsec_sitecon['vpnservice_id']
@@ -166,7 +165,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
 
             ipsec_site_conn_db = vpn_models.IPsecSiteConnection(
                 id=uuidutils.generate_uuid(),
-                tenant_id=tenant_id,
+                tenant_id=ipsec_sitecon['tenant_id'],
                 name=ipsec_sitecon['name'],
                 description=ipsec_sitecon['description'],
                 peer_address=ipsec_sitecon['peer_address'],
@@ -308,7 +307,6 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
 
     def create_ikepolicy(self, context, ikepolicy):
         ike = ikepolicy['ikepolicy']
-        tenant_id = self._get_tenant_id_for_create(context, ike)
         lifetime_info = ike['lifetime']
         lifetime_units = lifetime_info.get('units', 'seconds')
         lifetime_value = lifetime_info.get('value', 3600)
@@ -316,7 +314,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
         with context.session.begin(subtransactions=True):
             ike_db = vpn_models.IKEPolicy(
                 id=uuidutils.generate_uuid(),
-                tenant_id=tenant_id,
+                tenant_id=ike['tenant_id'],
                 name=ike['name'],
                 description=ike['description'],
                 auth_algorithm=ike['auth_algorithm'],
@@ -390,7 +388,6 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
     def create_ipsecpolicy(self, context, ipsecpolicy):
         ipsecp = ipsecpolicy['ipsecpolicy']
         validator = self._get_validator()
-        tenant_id = self._get_tenant_id_for_create(context, ipsecp)
         lifetime_info = ipsecp['lifetime']
         lifetime_units = lifetime_info.get('units', 'seconds')
         lifetime_value = lifetime_info.get('value', 3600)
@@ -399,7 +396,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
             validator.validate_ipsec_policy(context, ipsecp)
             ipsecp_db = vpn_models.IPsecPolicy(
                 id=uuidutils.generate_uuid(),
-                tenant_id=tenant_id,
+                tenant_id=ipsecp['tenant_id'],
                 name=ipsecp['name'],
                 description=ipsecp['description'],
                 transform_protocol=ipsecp['transform_protocol'],
@@ -466,13 +463,12 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
 
     def create_vpnservice(self, context, vpnservice):
         vpns = vpnservice['vpnservice']
-        tenant_id = self._get_tenant_id_for_create(context, vpns)
         validator = self._get_validator()
         with context.session.begin(subtransactions=True):
             validator.validate_vpnservice(context, vpns)
             vpnservice_db = vpn_models.VPNService(
                 id=uuidutils.generate_uuid(),
-                tenant_id=tenant_id,
+                tenant_id=vpns['tenant_id'],
                 name=vpns['name'],
                 description=vpns['description'],
                 subnet_id=vpns['subnet_id'],
@@ -574,13 +570,12 @@ class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
 
     def create_endpoint_group(self, context, endpoint_group):
         group = endpoint_group['endpoint_group']
-        tenant_id = self._get_tenant_id_for_create(context, group)
         validator = self._get_validator()
         with context.session.begin(subtransactions=True):
             validator.validate_endpoint_group(context, group)
             endpoint_group_db = vpn_models.VPNEndpointGroup(
                 id=uuidutils.generate_uuid(),
-                tenant_id=tenant_id,
+                tenant_id=group['tenant_id'],
                 name=group['name'],
                 description=group['description'],
                 endpoint_type=group['type'])
