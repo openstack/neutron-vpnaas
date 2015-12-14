@@ -42,11 +42,12 @@ VPNaaS Internals
 
    multiple-local-subnets
 
-
 Testing
 -------
 .. toctree::
    :maxdepth: 3
+
+   devstack
 
 .. todo::
 

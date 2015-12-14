@@ -5,7 +5,9 @@ set -o xtrace
 
 function neutron_vpnaas_install {
     setup_develop $NEUTRON_VPNAAS_DIR
-    neutron_agent_vpnaas_install_agent_packages
+    if is_service_enabled q-l3; then
+        neutron_agent_vpnaas_install_agent_packages
+    fi
 }
 
 function neutron_agent_vpnaas_install_agent_packages {
@@ -26,7 +28,10 @@ function neutron_vpnaas_configure_common {
     inicomment $NEUTRON_VPNAAS_CONF service_providers service_provider
     iniadd $NEUTRON_VPNAAS_CONF service_providers service_provider $NEUTRON_VPNAAS_SERVICE_PROVIDER
     iniset $NEUTRON_CONF DEFAULT service_plugins $Q_SERVICE_PLUGIN_CLASSES
-    $NEUTRON_BIN_DIR/neutron-db-manage --service vpnaas --config-file $NEUTRON_CONF --config-file /$Q_PLUGIN_CONF_FILE upgrade head
+}
+
+function neutron_vpnaas_configure_db {
+    $NEUTRON_BIN_DIR/neutron-db-manage --subproject neutron-vpnaas --config-file $NEUTRON_CONF --config-file /$Q_PLUGIN_CONF_FILE upgrade head
 }
 
 function neutron_vpnaas_configure_agent {
@@ -83,17 +88,27 @@ if [[ "$1" == "stack" && "$2" == "install" ]]; then
     neutron_vpnaas_install
 
 elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
-    echo_summary "Configuring neutron-vpnaas"
     neutron_vpnaas_generate_config_files
     neutron_vpnaas_configure_common
-    neutron_vpnaas_configure_agent
+    if is_service_enabled q-svc; then
+        echo_summary "Configuring neutron-vpnaas on controller"
+        neutron_vpnaas_configure_db
+    fi
+    if is_service_enabled q-l3; then
+        echo_summary "Configuring neutron-vpnaas agent"
+        neutron_vpnaas_configure_agent
+    fi
 
 elif [[ "$1" == "stack" && "$2" == "extra" ]]; then
-    echo_summary "Initializing neutron-vpnaas"
-    neutron_vpnaas_start
+    if is_service_enabled q-l3; then
+        echo_summary "Initializing neutron-vpnaas"
+        neutron_vpnaas_start
+    fi
 
 elif [[ "$1" == "unstack" ]]; then
-    neutron_vpnaas_stop
+    if is_service_enabled q-l3; then
+        neutron_vpnaas_stop
+    fi
 
 # NOP for clean step
 
