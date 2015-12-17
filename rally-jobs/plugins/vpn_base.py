@@ -34,7 +34,7 @@ class VpnBase(rally_base.OpenStackScenario):
 
     def setup(self, use_admin_client=False):
         """Creates and initializes data structures to hold various resources
-        :param use_admin_client - Use admin client when it is set to True
+        :param use_admin_client: Use admin client when it is set to True
         """
         self.tenant_ids = []
         self.snat_namespaces = []
@@ -366,7 +366,7 @@ class VpnBase(rally_base.OpenStackScenario):
         """Creates tenant
 
         :param keystone_client: keystone_admin_client
-        :param tenant_ids : append created tenant id into the list
+        :param tenant_ids: append created tenant id into the list
         :return:
         """
         with LOCK:
