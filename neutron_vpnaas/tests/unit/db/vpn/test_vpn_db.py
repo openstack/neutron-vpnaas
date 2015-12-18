@@ -1752,7 +1752,8 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
 
     def prepare_service_info(self, private_subnet, router):
         subnet_id = private_subnet['id'] if private_subnet else None
-        return {'vpnservice': {'name': 'my-service',
+        return {'vpnservice': {'tenant_id': self.tenant_id,
+                               'name': 'my-service',
                                'description': 'new service',
                                'subnet_id': subnet_id,
                                'router_id': router['id'],
@@ -1984,7 +1985,8 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
             self.context, _uuid(), group_updates)
 
     def prepare_ike_policy_info(self):
-        return {'ikepolicy': {'name': 'ike policy',
+        return {'ikepolicy': {'tenant_id': self.tenant_id,
+                              'name': 'ike policy',
                               'description': 'my ike policy',
                               'auth_algorithm': 'sha1',
                               'encryption_algorithm': 'aes-128',
@@ -2001,7 +2003,8 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         self.assertDictSupersetOf(expected, new_ike_policy)
 
     def prepare_ipsec_policy_info(self):
-        return {'ipsecpolicy': {'name': 'ipsec policy',
+        return {'ipsecpolicy': {'tenant_id': self.tenant_id,
+                                'name': 'ipsec policy',
                                 'description': 'my ipsec policy',
                                 'auth_algorithm': 'sha1',
                                 'encryption_algorithm': 'aes-128',
