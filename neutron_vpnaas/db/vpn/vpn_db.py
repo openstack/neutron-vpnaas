@@ -34,13 +34,16 @@ from sqlalchemy.orm import exc
 from neutron_vpnaas._i18n import _LW
 from neutron_vpnaas.db.vpn import vpn_models
 from neutron_vpnaas.db.vpn import vpn_validator
+from neutron_vpnaas.extensions import vpn_endpoint_groups
 from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.common import constants as v_constants
 
 LOG = logging.getLogger(__name__)
 
 
-class VPNPluginDb(vpnaas.VPNPluginBase, base_db.CommonDbMixin):
+class VPNPluginDb(vpnaas.VPNPluginBase,
+                  vpn_endpoint_groups.VPNEndpointGroupsPluginBase,
+                  base_db.CommonDbMixin):
     """VPN plugin database class using SQLAlchemy models."""
 
     def _get_validator(self):
