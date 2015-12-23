@@ -25,7 +25,7 @@ from oslo_log import log as logging
 from oslo_rootwrap import wrapper
 import six
 
-from neutron_vpnaas._i18n import _LE, _LI
+from neutron_vpnaas._i18n import _, _LE, _LI
 
 if six.PY3:
     import configparser as ConfigParser

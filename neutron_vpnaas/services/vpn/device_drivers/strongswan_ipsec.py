@@ -20,6 +20,8 @@ from oslo_config import cfg
 
 from neutron.agent.linux import ip_lib
 from neutron.plugins.common import constants
+
+from neutron_vpnaas._i18n import _
 from neutron_vpnaas.services.vpn.device_drivers import ipsec
 
 TEMPLATE_PATH = os.path.dirname(os.path.abspath(__file__))

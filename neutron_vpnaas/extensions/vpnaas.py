@@ -24,6 +24,8 @@ from neutron.common import exceptions as nexception
 from neutron.plugins.common import constants as nconstants
 from neutron.services import service_base
 
+from neutron_vpnaas._i18n import _
+
 
 class VPNServiceNotFound(nexception.NotFound):
     message = _("VPNService %(vpnservice_id)s could not be found")

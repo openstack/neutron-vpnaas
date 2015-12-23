@@ -28,7 +28,7 @@ from oslo_service import loopingcall
 from oslo_service import periodic_task
 import six
 
-from neutron_vpnaas._i18n import _LE, _LW
+from neutron_vpnaas._i18n import _, _LE, _LW
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import device_drivers
 

@@ -36,7 +36,7 @@ from oslo_log import log as logging
 import oslo_messaging
 from oslo_service import loopingcall
 
-from neutron_vpnaas._i18n import _LE, _LI, _LW
+from neutron_vpnaas._i18n import _, _LE, _LI, _LW
 from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import device_drivers
