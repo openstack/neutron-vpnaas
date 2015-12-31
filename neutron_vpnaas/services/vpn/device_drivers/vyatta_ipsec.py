@@ -281,8 +281,8 @@ class _VyattaPeriodicTasks(periodic_task.PeriodicTasks):
             try:
                 ipsec_sa = vrouter.get_vpn_ipsec_sa()
             except v_exc.VRouterOperationError as e:
-                LOG.warn(_LW('Failed to fetch tunnel stats from router '
-                             '{0}: {1}').format(router_id, unicode(e)))
+                LOG.warning(_LW('Failed to fetch tunnel stats from router '
+                                '{0}: {1}').format(router_id, unicode(e)))
                 continue
 
             conn_ok = vyatta_vpn_config.parse_vpn_connections(

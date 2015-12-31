@@ -689,8 +689,8 @@ class VPNPluginRpcDbMixin(object):
                     vpnservice_db = self._get_vpnservice(
                         context, vpnservice['id'])
                 except vpnaas.VPNServiceNotFound:
-                    LOG.warn(_LW('vpnservice %s in db is already deleted'),
-                             vpnservice['id'])
+                    LOG.warning(_LW('vpnservice %s in db is already deleted'),
+                                vpnservice['id'])
                     continue
 
                 if (not utils.in_pending_status(vpnservice_db.status)
