@@ -27,14 +27,16 @@ source $NEUTRON_VPNAAS_DIR/devstack/plugin.sh
 
 
 function _install_vpn_package {
-    if [ "$VENV" == "dsvm-functional-sswan" ]
-    then
-        IPSEC_PACKAGE=strongswan
-    else
-        IPSEC_PACKAGE=openswan
-    fi
+    case $VENV in
+        dsvm-functional-sswan*)
+            IPSEC_PACKAGE=strongswan
+            ;;
+        *)
+            IPSEC_PACKAGE=openswan
+            ;;
+    esac
 
-    echo_summary "Installing $IPSEC_PACKAGE"
+    echo_summary "Installing $IPSEC_PACKAGE for $VENV"
     neutron_agent_vpnaas_install_agent_packages
 }
 
