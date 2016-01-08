@@ -37,7 +37,8 @@ esac
 cd $NEUTRON_VPNAAS_DIR
 sudo chown -R $owner:stack $NEUTRON_VPNAAS_DIR
 
-# Run tests
+# For gate, run all tests using constraints
+VENV=$VENV-constraints
 echo "Running neutron $VENV test suite"
 set +e
 sudo -H -u $owner $sudo_env tox -e $VENV
