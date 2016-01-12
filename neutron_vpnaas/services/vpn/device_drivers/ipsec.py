@@ -923,9 +923,16 @@ class IPsecDriver(device_drivers.DeviceDriver):
                         'updated_pending_status': True
                     }
 
+    def should_be_reported(self, context, process):
+        if (context.is_admin or
+            process.vpnservice["tenant_id"] == context.tenant_id):
+            return True
+
     def report_status(self, context):
         status_changed_vpn_services = []
         for process in self.processes.values():
+            if not self.should_be_reported(context, process):
+                continue
             previous_status = self.get_process_status_cache(process)
             if self.is_status_updated(process, previous_status):
                 new_status = self.copy_process_status(process)
