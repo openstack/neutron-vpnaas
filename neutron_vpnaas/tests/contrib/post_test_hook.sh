@@ -13,7 +13,9 @@ function generate_testr_results {
     sudo -H -u $owner chmod o+rw .
     sudo -H -u $owner chmod o+rw -R .testrepository
     if [ -f ".testrepository/0" ] ; then
-        .tox/$venv/bin/subunit-1to2 < .testrepository/0 > ./testrepository.subunit
+        subunit_bin=$(which subunit-1to2)
+        subunit_bin=${subunit_bin:-.tox/$venv/bin/subunit-1to2}
+        $subunit_bin < .testrepository/0 > ./testrepository.subunit
         $SCRIPTS_DIR/subunit2html ./testrepository.subunit testr_results.html
         gzip -9 ./testrepository.subunit
         gzip -9 ./testr_results.html
