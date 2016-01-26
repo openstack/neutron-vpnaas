@@ -24,8 +24,6 @@ from neutron.common import exceptions as nexception
 from neutron.plugins.common import constants as nconstants
 from neutron.services import service_base
 
-from neutron_vpnaas.services.vpn.common import constants
-
 
 class VPNServiceNotFound(nexception.NotFound):
     message = _("VPNService %(vpnservice_id)s could not be found")
@@ -423,31 +421,6 @@ RESOURCE_ATTRIBUTE_MAP = {
                 'validate': {'type:values': vpn_supported_pfs},
                 'is_visible': True}
     },
-
-    'endpoint_groups': {
-        'id': {'allow_post': False, 'allow_put': False,
-               'validate': {'type:uuid': None},
-               'is_visible': True,
-               'primary_key': True},
-        'tenant_id': {'allow_post': True, 'allow_put': False,
-                      'validate': {'type:string': attr.TENANT_ID_MAX_LEN},
-                      'required_by_policy': True,
-                      'is_visible': True},
-        'name': {'allow_post': True, 'allow_put': True,
-                 'validate': {'type:string': attr.NAME_MAX_LEN},
-                 'is_visible': True, 'default': ''},
-        'description': {'allow_post': True, 'allow_put': True,
-                        'validate': {'type:string': attr.DESCRIPTION_MAX_LEN},
-                        'is_visible': True, 'default': ''},
-        'type': {'allow_post': True, 'allow_put': False,
-                 'validate': {
-                     'type:values': constants.VPN_SUPPORTED_ENDPOINT_TYPES,
-                 },
-                 'is_visible': True},
-        'endpoints': {'allow_post': True, 'allow_put': False,
-                      'convert_to': attr.convert_to_list,
-                      'is_visible': True},
-    },
 }
 
 
@@ -594,25 +567,4 @@ class VPNPluginBase(service_base.ServicePluginBase):
 
     @abc.abstractmethod
     def delete_ipsecpolicy(self, context, ipsecpolicy_id):
-        pass
-
-    @abc.abstractmethod
-    def create_endpoint_group(self, context, endpoint_group):
-        pass
-
-    @abc.abstractmethod
-    def update_endpoint_group(self, context, endpoint_group_id,
-                              endpoint_group):
-        pass
-
-    @abc.abstractmethod
-    def delete_endpoint_group(self, context, endpoint_group_id):
-        pass
-
-    @abc.abstractmethod
-    def get_endpoint_group(self, context, endpoint_group_id, fields=None):
-        pass
-
-    @abc.abstractmethod
-    def get_endpoint_groups(self, context, filters=None, fields=None):
         pass

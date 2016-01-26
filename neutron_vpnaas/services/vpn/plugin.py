@@ -40,7 +40,9 @@ class VPNPlugin(vpn_db.VPNPluginDb):
     Most DB related works are implemented in class
     vpn_db.VPNPluginDb.
     """
-    supported_extension_aliases = ["vpnaas", "service-type"]
+    supported_extension_aliases = ["vpnaas",
+                                   "vpn-endpoint-groups",
+                                   "service-type"]
     path_prefix = "/vpn"
 
 
