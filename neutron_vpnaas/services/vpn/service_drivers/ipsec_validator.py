@@ -14,6 +14,7 @@
 
 from neutron.common import exceptions
 
+from neutron_vpnaas._i18n import _
 from neutron_vpnaas.db.vpn import vpn_validator
 
 

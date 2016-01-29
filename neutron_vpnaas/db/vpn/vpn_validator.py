@@ -22,6 +22,7 @@ from neutron.db import models_v2
 from neutron import manager
 from neutron.plugins.common import constants as nconstants
 
+from neutron_vpnaas._i18n import _
 from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.common import constants
 

@@ -19,7 +19,7 @@ from oslo_log import log as logging
 import sqlalchemy as sa
 from sqlalchemy.orm import exc as sql_exc
 
-from neutron_vpnaas._i18n import _LI
+from neutron_vpnaas._i18n import _, _LI
 from neutron_vpnaas.db.vpn import vpn_models
 
 LOG = logging.getLogger(__name__)
