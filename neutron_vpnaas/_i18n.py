@@ -14,7 +14,7 @@
 
 import oslo_i18n
 
-DOMAIN = "neutron-vpnaas"
+DOMAIN = "neutron_vpnaas"
 
 _translators = oslo_i18n.TranslatorFactory(domain=DOMAIN)
 
