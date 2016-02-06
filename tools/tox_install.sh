@@ -18,6 +18,7 @@ set -x
 ZUUL_CLONER=/usr/zuul-env/bin/zuul-cloner
 neutron_installed=$(echo "import neutron" | python 2>/dev/null ; echo $?)
 NEUTRON_DIR=$HOME/neutron
+BRANCH_NAME=master
 
 set -e
 
@@ -35,12 +36,12 @@ elif [ $neutron_installed -eq 0 ]; then
     location=$(python -c "import neutron; print(neutron.__file__)")
     echo "ALREADY INSTALLED at $location"
 elif [ -x "$ZUUL_CLONER" ]; then
-    export ZUUL_BRANCH=${ZUUL_BRANCH-$BRANCH}
     echo "USING ZUUL CLONER to obtain Neutron code"
     cwd=$(/bin/pwd)
     cd /tmp
     $ZUUL_CLONER --cache-dir \
         /opt/git \
+        --branch $BRANCH_NAME \
         git://git.openstack.org \
         openstack/neutron
     cd openstack/neutron
@@ -48,7 +49,7 @@ elif [ -x "$ZUUL_CLONER" ]; then
     cd "$cwd"
 else
     echo "LOCAL - Obtaining Neutron code from git.openstack.org"
-    $install_cmd -U -egit+https://git.openstack.org/openstack/neutron#egg=neutron
+    $install_cmd -U -egit+https://git.openstack.org/openstack/neutron@$BRANCH_NAME#egg=neutron
 fi
 
 $install_cmd -U $*
