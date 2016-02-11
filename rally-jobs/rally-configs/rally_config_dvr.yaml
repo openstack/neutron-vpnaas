@@ -1,0 +1,104 @@
+---
+
+  TestVpnBasicScenario.create_and_delete_vpn_connection:
+    -
+      args:
+        flavor:
+            name: "m1.tiny"
+        image:
+            name: {{image_name}}
+        phase1_negotiation_mode: "main"
+        auth_algorithm: "sha1"
+        encryption_algorithm: "aes-128"
+        pfs: "group5"
+        value:  7200
+        ike_version: "v1"
+        transform_protocol: "esp"
+        encapsulation_mode: "tunnel"
+        mtu: 1500
+        secret: "secret"
+        nova_server_boot_timeout: 60 * 6
+        vpn_service_creation_timeout: 100
+        ipsec_site_connection_creation_timeout: 180
+        namespace_creation_timeout: 60
+        private_key: {{private_key}}
+        controller_creds: {{controller_creds}}
+        compute_creds: {{compute_creds}}
+        DVR_flag: True
+        use_admin_client: False
+        ext-net: "ext-net"
+
+      runner:
+        type: "constant"
+        times: 1
+        concurrency: 1
+
+      context:
+        users:
+          tenants: 1
+          users_per_tenant: 1
+      sla:
+        failure_rate:
+          max: 0
+
+  TestVpnStatusScenario.check_vpn_status:
+    -
+      args:
+        flavor:
+            name: "m1.tiny"
+        image:
+            name: {{image_name}}
+        nova_server_boot_timeout: 60 * 6
+        vpn_service_creation_timeout: 100
+        ipsec_site_connection_creation_timeout: 400
+        namespace_creation_timeout: 60
+        private_key: {{private_key}}
+        controller_creds: {{controller_creds}}
+        compute_creds: {{compute_creds}}
+        DVR_flag: True
+        use_admin_client: False
+        ext-net: "ext-net"
+
+      runner:
+        type: "constant"
+        times: 1
+        concurrency: 1
+
+      context:
+        users:
+          tenants: 1
+          users_per_tenant: 1
+      sla:
+        failure_rate:
+          max: 0
+
+  TestVpnTenantScenario.multitenants_vpn_test:
+    -
+      args:
+        flavor:
+            name: "m1.tiny"
+        image:
+            name: {{image_name}}
+        nova_server_boot_timeout: 60 * 6
+        vpn_service_creation_timeout: 100
+        ipsec_site_connection_creation_timeout: 180
+        namespace_creation_timeout: 60
+        private_key: {{private_key}}
+        controller_creds: {{controller_creds}}
+        compute_creds: {{compute_creds}}
+        DVR_flag: True
+        use_admin_client: True
+        ext-net: "ext-net"
+
+      runner:
+        type: "constant"
+        times: 1
+        concurrency: 1
+
+      context:
+        users:
+          tenants: 1
+          users_per_tenant: 1
+      sla:
+        failure_rate:
+          max: 0
