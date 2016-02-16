@@ -1,6 +1,5 @@
-{% set image_name = image_name or "cirros-0.3.3-x86_64-disk" %}
 ---
-  VpnBasicScenario.create_and_delete_vpn_connection:
+  TestVpnBasicScenario.create_and_delete_vpn_connection:
     -
       args:
         flavor:
@@ -19,8 +18,14 @@
         secret: "secret"
         nova_server_boot_timeout: 60 * 6
         vpn_service_creation_timeout: 100
-        ipsec_site_connection_creation_timeout: 400
+        ipsec_site_connection_creation_timeout: 180
         namespace_creation_timeout: 60
+        private_key: {{private_key}}
+        controller_creds: {{controller_creds}}
+        compute_creds: {{compute_creds}}
+        DVR_flag: False
+        use_admin_client: True
+        ext-net: "ext-net"
 
       runner:
         type: "constant"
@@ -35,7 +40,7 @@
         failure_rate:
           max: 0
 
-  TestVPNStatusScenario.check_vpn_status:
+  TestVpnStatusScenario.check_vpn_status:
     -
       args:
         flavor:
@@ -46,6 +51,12 @@
         vpn_service_creation_timeout: 100
         ipsec_site_connection_creation_timeout: 400
         namespace_creation_timeout: 60
+        private_key: {{private_key}}
+        controller_creds: {{controller_creds}}
+        compute_creds: {{compute_creds}}
+        DVR_flag: False
+        use_admin_client: True
+        ext-net: "ext-net"
 
       runner:
         type: "constant"
@@ -60,7 +71,7 @@
         failure_rate:
           max: 0
 
-  VpnTenantScenario.multitenants_vpn_test:
+  TestVpnTenantScenario.multitenants_vpn_test:
     -
       args:
         flavor:
@@ -69,8 +80,14 @@
             name: {{image_name}}
         nova_server_boot_timeout: 60 * 6
         vpn_service_creation_timeout: 100
-        ipsec_site_connection_creation_timeout: 400
+        ipsec_site_connection_creation_timeout: 180
         namespace_creation_timeout: 60
+        private_key: {{private_key}}
+        controller_creds: {{controller_creds}}
+        compute_creds: {{compute_creds}}
+        DVR_flag: False
+        use_admin_client: True
+        ext-net: "ext-net"
 
       runner:
         type: "constant"

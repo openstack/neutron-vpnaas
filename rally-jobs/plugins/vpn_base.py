@@ -14,8 +14,8 @@
 
 import concurrent.futures
 import exceptions
-import multiprocessing
 import re
+import threading
 import time
 
 from oslo_utils import uuidutils
@@ -26,68 +26,155 @@ from rally.task import atomic
 import vpn_utils
 
 LOG = logging.getLogger(__name__)
-LOCK = multiprocessing.RLock()
+LOCK = threading.RLock()
 MAX_RESOURCES = 2
 
 
 class VpnBase(rally_base.OpenStackScenario):
 
-    def setup(self, use_admin_client=False):
-        """Creates and initializes data structures to hold various resources
-        :param use_admin_client: Use admin client when it is set to True
-        """
-        self.tenant_ids = []
-        self.snat_namespaces = []
-        self.qrouter_namespaces = []
-        self.router_ids = []
-        self.rally_router_gw_ips = []
-        self.rally_routers = []
-        self.rally_networks = []
-        self.rally_subnets = []
-        self.rally_cidrs = []
-        self.ike_policy = None
-        self.ipsec_policy = None
-        self.vpn_services = []
-        self.ipsec_site_connections = []
-        self.servers = []
-        self.server_private_ips = []
-        self.suffixes = [uuidutils.generate_uuid(), uuidutils.generate_uuid()]
-        self.tenant_names = map(lambda x: "rally_tenant_" + x, self.suffixes)
-        self.key_names = map(lambda x: "rally_keypair_" + x, self.suffixes)
-        self.key_file_paths = map(lambda x: '/tmp/' + x, self.key_names)
-        self.nova_client = self.clients("nova")
-        self.neutron_client = self.clients("neutron")
-        self.neutron_admin_client = self.admin_clients("neutron")
-        if use_admin_client is True:
-            self.neutron_client = self.admin_clients("neutron")
-            self.keystone_client = self.admin_clients("keystone")
-            self.nova_client = self.admin_clients("nova")
+    def setup(self, **kwargs):
+        """Create and initialize data structures to hold various resources"""
 
-    @atomic.action_timer("cleanup")
-    def cleanup(self):
-        """Cleans up all the resources"""
+        with LOCK:
+            LOG.debug('SETUP RESOURCES')
+            self.neutron_admin_client = self.admin_clients("neutron")
+            if kwargs['use_admin_client']:
+                self.neutron_client = self.neutron_admin_client
+                self.keystone_client = self.admin_clients("keystone")
+                self.nova_client = self.admin_clients("nova")
+            else:
+                self.neutron_client = self.clients("neutron")
+                self.nova_client = self.clients("nova")
+            self.suffixes = [uuidutils.generate_uuid(),
+                             uuidutils.generate_uuid()]
+            self.remote_key_files = ['rally_keypair_' + x
+                                     for x in self.suffixes]
+            self.local_key_files = ['/tmp/' + x for x in self.remote_key_files]
+            self.private_key_file = kwargs["private_key"]
+            self.keypairs = []
+            self.tenant_ids = []
+            self.ns_controller_tuples = []
+            self.qrouterns_compute_tuples = []
+            self.router_ids = []
+            self.rally_router_gw_ips = []
+            self.rally_routers = []
+            self.rally_networks = []
+            self.rally_subnets = []
+            self.rally_cidrs = []
+            self.ike_policy = None
+            self.ipsec_policy = None
+            self.vpn_services = []
+            self.ipsec_site_connections = []
+            self.servers = []
+            self.server_private_ips = []
+            self.server_fips = []
 
-        vpn_utils.delete_servers(self.nova_client, self.servers)
-        vpn_utils.delete_hosts_from_knownhosts_file(self.server_private_ips)
-        vpn_utils.delete_key_files(self.key_file_paths)
-        self._delete_ipsec_site_connections()
-        self._delete_vpn_services()
-        self._delete_ipsec_policy()
-        self._delete_ike_policy()
-        vpn_utils.delete_network(
-            self.neutron_client, self.neutron_admin_client, self.rally_routers,
-            self.rally_networks, self.rally_subnets)
-        if self.tenant_ids:
-            vpn_utils.delete_tenant(self.keystone_client,
-                                    self.tenant_ids)
+    def create_tenants(self):
+        """Create tenants"""
+
+        for x in range(MAX_RESOURCES):
+            tenant_id = vpn_utils.create_tenant(
+                self.keystone_client, self.suffixes[x])
+            with LOCK:
+                self.tenant_ids.append(tenant_id)
+
+    def create_networks(self, **kwargs):
+        """Create networks to test vpn connectivity"""
+
+        for x in range(MAX_RESOURCES):
+            if self.tenant_ids:
+                router, network, subnet, cidr = vpn_utils.create_network(
+                    self.neutron_client, self.neutron_admin_client,
+                    self.suffixes[x], tenant_id=self.tenant_ids[x],
+                    DVR_flag=kwargs["DVR_flag"],
+                    ext_net_name=kwargs["ext-net"])
+            else:
+                router, network, subnet, cidr = vpn_utils.create_network(
+                    self.neutron_client, self.neutron_admin_client,
+                    self.suffixes[x], DVR_flag=kwargs["DVR_flag"],
+                    ext_net_name=kwargs["ext-net"])
+            with LOCK:
+                self.rally_cidrs.append(cidr)
+                self.rally_subnets.append(subnet)
+                self.rally_networks.append(network)
+                self.rally_routers.append(router)
+                self.router_ids.append(router["router"]['id'])
+                self.rally_router_gw_ips.append(
+                    router["router"]["external_gateway_info"]
+                    ["external_fixed_ips"][0]["ip_address"])
+
+            if(kwargs["DVR_flag"]):
+                ns, controller = vpn_utils.wait_for_namespace_creation(
+                    "snat-", router["router"]['id'],
+                    kwargs['controller_creds'],
+                    self.private_key_file,
+                    kwargs['namespace_creation_timeout'])
+            else:
+                ns, controller = vpn_utils.wait_for_namespace_creation(
+                    "qrouter-", router["router"]['id'],
+                    kwargs['controller_creds'],
+                    self.private_key_file,
+                    kwargs['namespace_creation_timeout'])
+            with LOCK:
+                self.ns_controller_tuples.append((ns, controller))
+
+    def create_servers(self, **kwargs):
+        """Create servers"""
+
+        for x in range(MAX_RESOURCES):
+            kwargs.update({
+                "nics":
+                    [{"net-id": self.rally_networks[x]["network"]["id"]}],
+                "sec_group_suffix": self.suffixes[x],
+                "server_suffix": self.suffixes[x]
+            })
+            keypair = vpn_utils.create_keypair(
+                self.nova_client, self.suffixes[x])
+            server = vpn_utils.create_server(
+                self.nova_client, keypair, **kwargs)
+            vpn_utils.assert_server_status(server, **kwargs)
+            with LOCK:
+                self.servers.append(server)
+                self.keypairs.append(keypair)
+                self.server_private_ips.append(vpn_utils.get_server_ip(
+                    self.nova_client, server.id, self.suffixes[x]))
+            if(kwargs["DVR_flag"]):
+                qrouter, compute = vpn_utils.wait_for_namespace_creation(
+                    "qrouter-", self.router_ids[x],
+                    kwargs['compute_creds'],
+                    self.private_key_file,
+                    kwargs['namespace_creation_timeout'])
+
+                vpn_utils.write_key_to_compute_node(
+                    keypair, self.local_key_files[x],
+                    self.remote_key_files[x], compute,
+                    self.private_key_file)
+                with LOCK:
+                    self.qrouterns_compute_tuples.append((qrouter, compute))
+            else:
+                vpn_utils.write_key_to_local_path(self.keypairs[x],
+                                                  self.local_key_files[x])
+                fip = vpn_utils.add_floating_ip(self.nova_client, server)
+                with LOCK:
+                    self.server_fips.append(fip)
+
+    def check_route(self):
+        """Verify route exists between the router gateways"""
+
+        LOG.debug("VERIFY ROUTE EXISTS BETWEEN THE ROUTER GATEWAYS")
+        for tuple in self.ns_controller_tuples:
+            for ip in self.rally_router_gw_ips:
+                assert(vpn_utils.ping_router_gateway(
+                        tuple, ip, self.private_key_file)), (
+                        "PING TO IP " + ip + " FAILED")
 
     @atomic.action_timer("_create_ike_policy")
     def _create_ike_policy(self, **kwargs):
-        """Creates IKE policy
+        """Create IKE policy
 
         :return: IKE policy
         """
-        LOG.debug("CREATING IKE_POLICY")
+        LOG.debug('CREATING IKE_POLICY')
         ike_policy = self.neutron_client.create_ikepolicy({
             "ikepolicy": {
                 "phase1_negotiation_mode":
@@ -107,11 +194,11 @@ class VpnBase(rally_base.OpenStackScenario):
 
     @atomic.action_timer("_create_ipsec_policy")
     def _create_ipsec_policy(self, **kwargs):
-        """Creates IPSEC policy
+        """Create IPSEC policy
 
         :return: IPSEC policy
         """
-        LOG.debug("CREATING IPSEC_POLICY")
+        LOG.debug('CREATING IPSEC_POLICY')
         ipsec_policy = self.neutron_client.create_ipsecpolicy({
             "ipsecpolicy": {
                 "name": "rally_ipsecpolicy",
@@ -131,16 +218,15 @@ class VpnBase(rally_base.OpenStackScenario):
         return ipsec_policy
 
     @atomic.action_timer("_create_vpn_service")
-    def _create_vpn_service(self, rally_subnet,
-                            rally_router, vpn_suffix=None):
-        """Creates VPN service endpoints
+    def _create_vpn_service(self, rally_subnet, rally_router, vpn_suffix=None):
+        """Create VPN service endpoints
 
         :param rally_subnet: local subnet
         :param rally_router: router endpoint
         :param vpn_suffix: suffix name for vpn service
         :return: VPN service
         """
-        LOG.debug("CREATING VPN_SERVICE")
+        LOG.debug('CREATING VPN_SERVICE')
         vpn_service = self.neutron_client.create_vpnservice({
             "vpnservice": {
                 "subnet_id": rally_subnet["subnet"]["id"],
@@ -151,16 +237,24 @@ class VpnBase(rally_base.OpenStackScenario):
         })
         return vpn_service
 
+    def create_vpn_services(self):
+        """Create VPN services"""
+
+        for x in range(MAX_RESOURCES):
+            vpn_service = self._create_vpn_service(
+                self.rally_subnets[x], self.rally_routers[x], self.suffixes[x])
+            with LOCK:
+                self.vpn_services.append(vpn_service)
+
     @atomic.action_timer("_create_ipsec_site_connection")
-    def _create_ipsec_site_connection(self, local_index,
-                                      peer_index, **kwargs):
-        """Creates IPSEC site connection
+    def _create_ipsec_site_connection(self, local_index, peer_index, **kwargs):
+        """Create IPSEC site connection
 
         :param local_index: parameter to point to the local end-point
         :param peer_index: parameter to point to the peer end-point
         :return: IPSEC site connection
         """
-        LOG.debug("CREATING IPSEC_SITE_CONNECTION")
+        LOG.debug('CREATING IPSEC_SITE_CONNECTION')
         ipsec_site_conn = self.neutron_client.create_ipsec_site_connection({
             "ipsec_site_connection": {
                 "psk": kwargs.get("secret", "secret"),
@@ -185,26 +279,31 @@ class VpnBase(rally_base.OpenStackScenario):
         })
         return ipsec_site_conn
 
+    def create_ipsec_site_connections(self, **kwargs):
+        """Create IPSEC site connections"""
+
+        a = self._create_ipsec_site_connection(0, 1, **kwargs)
+        b = self._create_ipsec_site_connection(1, 0, **kwargs)
+        with LOCK:
+            self.ipsec_site_connections = [a, b]
+
     def _get_resource(self, resource_tag, resource_id):
-        """Gets the resource(vpn_service or ipsec_site_connection)
+        """Get the resource(vpn_service or ipsec_site_connection)
 
         :param resource_tag: "vpnservice" or "ipsec_site_connection"
         :param resource_id: id of the resource
         :return: resource (vpn_service or ipsec_site_connection)
         """
         if resource_tag == "vpnservice":
-            vpn_service = self.neutron_client.show_vpnservice(
-                resource_id)
+            vpn_service = self.neutron_client.show_vpnservice(resource_id)
             if vpn_service:
                 return vpn_service
         elif resource_tag == 'ipsec_site_connection':
-            ipsec_site_conn = \
-                self.neutron_client.show_ipsec_site_connection(
-                    resource_id)
+            ipsec_site_conn = self.neutron_client.show_ipsec_site_connection(
+                resource_id)
             if ipsec_site_conn:
                 return ipsec_site_conn
 
-    @atomic.action_timer("_wait_for_status_change")
     def _wait_for_status_change(self, resource, resource_tag, final_status,
                                 wait_timeout=60, check_interval=1):
         """Wait for resource's status change
@@ -214,16 +313,18 @@ class VpnBase(rally_base.OpenStackScenario):
         :param resource: resource whose status has to be checked
         :param final_status: desired final status of the resource
         :param resource_tag: to identify the resource as vpnservice or
-        ipsec_site_connection
+                             ipsec_site_connection
         :param wait_timeout: timeout value in seconds
         :param check_interval: time to sleep before each check for the status
         change
         :return: resource
         """
+        LOG.debug('WAIT_FOR_%s_STATUS_CHANGE ', resource[resource_tag]['id'])
+
         start_time = time.time()
         while True:
-            resource = self._get_resource(resource_tag,
-                                          resource[resource_tag]['id'])
+            resource = self._get_resource(
+                resource_tag, resource[resource_tag]['id'])
             current_status = resource[resource_tag]['status']
             if current_status == final_status:
                 return resource
@@ -231,9 +332,9 @@ class VpnBase(rally_base.OpenStackScenario):
             if time.time() - start_time > wait_timeout:
                 raise exceptions.Exception(
                     "Timeout waiting for resource {} to change to {} status".
-                    format(resource[resource_tag]['name'], final_status)
-                )
+                    format(resource[resource_tag]['name'], final_status))
 
+    @atomic.action_timer("wait_time_for_status_change")
     def _assert_statuses(self, ipsec_site_conn, vpn_service,
                          final_status, **kwargs):
         """Assert statuses of vpn_service and ipsec_site_connection
@@ -258,207 +359,166 @@ class VpnBase(rally_base.OpenStackScenario):
             check_interval=5)
 
         LOG.debug("VPN SERVICE STATUS %s", vpn_service['vpnservice']['status'])
-        LOG.debug("IPSEC_SITE_CONNECTION STATUS: %s",
+        LOG.debug("IPSEC_SITE_CONNECTION STATUS %s",
                   ipsec_site_conn['ipsec_site_connection']['status'])
 
-        self._validate_status(vpn_service, ipsec_site_conn, final_status)
+    def assert_statuses(self, final_status, **kwargs):
+        """Assert active statuses for VPN services and VPN connections
 
-    def _validate_status(self, vpn_service, ipsec_site_conn, final_status):
-        """Validate the statuses of vpn_service, ipsec_site_connection and
-        evaluate the final_status
-
-        :param ipsec_site_conn: ipsec_site_connection of an instance
-        :param vpn_service: vpn_service of an instance
-        :param final_status: status of vpn and ipsec_site_connection instance
+        :param final_status: the final status you expect the resource to be in
         """
 
-        assert(final_status == vpn_service['vpnservice']['status']), (
-                "VPN SERVICE IS NOT IN %s STATE" % final_status)
-        assert(final_status == ipsec_site_conn['ipsec_site_connection']
-        ['status']), ("THE IPSEC SITE CONNECTION IS NOT IN %s STATE"
-                      % final_status)
+        LOG.debug("ASSERTING ACTIVE STATUSES FOR VPN-SERVICES AND "
+                  "IPSEC-SITE-CONNECTIONS")
+        for x in range(MAX_RESOURCES):
+            self._assert_statuses(
+                self.ipsec_site_connections[x], self.vpn_services[x],
+                final_status, **kwargs)
+
+    def _get_qg_interface(self, peer_index):
+        """Get the qg- interface
+
+        :param peer_index: parameter to point to the local end-point
+        :return: qg-interface
+        """
+        qg = vpn_utils.get_interfaces(
+            self.ns_controller_tuples[peer_index],
+            self.private_key_file)
+        p = re.compile(r"qg-\w+-\w+")
+        for line in qg:
+            m = p.search(line)
+            if m:
+                return m.group()
+        return None
 
     @atomic.action_timer("_verify_vpn_connection")
-    def _verify_vpn_connection(self, local_index, peer_index):
-        """Verifies the vpn connectivity between the endpoints
+    def _verify_vpn_connectivity(self, local_index, peer_index, **kwargs):
+        """Verify the vpn connectivity between the endpoints
 
+        Get the qg- interface from the snat namespace corresponding to the
+        peer router and start a tcp dump. Concurrently, SSH into the nova
+        instance  on the local subnet from the qrouter namespace and try
+        to ping the nova instance on the peer subnet. Inspect the captured
+        packets to see if they are encrypted.
         :param local_index: parameter to point to the local end-point
         :param peer_index: parameter to point to the peer end-point
-        :return: True or False
+        :return: True if vpn connectivity test passes
+                 False if the test fails
         """
-        qg = vpn_utils.get_interfaces(self.snat_namespaces[peer_index])
-        if qg:
-            p = re.compile(r"qg-\w+-\w+")
-            m = p.search(qg)
-            if m:
-                qg_interface = m.group()
-            else:
-                qg_interface = None
+        qg_interface = self._get_qg_interface(peer_index)
+        if qg_interface:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as e:
+                tcpdump_future = e.submit(vpn_utils.start_tcpdump,
+                         self.ns_controller_tuples[peer_index],
+                         qg_interface, self.private_key_file)
+                if(kwargs["DVR_flag"]):
+                    ssh_future = e.submit(
+                        vpn_utils.ssh_and_ping_server,
+                        self.server_private_ips[local_index],
+                        self.server_private_ips[peer_index],
+                        self.qrouterns_compute_tuples[local_index],
+                        self.remote_key_files[local_index],
+                        self.private_key_file)
+                else:
+                    ssh_future = e.submit(
+                        vpn_utils.ssh_and_ping_server_with_fip,
+                        self.server_fips[local_index],
+                        self.server_private_ips[peer_index],
+                        self.local_key_files[local_index],
+                        self.private_key_file)
 
-            if qg_interface:
-                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as e:
-                    tcpdump_future = e.submit(vpn_utils.start_tcpdump,
-                             self.snat_namespaces[peer_index],
-                             qg_interface)
-                    ssh_future = e.submit(vpn_utils.ssh_and_ping_server,
-                             self.server_private_ips[local_index],
-                             self.server_private_ips[peer_index],
-                             self.qrouter_namespaces[local_index],
-                             self.key_file_paths[local_index])
-                    assert(ssh_future.result()), "SSH/Ping failed"
-                    lines = tcpdump_future.result().split('\n')
-                    for line in lines:
-                        if 'ESP' in line:
-                            return True
+            assert(ssh_future.result()), "SSH/Ping failed"
+            for line in tcpdump_future.result():
+                if 'ESP' in line:
+                    return True
         return False
+
+    def verify_vpn_connectivity(self, **kwargs):
+        """Verify VPN connectivity"""
+
+        LOG.debug("VERIFY THE VPN CONNECTIVITY")
+        with LOCK:
+            assert(self._verify_vpn_connectivity(
+                0, 1, **kwargs)), "VPN CONNECTION FAILED"
+        with LOCK:
+            assert(self._verify_vpn_connectivity(
+                1, 0, **kwargs)), "VPN CONNECTION FAILED"
+
+    def update_router(self, router_id, admin_state_up=False):
+        """Update router's admin_state_up field
+
+        :param router_id: uuid of the router
+        :param admin_state_up: True or False
+        """
+        LOG.debug('UPDATE ROUTER')
+        router_args = {'router': {'admin_state_up': admin_state_up}}
+        self.neutron_client.update_router(router_id, router_args)
 
     @atomic.action_timer("_delete_ipsec_site_connection")
     def _delete_ipsec_site_connections(self):
-        """Deletes IPSEC site connections"""
+        """Delete IPSEC site connections"""
 
-        if self.ipsec_site_connections:
-            for site_conn in self.ipsec_site_connections:
-                if "rally" in (site_conn['ipsec_site_connection']['name']):
-                    LOG.debug("DELETING IPSEC_SITE_CONNECTION %s",
-                              site_conn['ipsec_site_connection']['id'])
-                    self.neutron_client.delete_ipsec_site_connection(
-                        site_conn['ipsec_site_connection']['id'])
+        for site_conn in self.ipsec_site_connections:
+            LOG.debug("DELETING IPSEC_SITE_CONNECTION %s",
+                      site_conn['ipsec_site_connection']['id'])
+            self.neutron_client.delete_ipsec_site_connection(
+                site_conn['ipsec_site_connection']['id'])
 
     @atomic.action_timer("_delete_vpn_service")
     def _delete_vpn_services(self):
-        """Deletes VPN service endpoints"""
+        """Delete VPN service endpoints"""
 
-        if self.vpn_services:
-            for vpn_service in self.vpn_services:
-                if "rally" in vpn_service['vpnservice']['name']:
-                    LOG.debug("DELETING VPN_SERVICE %s",
-                              vpn_service['vpnservice']['id'])
-                    self.neutron_client.delete_vpnservice(
-                        vpn_service['vpnservice']['id'])
+        for vpn_service in self.vpn_services:
+            LOG.debug("DELETING VPN_SERVICE %s",
+                      vpn_service['vpnservice']['id'])
+            self.neutron_client.delete_vpnservice(
+                vpn_service['vpnservice']['id'])
 
     @atomic.action_timer("_delete_ipsec_policy")
     def _delete_ipsec_policy(self):
-        """Deletes IPSEC policy
+        """Delete IPSEC policy"""
 
-        :param ipsec_policy: ipsec_policy object
-        :return:
-        """
         LOG.debug("DELETING IPSEC POLICY")
-        if (self.ipsec_policy and
-                "rally" in self.ipsec_policy['ipsecpolicy']['name']):
+        if self.ipsec_policy:
             self.neutron_client.delete_ipsecpolicy(
                 self.ipsec_policy['ipsecpolicy']['id'])
 
     @atomic.action_timer("_delete_ike_policy")
     def _delete_ike_policy(self):
-        """Deletes IKE policy
+        """Delete IKE policy"""
 
-        :param ike_policy: ike_policy object
-        :return:
-        """
-        LOG.debug("DELETING IKE POLICY")
-        if (self.ike_policy and
-                "rally" in self.ike_policy['ikepolicy']['name']):
+        LOG.debug('DELETING IKE POLICY')
+        if self.ike_policy:
             self.neutron_client.delete_ikepolicy(
                 self.ike_policy['ikepolicy']['id'])
 
-    def create_tenant(self):
-        """Creates tenant
+    @atomic.action_timer("cleanup")
+    def cleanup(self):
+        """Clean the resources"""
 
-        :param keystone_client: keystone_admin_client
-        :param tenant_ids: append created tenant id into the list
-        :return:
-        """
-        with LOCK:
-            for x in range(MAX_RESOURCES):
-                self.tenant_ids.append((vpn_utils.create_tenant(
-                    self.keystone_client,
-                    self.tenant_names[x])).id)
+        vpn_utils.delete_servers(self.nova_client, self.servers)
+        if self.server_fips:
+            vpn_utils.delete_floating_ips(self.nova_client, self.server_fips)
+        vpn_utils.delete_keypairs(self.nova_client, self.keypairs)
 
-    def create_networks_and_servers(self, **kwargs):
-        with LOCK:
-            keypairs = []
-            for x in range(MAX_RESOURCES):
-                if self.tenant_ids:
-                    router, network, subnet, cidr = vpn_utils.create_network(
-                        self.neutron_client, self.neutron_admin_client,
-                        self.suffixes[x], self.tenant_ids[x])
-                else:
-                    router, network, subnet, cidr = vpn_utils.create_network(
-                        self.neutron_client, self.neutron_admin_client,
-                        self.suffixes[x])
-                self.rally_cidrs.append(cidr)
-                self.rally_subnets.append(subnet)
-                self.rally_networks.append(network)
-                self.rally_routers.append(router)
-                self.router_ids.append(router["router"]['id'])
-                self.rally_router_gw_ips.append(
-                    router["router"]["external_gateway_info"]
-                    ["external_fixed_ips"][0]["ip_address"])
-                self.snat_namespaces.append(
-                    vpn_utils.wait_for_namespace_creation(
-                        "snat-", router, **kwargs))
-                self.qrouter_namespaces.append(
-                    vpn_utils.wait_for_namespace_creation(
-                        "qrouter-", router, **kwargs))
-                keypairs.append(vpn_utils.create_keypair(
-                    self.nova_client, self.key_names[x],
-                    self.key_file_paths[x]))
+        if self.qrouterns_compute_tuples:
+            vpn_utils.delete_hosts_from_knownhosts_file(
+                self.server_private_ips, self.qrouterns_compute_tuples,
+                self.private_key_file)
+            vpn_utils.delete_keyfiles(
+                self.local_key_files, self.remote_key_files,
+                self.qrouterns_compute_tuples, self.private_key_file)
+        else:
+            vpn_utils.delete_hosts_from_knownhosts_file(
+                    self.server_private_ips)
+            vpn_utils.delete_keyfiles(self.local_key_files)
 
-                kwargs.update({
-                    "nics":
-                        [{"net-id": self.rally_networks[x]["network"]["id"]}],
-                        "sec_group_suffix": self.suffixes[x],
-                        "server_suffix": self.suffixes[x]
-                })
-                server = vpn_utils.create_nova_vm(
-                    self.nova_client, keypairs[x], **kwargs)
-                self.server_private_ips.append(vpn_utils.get_server_ip(
-                        self.nova_client, server.id, self.suffixes[x]))
-                self.servers.append(server)
-
-    def check_route(self):
-        LOG.debug("VERIFYING THAT THERE IS A ROUTE BETWEEN ROUTER "
-                  "GATEWAYS")
-        for ns in self.snat_namespaces:
-            for ip in self.rally_router_gw_ips:
-                assert(True == vpn_utils.ping(ns, ip)), (
-                        "PING FAILED FROM NAMESPACE " + ns + " TO IP "
-                        + ip)
-
-    def update_router(self, router_id, admin_state_up=False):
-        """Updates router
-
-        :param router_id: router id
-        :param admin_state_up: update 'admin_state_up' of the router
-        :return:
-        """
-        req_body = {'router': {'admin_state_up': admin_state_up}}
-        self.neutron_client.update_router(router_id, req_body)
-
-    def create_vpn_services(self):
-        with LOCK:
-            for x in range(MAX_RESOURCES):
-                self.vpn_services.append(self._create_vpn_service(
-                    self.rally_subnets[x], self.rally_routers[x],
-                    self.suffixes[x]))
-
-    def create_ipsec_site_connections(self, **kwargs):
-        with LOCK:
-            self.ipsec_site_connections = [
-                self._create_ipsec_site_connection(0, 1, **kwargs),
-                self._create_ipsec_site_connection(1, 0, **kwargs)
-            ]
-
-    def assert_statuses(self, final_status, **kwargs):
-        LOG.debug("ASSERTING ACTIVE STATUSES FOR VPN-SERVICES AND "
-                  "VPN-CONNECTIONS")
-        for x in range(MAX_RESOURCES):
-            self._assert_statuses(self.ipsec_site_connections[x],
-                                  self.vpn_services[x], final_status, **kwargs)
-
-    def assert_vpn_connectivity(self):
-        LOG.debug("VERIFY THE VPN CONNECTIVITY")
-        with LOCK:
-            assert(self._verify_vpn_connection(0, 1)), "VPN CONNECTION FAILED"
-            assert(self._verify_vpn_connection(1, 0)), "VPN CONNECTION FAILED"
+        self._delete_ipsec_site_connections()
+        self._delete_vpn_services()
+        self._delete_ipsec_policy()
+        self._delete_ike_policy()
+        vpn_utils.delete_networks(
+            self.neutron_client, self.neutron_admin_client, self.rally_routers,
+            self.rally_networks, self.rally_subnets)
+        if self.tenant_ids:
+            vpn_utils.delete_tenants(self.keystone_client, self.tenant_ids)

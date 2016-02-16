@@ -1,0 +1,17 @@
+{
+    "image_name": "^cirros.*-disk$",
+    "private_key": "<path-to-private-key-file>",
+    "controller_creds": [
+      {
+        "ip": "x.x.x.x",
+        "username": "xxx"
+      }
+    ],
+    "compute_creds": [
+      {
+        "ip": "x.x.x.x",
+        "username": "xxx",
+        "port": 22
+      }
+    ]
+}

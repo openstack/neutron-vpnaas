@@ -12,17 +12,21 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from neutron_vpnaas._i18n import _LI
+from rally.common import log as logging
 from rally.task import scenario
 from rally.task import types as types
+
 import vpn_base
 
+LOG = logging.getLogger(__name__)
 
-class TestVPNStatusScenario(vpn_base.VpnBase):
+
+class TestVpnStatusScenario(vpn_base.VpnBase):
     @types.set(image=types.ImageResourceType,
                flavor=types.FlavorResourceType)
     @scenario.configure()
-    def check_vpn_status(
-            self, **kwargs):
+    def check_vpn_status(self, **kwargs):
         """Test VPN's status correctly after bringing router's status to
          DOWN and back to ACTIVE state
 
@@ -45,8 +49,8 @@ class TestVPNStatusScenario(vpn_base.VpnBase):
         """
 
         try:
-            self.setup()
-            self.create_networks_and_servers(**kwargs)
+            self.setup(**kwargs)
+            self.create_networks(**kwargs)
             self.check_route()
             self.ike_policy = self._create_ike_policy(**kwargs)
             self.ipsec_policy = self._create_ipsec_policy(**kwargs)
@@ -59,6 +63,7 @@ class TestVPNStatusScenario(vpn_base.VpnBase):
             self.update_router(self.router_ids[0], admin_state_up=True)
             self.update_router(self.router_ids[1], admin_state_up=True)
             self.assert_statuses(final_status='ACTIVE', **kwargs)
+            LOG.info(_LI("VPN STATUS TEST PASSED!"))
 
         finally:
             self.cleanup()

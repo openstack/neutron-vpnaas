@@ -12,21 +12,24 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from neutron_vpnaas._i18n import _LI
+from rally.common import log as logging
 from rally.task import scenario
 from rally.task import types as types
 
 import vpn_base
 
+LOG = logging.getLogger(__name__)
 
-class VpnTenantScenario(vpn_base.VpnBase):
+
+class TestVpnTenantScenario(vpn_base.VpnBase):
     """Rally scenarios for VPNaaS"""
 
     @types.set(image=types.ImageResourceType,
                flavor=types.FlavorResourceType)
     @scenario.configure()
-    def multitenants_vpn_test(
-            self, **kwargs):
-        """Basic VPN connectivity scenario.
+    def multitenants_vpn_test(self, **kwargs):
+        """Test VPN connectivity under two different tenants.
 
         1. Create 2 private networks with 2 different tenants, subnets, routers
         2. Create public network, subnets and GW IPs on routers, if not present
@@ -41,19 +44,19 @@ class VpnTenantScenario(vpn_base.VpnBase):
         9. Create IPSEC site connections at both endpoints
         10. Verify that the vpn-service and ipsec-site-connection are ACTIVE
         11. Cleanup the resources that are setup for this test
-
         """
 
         try:
-            self.setup(use_admin_client=True)
-            self.create_tenant()
-            self.create_networks_and_servers(**kwargs)
+            self.setup(**kwargs)
+            self.create_tenants()
+            self.create_networks(**kwargs)
             self.check_route()
             self.ike_policy = self._create_ike_policy(**kwargs)
             self.ipsec_policy = self._create_ipsec_policy(**kwargs)
             self.create_vpn_services()
             self.create_ipsec_site_connections(**kwargs)
             self.assert_statuses(final_status='ACTIVE', **kwargs)
+            LOG.info(_LI("VPN TENANT TEST PASSED!"))
 
         finally:
             self.cleanup()

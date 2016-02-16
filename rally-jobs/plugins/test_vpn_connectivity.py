@@ -14,22 +14,20 @@
 
 from neutron_vpnaas._i18n import _LI
 from rally.common import log as logging
-
 from rally.task import scenario
 from rally.task import types as types
-import vpn_base
 
+import vpn_base
 LOG = logging.getLogger(__name__)
 
 
-class VpnBasicScenario(vpn_base.VpnBase):
+class TestVpnBasicScenario(vpn_base.VpnBase):
     """Rally scenarios for VPNaaS"""
 
     @types.set(image=types.ImageResourceType,
                flavor=types.FlavorResourceType)
     @scenario.configure()
-    def create_and_delete_vpn_connection(
-            self, **kwargs):
+    def create_and_delete_vpn_connection(self, **kwargs):
         """Basic VPN connectivity scenario.
 
         1. Create 2 private networks, subnets and routers
@@ -44,10 +42,10 @@ class VpnBasicScenario(vpn_base.VpnBase):
         8. Create VPN service at each of the routers
         9. Create IPSEC site connections at both endpoints
         10. Verify that the ipsec-site-connection is ACTIVE (takes upto 30secs)
-        11. To verify the vpn connectivity, get into the first snat
+        11. To verify the vpn connectivity, get into the peer router's snat
             namespace and start a tcpdump at the qg-xxxx interface
-        12. SSH into the second instance from the second qrouter namespace
-            and try to ping the first instance
+        12. SSH into the nova instance from the local qrouter namespace
+            and try to ping the nova instance on the peer network.
         14. Verify that the captured packets are encapsulated and encrypted.
         15. Verify the connectivity in the reverse direction following the
             steps 11 through 13
@@ -55,16 +53,17 @@ class VpnBasicScenario(vpn_base.VpnBase):
         """
 
         try:
-            self.setup()
-            self.create_networks_and_servers(**kwargs)
+            self.setup(**kwargs)
+            self.create_networks(**kwargs)
+            self.create_servers(**kwargs)
             self.check_route()
             self.ike_policy = self._create_ike_policy(**kwargs)
             self.ipsec_policy = self._create_ipsec_policy(**kwargs)
             self.create_vpn_services()
             self.create_ipsec_site_connections(**kwargs)
             self.assert_statuses(final_status='ACTIVE', **kwargs)
-            self.assert_vpn_connectivity()
-            LOG.info(_LI("VPN CONNECTIVITY TEST PASSED!!"))
+            self.verify_vpn_connectivity(**kwargs)
+            LOG.info(_LI("VPN CONNECTIVITY TEST PASSED!"))
 
         finally:
             self.cleanup()

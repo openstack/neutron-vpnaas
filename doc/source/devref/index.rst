@@ -34,13 +34,19 @@ VPNaaS Flavors
    Info on the different Swan flavors, how they are different, and what
    Operating Systems support them.
 
-
 VPNaaS Internals
 -----------------
 .. toctree::
    :maxdepth: 3
 
    multiple-local-subnets
+
+VPNaaS Rally Tests
+--------------------
+.. toctree::
+   :maxdepth: 3
+
+   vpnaas-rally-test
 
 Testing
 -------
@@ -53,7 +59,6 @@ Testing
 
    Add notes about functional testing, with info on how
    different reference drivers are tested.
-
 
 Module Reference
 ----------------
