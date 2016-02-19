@@ -56,7 +56,9 @@ function configure_host_for_vpn_func_testing {
     if [ "$IS_GATE" == "True" ]; then
         configure_host_for_func_testing
     fi
-    sudo pip install --force oslo.config==3.0.0 # req for oslo-config-generator
+    # Note(pc_m): Need to ensure this is installed so we have
+    # oslo-config-generator present (as this script runs before tox.ini).
+    sudo pip install --force oslo.config
     _install_vpn_package
     _configure_vpn_ini_file
 }
