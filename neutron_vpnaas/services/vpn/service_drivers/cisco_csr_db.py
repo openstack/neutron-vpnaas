@@ -12,8 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from neutron.common import exceptions
 from neutron.db import model_base
+from neutron_lib import exceptions as nexception
 from oslo_db import exception as db_exc
 from oslo_log import log as logging
 import sqlalchemy as sa
@@ -40,7 +40,7 @@ MAPPING_LIMITS = {TUNNEL: (0, MAX_CSR_TUNNELS),
                   IPSEC_POLICY: (1, MAX_CSR_IPSEC_POLICIES)}
 
 
-class CsrInternalError(exceptions.NeutronException):
+class CsrInternalError(nexception.NeutronException):
     message = _("Fatal - %(reason)s")
 
 
