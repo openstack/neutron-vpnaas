@@ -16,7 +16,7 @@ case $VENV in
         NEUTRON_VPN_PATH=$GATE_DEST/$PROJECT_NAME
         DEVSTACK_PATH=$GATE_DEST/devstack
         IS_GATE=True
-        USE_CONSTRAINT_ENV=True
+        USE_CONSTRAINT_ENV=False
 
         source $NEUTRON_VPN_PATH/tools/configure_for_vpn_func_testing.sh
 
