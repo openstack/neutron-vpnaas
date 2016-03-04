@@ -15,11 +15,11 @@
 import collections
 import requests
 
-from neutron.common import exceptions
 from neutron.common import rpc as n_rpc
 from neutron import context as ctx
 from neutron.plugins.common import constants
 from neutron.plugins.common import utils as plugin_utils
+from neutron_lib import exceptions as nexception
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -46,21 +46,21 @@ RollbackStep = collections.namedtuple('RollbackStep',
                                       ['action', 'resource_id', 'title'])
 
 
-class CsrResourceCreateFailure(exceptions.NeutronException):
+class CsrResourceCreateFailure(nexception.NeutronException):
     message = _("Cisco CSR failed to create %(resource)s (%(which)s)")
 
 
-class CsrAdminStateChangeFailure(exceptions.NeutronException):
+class CsrAdminStateChangeFailure(nexception.NeutronException):
     message = _("Cisco CSR failed to change %(tunnel)s admin state to "
                 "%(state)s")
 
 
-class CsrDriverMismatchError(exceptions.NeutronException):
+class CsrDriverMismatchError(nexception.NeutronException):
     message = _("Required %(resource)s attribute %(attr)s mapping for Cisco "
                 "CSR is missing in device driver")
 
 
-class CsrUnknownMappingError(exceptions.NeutronException):
+class CsrUnknownMappingError(nexception.NeutronException):
     message = _("Device driver does not have a mapping of '%(value)s for "
                 "attribute %(attr)s of %(resource)s")
 

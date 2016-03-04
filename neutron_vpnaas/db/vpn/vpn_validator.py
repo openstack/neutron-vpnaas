@@ -16,11 +16,11 @@ import netaddr
 import socket
 
 from neutron.api.v2 import attributes
-from neutron.common import exceptions as nexception
 from neutron.db import l3_db
 from neutron.db import models_v2
 from neutron import manager
 from neutron.plugins.common import constants as nconstants
+from neutron_lib import exceptions as nexception
 
 from neutron_vpnaas._i18n import _
 from neutron_vpnaas.extensions import vpnaas

@@ -16,11 +16,11 @@
 import mock
 import socket
 
-from neutron.common import exceptions as nexception
 from neutron import context as n_ctx
 from neutron.db import l3_db
 from neutron.db import servicetype_db as st_db
 from neutron.plugins.common import constants as nconstants
+from neutron_lib import exceptions as nexception
 from oslo_utils import uuidutils
 from sqlalchemy.orm import query
 

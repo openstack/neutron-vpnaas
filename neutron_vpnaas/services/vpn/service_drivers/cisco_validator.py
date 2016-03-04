@@ -14,7 +14,7 @@
 
 import netaddr
 from netaddr import core as net_exc
-from neutron.common import exceptions
+from neutron_lib import exceptions as nexception
 from oslo_log import log as logging
 
 from neutron_vpnaas._i18n import _
@@ -29,7 +29,7 @@ MAX_CSR_MTU = 9192
 LOG = logging.getLogger(__name__)
 
 
-class CsrValidationFailure(exceptions.BadRequest):
+class CsrValidationFailure(nexception.BadRequest):
     message = _("Cisco CSR does not support %(resource)s attribute %(key)s "
                 "with value '%(value)s'")
 
