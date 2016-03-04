@@ -21,19 +21,25 @@ Create Date: 2015-09-09 20:32:54.254267
 
 """
 
-# revision identifiers, used by Alembic.
-revision = '2cb4ee992b41'
-down_revision = '2c82e782d734'
-depends_on = ('28ee739a7e4b',)
-
 from alembic import op
 from oslo_utils import uuidutils
 import sqlalchemy as sa
 from sqlalchemy.sql import expression as sa_expr
 
 from neutron.api.v2 import attributes as attr
+from neutron.db import migration
 
 from neutron_vpnaas.services.vpn.common import constants as v_constants
+
+
+# revision identifiers, used by Alembic.
+revision = '2cb4ee992b41'
+down_revision = '2c82e782d734'
+depends_on = ('28ee739a7e4b',)
+
+# milestone identifier, used by neutron-db-manage
+neutron_milestone = [migration.MITAKA]
+
 
 vpnservices = sa.Table(
     'vpnservices', sa.MetaData(),
