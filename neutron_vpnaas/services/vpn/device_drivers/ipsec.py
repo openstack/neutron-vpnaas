@@ -108,7 +108,7 @@ def _get_template(template_file):
     global JINJA_ENV
     if not JINJA_ENV:
         templateLoader = jinja2.FileSystemLoader(searchpath="/")
-        JINJA_ENV = jinja2.Environment(loader=templateLoader)
+        JINJA_ENV = jinja2.Environment(loader=templateLoader, autoescape=True)
     return JINJA_ENV.get_template(template_file)
 
 
