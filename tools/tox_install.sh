@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 # Many of neutron's repos suffer from the problem of depending on neutron,
 # but it not existing on pypi.

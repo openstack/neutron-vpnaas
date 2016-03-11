@@ -1,5 +1,5 @@
 # Copyright 2012 OpenStack Foundation
-# Copyright 2016 Hewlett Packard Enterprise Development Company
+# Copyright 2016 Hewlett Packard Enterprise Development Company LP
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -16,9 +16,9 @@
 
 import netaddr
 from oslo_log import log as logging
+from tempest.lib.common.utils import data_utils
+from tempest.lib import exceptions as lib_exc
 from tempest import test
-from tempest_lib.common.utils import data_utils
-from tempest_lib import exceptions as lib_exc
 
 from neutron.tests.tempest import config
 
@@ -62,16 +62,16 @@ class BaseNetworkTest(test.BaseTestCase):
     def get_client_manager(cls, credential_type=None, roles=None,
                            force_new=None):
         manager = test.BaseTestCase.get_client_manager(
-                credential_type=credential_type,
-                roles=roles,
-                force_new=force_new)
+            credential_type=credential_type,
+            roles=roles,
+            force_new=force_new)
         # Neutron uses a different clients manager than the one in the Tempest
         return clients.Manager(manager.credentials)
 
     @classmethod
     def skip_checks(cls):
         super(BaseNetworkTest, cls).skip_checks()
-        # Create no network resources for these test.
+        # Create no network resources for these tests.
         if not CONF.service_available.neutron:
             raise cls.skipException("Neutron support is required")
         if cls._ip_version == 6 and not CONF.network_feature_enabled.ipv6:
@@ -112,7 +112,7 @@ class BaseNetworkTest(test.BaseTestCase):
                                          vpnservice['id'])
 
     @classmethod
-    def _try_delete_resource(self, delete_callable, *args, **kwargs):
+    def _try_delete_resource(cls, delete_callable, *args, **kwargs):
         """Cleanup resources in case of test-failure
 
         Some resources are explicitly deleted by the test.
