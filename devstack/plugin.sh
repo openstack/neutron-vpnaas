@@ -11,6 +11,7 @@ function neutron_vpnaas_install {
 function neutron_agent_vpnaas_install_agent_packages {
     install_package $IPSEC_PACKAGE
     if is_ubuntu && [[ "$IPSEC_PACKAGE" == "strongswan" ]]; then
+        install_package apparmor
         sudo ln -sf /etc/apparmor.d/usr.lib.ipsec.charon /etc/apparmor.d/disable/
         sudo ln -sf /etc/apparmor.d/usr.lib.ipsec.stroke /etc/apparmor.d/disable/
         # NOTE: Due to https://bugs.launchpad.net/ubuntu/+source/apparmor/+bug/1387220
