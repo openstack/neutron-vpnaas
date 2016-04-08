@@ -160,6 +160,8 @@ class BaseSwanProcess(object):
     STATUS_NOT_RUNNING_RE = 'Command:.*ipsec.*status.*Exit code: [1|3]$'
     STATUS_IPSEC_SA_ESTABLISHED_RE = (
         '\d{3} #\d+: "([a-f0-9\-]+).*IPsec SA established.*')
+    STATUS_IPSEC_SA_ESTABLISHED_RE2 = (
+        '\d{3} #\d+: "([a-f0-9\-\/x]+).*IPsec SA established.*')
 
     def __init__(self, conf, process_id, vpnservice, namespace):
         self.conf = conf
@@ -177,6 +179,8 @@ class BaseSwanProcess(object):
             self.STATUS_NOT_RUNNING_RE)
         self.STATUS_IPSEC_SA_ESTABLISHED_PATTERN = re.compile(
             self.STATUS_IPSEC_SA_ESTABLISHED_RE)
+        self.STATUS_IPSEC_SA_ESTABLISHED_PATTERN2 = re.compile(
+            self.STATUS_IPSEC_SA_ESTABLISHED_RE2)
         self.STATUS_MAP = self.STATUS_DICT
 
     def translate_dialect(self):
@@ -611,16 +615,36 @@ class OpenSwanProcess(BaseSwanProcess):
                            '--initiate'
                            ])
 
+    def get_established_connections(self):
+        connections = []
+        status_output = self.get_status()
+
+        if not status_output:
+            return connections
+
+        for line in status_output.split('\n'):
+            if self.STATUS_NOT_RUNNING_PATTERN.search(line):
+                return connections
+            m = self.STATUS_IPSEC_SA_ESTABLISHED_PATTERN2.search(line)
+            if m:
+                connection = m.group(1)
+                if connection in connections:
+                    continue
+                connections.append(connection)
+        return connections
+
     def disconnect(self):
         if not self.namespace:
             return
         if not self.vpnservice:
             return
-        for conn_id in self.connection_status:
+
+        connections = self.get_established_connections()
+        for conn_name in connections:
             self._execute([self.binary,
                            'whack',
                            '--ctlbase', self.pid_path,
-                           '--name', '%s/0x1' % conn_id,
+                           '--name', '%s' % conn_name,
                            '--terminate'
                            ])
 
