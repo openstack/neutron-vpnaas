@@ -24,6 +24,8 @@ It includes both of in-tree and out-of-tree drivers.
 +----------------------------+---------------------------+------------------+
 | MidonetIPsecVPNDriver [#]_ | YAMAMOTO Takashi          | yamamoto         |
 +----------------------------+---------------------------+------------------+
+| NSXvIPsecVpnDriver [#]_    | Roey Chen                 | roeyc            |
++----------------------------+---------------------------+------------------+
 | OpenSwanDriver             | Lingxian Kong             | kong             |
 +----------------------------+---------------------------+------------------+
 |                            | Lingxian Kong             | kong             |
@@ -34,3 +36,4 @@ It includes both of in-tree and out-of-tree drivers.
 +----------------------------+---------------------------+------------------+
 
 .. [#] networking-midonet: https://docs.openstack.org/networking-midonet/latest/install/installation.html#vpnaas
+.. [#] vmware-nsx: Maintained under the vmware-nsx repository - https://github.com/openstack/vmware-nsx
