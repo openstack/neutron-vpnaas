@@ -54,4 +54,4 @@ def upgrade():
         op.alter_column(table_name='cisco_csr_identifier_map',
                         column_name='ipsec_site_conn_id',
                         type_=sa.String(36),
-                        existing_nullable=True)
+                        existing_nullable=False)
