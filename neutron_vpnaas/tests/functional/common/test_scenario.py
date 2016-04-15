@@ -93,6 +93,48 @@ FAKE_IPSEC_CONNECTION = {
     "id": _uuid()
 }
 
+
+FAKE_IKE_POLICY_SHA256 = {
+    'auth_algorithm': 'sha256',
+    "ike_version": "v1",
+    'encryption_algorithm': 'aes-128',
+    'pfs': 'group5',
+    'phase1_negotiation_mode': 'main',
+    'lifetime_units': 'seconds',
+    'lifetime_value': 3600
+}
+
+FAKE_IPSEC_POLICY_SHA256 = {
+    "encapsulation_mode": "tunnel",
+    "encryption_algorithm": "aes-128",
+    "pfs": "group5",
+    "lifetime_units": "seconds",
+    "lifetime_value": 3600,
+    "transform_protocol": "esp",
+    "auth_algorithm": "sha256",
+}
+
+FAKE_IPSEC_CONNECTION_SHA256 = {
+    "vpnservice_id": _uuid(),
+    "status": "PENDING_CREATE",
+    "psk": "969022489",
+    "initiator": "bi-directional",
+    "admin_state_up": True,
+    "auth_mode": "psk",
+    'external_ip': "172.24.4.8",
+    "peer_cidrs": ["10.100.255.224/28"],
+    "mtu": 1500,
+    "dpd_action": "hold",
+    "dpd_interval": 30,
+    "dpd_timeout": 120,
+    "route_mode": "static",
+    "ikepolicy": FAKE_IKE_POLICY_SHA256,
+    "ipsecpolicy": FAKE_IPSEC_POLICY_SHA256,
+    "peer_address": "172.24.4.8",
+    "peer_id": "172.24.4.8",
+    "id": _uuid()
+}
+
 PUBLIC_NET = netaddr.IPNetwork('19.4.4.0/24')
 PRIVATE_NET = netaddr.IPNetwork('35.4.0.0/16')
 FAKE_PUBLIC_SUBNET_ID = _uuid()
@@ -184,8 +226,8 @@ class SiteInfo(object):
                                  'router_id': self.info['id'],
                                  'external_ip': str(self.public_net)})
 
-    def prepare_ipsec_conn_info(self, peer):
-        ipsec_connection = copy.deepcopy(FAKE_IPSEC_CONNECTION)
+    def prepare_ipsec_conn_info(self, peer, connection=FAKE_IPSEC_CONNECTION):
+        ipsec_connection = copy.deepcopy(connection)
         local_cidrs = [str(s) for s in self.private_nets]
         peer_cidrs = [str(s) for s in peer.private_nets]
         ipsec_connection.update({
@@ -431,6 +473,13 @@ class TestIPSecBase(base.BaseSudoTestCase):
         site1.prepare_ipsec_conn_info(site2)
         site2.prepare_ipsec_conn_info(site1)
 
+    def prepare_ipsec_site_connections_sha256(self, site1, site2):
+        """Builds info for connections in both directions in prep for sync."""
+        site1.prepare_ipsec_conn_info(site2,
+                                    FAKE_IPSEC_CONNECTION_SHA256)
+        site2.prepare_ipsec_conn_info(site1,
+                                    FAKE_IPSEC_CONNECTION_SHA256)
+
     def sync_to_create_ipsec_connections(self, site1, site2):
         """Perform a sync, so that connections are created."""
         # Provide service info to sync
@@ -515,6 +564,19 @@ class TestIPSecScenario(TestIPSecBase):
         self.check_ping(site2, site1, success=False)
 
         self.prepare_ipsec_site_connections(site1, site2)
+        self.sync_to_create_ipsec_connections(site1, site2)
+
+        self.check_ping(site1, site2)
+        self.check_ping(site2, site1)
+
+    def test_single_ipsec_connection_sha256(self):
+        site1 = self.create_site(PUBLIC_NET[4], [self.private_nets[1]])
+        site2 = self.create_site(PUBLIC_NET[5], [self.private_nets[2]])
+
+        self.check_ping(site1, site2, success=False)
+        self.check_ping(site2, site1, success=False)
+
+        self.prepare_ipsec_site_connections_sha256(site1, site2)
         self.sync_to_create_ipsec_connections(site1, site2)
 
         self.check_ping(site1, site2)
