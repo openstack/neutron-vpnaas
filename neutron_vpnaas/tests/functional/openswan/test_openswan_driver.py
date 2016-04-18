@@ -13,10 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
 from neutron.agent.linux import ip_lib
 from neutron.agent.linux import utils as linux_utils
 
+from neutron_vpnaas.services.vpn.device_drivers import ipsec
 from neutron_vpnaas.tests.functional.common import test_scenario
+from oslo_config import cfg
 
 
 class TestOpenSwanDeviceDriver(test_scenario.TestIPSecBase):
@@ -93,3 +96,40 @@ class TestOpenSwanDeviceDriver(test_scenario.TestIPSecBase):
         # Validate that ip packets with 1173 (1201) bytes of data are dropped
         self.assertFalse(self._ping_mtu(site1, site2, 1173))
         self.assertFalse(self._ping_mtu(site2, site1, 1173))
+
+    def test_no_config_change_skip_restart(self):
+        """Test when config is not changed, then restart should be skipped"""
+        site1 = self.create_site(test_scenario.PUBLIC_NET[4],
+                [self.private_nets[1]])
+        site2 = self.create_site(test_scenario.PUBLIC_NET[5],
+                [self.private_nets[2]])
+
+        self.prepare_ipsec_site_connections(site1, site2)
+        self.sync_to_create_ipsec_connections(site1, site2)
+
+        self.check_ping(site1, site2)
+        self.check_ping(site2, site1)
+
+        with mock.patch.object(ipsec.OpenSwanProcess, 'start') as my_start:
+
+            ipsec.OpenSwanProcess.active = mock.patch.object(
+                ipsec.OpenSwanProcess, 'active', return_value=True).start()
+            ipsec.OpenSwanProcess._config_changed = mock.patch.object(
+                ipsec.OpenSwanProcess,
+                '_config_changed', return_value=False).start()
+
+            self.sync_to_create_ipsec_connections(site1, site2)
+            # when restart_check_config is not set, start will be
+            # called in each sync
+            self.assertEqual(2, my_start.call_count)
+            my_start.reset_mock()
+
+            cfg.CONF.set_override('restart_check_config', True, group='pluto')
+            self.sync_to_create_ipsec_connections(site1, site2)
+            # after restart_check_config enabled, then start will
+            # not be called, since no config changes
+            my_start.assert_not_called()
+
+            ipsec.OpenSwanProcess.active.stop()
+            ipsec.OpenSwanProcess._config_changed.stop()
+            cfg.CONF.set_override('restart_check_config', False, group='pluto')
