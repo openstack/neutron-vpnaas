@@ -14,6 +14,7 @@
 #    under the License.
 import abc
 import copy
+import filecmp
 import os
 import re
 import shutil
@@ -94,7 +95,11 @@ pluto_opts = [
                  default=1.5,
                  help=_('A factor to increase the retry interval for '
                         'each retry'),
-                 deprecated_group='libreswan')
+                 deprecated_group='libreswan'),
+    cfg.BoolOpt('restart_check_config',
+                default=False,
+                help=_('Enable this flag to avoid from unnecessary restart'),
+                deprecated_group='libreswan')
 ]
 
 cfg.CONF.register_opts(pluto_opts, 'pluto')
@@ -417,6 +422,17 @@ class OpenSwanProcess(BaseSwanProcess):
             self.vpnservice,
             0o600)
 
+    def _copy_configs(self):
+        if not cfg.CONF.pluto.restart_check_config:
+            return
+        config_file_name = self._get_config_filename('ipsec.conf')
+        if os.path.isfile(config_file_name):
+            shutil.copyfile(config_file_name, config_file_name + '.old')
+        config_file_name = self._get_config_filename('ipsec.secrets')
+        if os.path.isfile(config_file_name):
+            shutil.copyfile(config_file_name, config_file_name + '.old')
+        os.chmod(config_file_name + '.old', 0o600)
+
     def _process_running(self):
         """Checks if process is still running."""
 
@@ -479,8 +495,32 @@ class OpenSwanProcess(BaseSwanProcess):
                               self.pid_path,
                               '--status'], extra_ok_codes=[1, 3])
 
+    def _config_changed(self):
+        secrets_file = os.path.join(
+            self.etc_dir, 'ipsec.secrets')
+        config_file = os.path.join(
+            self.etc_dir, 'ipsec.conf')
+
+        if not os.path.isfile(secrets_file + '.old'):
+            return True
+        if not os.path.isfile(config_file + '.old'):
+            return True
+
+        if not filecmp.cmp(secrets_file, secrets_file + '.old'):
+            return True
+        if not filecmp.cmp(config_file, config_file + '.old'):
+            return True
+
+        return False
+
     def restart(self):
         """Restart the process."""
+        should_be_restart = False
+        if self._config_changed() or not cfg.CONF.pluto.restart_check_config:
+            should_be_restart = True
+        if not should_be_restart:
+            return
+
         # stop() followed immediately by a start() runs the risk that the
         # current pluto daemon has not had a chance to shutdown. We check
         # the current process information to see if the daemon is still
@@ -615,6 +655,7 @@ class OpenSwanProcess(BaseSwanProcess):
                            '--asynchronous',
                            '--initiate'
                            ])
+        self._copy_configs()
 
     def get_established_connections(self):
         connections = []
