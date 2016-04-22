@@ -25,6 +25,7 @@ from oslo_utils import uuidutils
 
 from neutron_vpnaas.services.vpn.device_drivers import ipsec
 from neutron_vpnaas.services.vpn.device_drivers import strongswan_ipsec
+from neutron_vpnaas.tests.functional.common import test_scenario
 
 _uuid = uuidutils.generate_uuid
 FAKE_ROUTER_ID = _uuid()
@@ -82,6 +83,23 @@ DESIRED_CONN_STATUS = {FAKE_IPSEC_SITE_CONNECTION1_ID:
                        FAKE_IPSEC_SITE_CONNECTION2_ID:
                        {'status': 'DOWN',
                         'updated_pending_status': False}}
+
+FAKE_IKE_POLICY2 = {
+    'ike_version': 'v1',
+    'encryption_algorithm': 'aes-256',
+    'auth_algorithm': 'sha1',
+    'pfs': 'group2',
+    'lifetime_value': 1800
+}
+
+FAKE_IPSEC_POLICY2 = {
+    'encryption_algorithm': 'aes-256',
+    'auth_algorithm': 'sha1',
+    'pfs': 'group2',
+    'transform_protocol': 'esp',
+    'lifetime_value': 1800,
+    'encapsulation_mode': 'tunnel'
+}
 
 
 class TestStrongSwanDeviceDriver(base.BaseSudoTestCase):
@@ -143,3 +161,41 @@ class TestStrongSwanDeviceDriver(base.BaseSudoTestCase):
         self.assertFalse(process.active)
         self.assertFalse(process.connection_status)
         self.assertFalse(os.path.exists(conf_dir))
+
+
+class TestStrongSwanScenario(test_scenario.TestIPSecBase):
+
+    def _override_ikepolicy_for_site(self, site, ikepolicy):
+        ipsec_connection = site.vpn_service['ipsec_site_connections'][0]
+        ipsec_connection['ikepolicy'] = ikepolicy
+
+    def _override_ipsecpolicy_for_site(self, site, ipsecpolicy):
+        ipsec_connection = site.vpn_service['ipsec_site_connections'][0]
+        ipsec_connection['ipsecpolicy'] = ipsecpolicy
+
+    def _override_dpd_for_site(self, site, dpdaction, dpddelay, dpdtimeout):
+        ipsec_connection = site.vpn_service['ipsec_site_connections'][0]
+        ipsec_connection['dpd_action'] = dpdaction
+        ipsec_connection['dpd_interval'] = dpddelay
+        ipsec_connection['dpd_timeout'] = dpdtimeout
+
+    def test_strongswan_connection_with_non_default_value(self):
+        site1 = self.create_site(test_scenario.PUBLIC_NET[4],
+                [self.private_nets[1]])
+        site2 = self.create_site(test_scenario.PUBLIC_NET[5],
+                [self.private_nets[2]])
+
+        self.check_ping(site1, site2, success=False)
+        self.check_ping(site2, site1, success=False)
+
+        self.prepare_ipsec_site_connections(site1, site2)
+        self._override_ikepolicy_for_site(site1, FAKE_IKE_POLICY2)
+        self._override_ikepolicy_for_site(site2, FAKE_IKE_POLICY2)
+        self._override_ipsecpolicy_for_site(site1, FAKE_IPSEC_POLICY2)
+        self._override_ipsecpolicy_for_site(site2, FAKE_IPSEC_POLICY2)
+        self._override_dpd_for_site(site1, 'hold', 60, 240)
+        self._override_dpd_for_site(site2, 'hold', 60, 240)
+        self.sync_to_create_ipsec_connections(site1, site2)
+
+        self.check_ping(site1, site2)
+        self.check_ping(site2, site1)

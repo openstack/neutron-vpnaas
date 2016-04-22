@@ -19,4 +19,16 @@ conn {{ipsec_site_connection.id}}
     rightsubnet={{ipsec_site_connection['peer_cidrs']|join(',')}}
     rightid={{ipsec_site_connection.peer_id}}
     auto=route
+    dpdaction={{ipsec_site_connection.dpd_action}}
+    dpddelay={{ipsec_site_connection.dpd_interval}}s
+    dpdtimeout={{ipsec_site_connection.dpd_timeout}}s
+    ike={{ipsec_site_connection.ikepolicy.encryption_algorithm}}-{{ipsec_site_connection.ikepolicy.auth_algorithm}}-{{ipsec_site_connection.ikepolicy.pfs}}
+    ikelifetime={{ipsec_site_connection.ikepolicy.lifetime_value}}s
+    {%- if ipsec_site_connection.ipsecpolicy.transform_protocol == "ah" %}
+    ah={{ipsec_site_connection.ipsecpolicy.auth_algorithm}}-{{ipsec_site_connection.ipsecpolicy.pfs}}
+    {%- else %}
+    esp={{ipsec_site_connection.ipsecpolicy.encryption_algorithm}}-{{ipsec_site_connection.ipsecpolicy.auth_algorithm}}-{{ipsec_site_connection.ipsecpolicy.pfs}}
+    {%- endif %}
+    lifetime={{ipsec_site_connection.ipsecpolicy.lifetime_value}}s
+    type={{ipsec_site_connection.ipsecpolicy.encapsulation_mode}}
 {% endfor %}
