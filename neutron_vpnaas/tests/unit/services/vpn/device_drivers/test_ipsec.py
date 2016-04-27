@@ -387,6 +387,11 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
             for conn in self.vpnservice['ipsec_site_connections']:
                 conn['external_ip'] = local_ip
 
+        local_id = overrides.get('local_id')
+        if local_ip:
+            for conn in self.vpnservice['ipsec_site_connections']:
+                conn['local_id'] = local_id
+
     def check_config_file(self, expected, actual):
         expected = expected.strip()
         actual = actual.strip()
@@ -1012,7 +1017,8 @@ class TestOpenSwanConfigGeneration(BaseIPsecDeviceDriver):
                      'peer_cidrs': [['2002:1400::/48', '2002:1e00::/48'],
                                     ['2002:2800::/48', '2002:3200::/48']],
                      'local': '2002:3c00:0004::',
-                     'peers': ['2002:3c00:0005::', '2002:3c00:0006::']}
+                     'peers': ['2002:3c00:0005::', '2002:3c00:0006::'],
+                     'local_id': '2002:3c00:0004::'}
         self.modify_config_for_test(overrides)
         self.process.update_vpnservice(self.vpnservice)
         self._test_ipsec_connection_config(overrides)
@@ -1081,7 +1087,8 @@ class IPsecStrongswanConfigGeneration(BaseIPsecDeviceDriver):
                      'peer_cidrs': [['2002:1400::/48', '2002:1e00::/48'],
                                     ['2002:2800::/48', '2002:3200::/48']],
                      'local': '2002:3c00:0004::',
-                     'peers': ['2002:3c00:0005::', '2002:3c00:0006::']}
+                     'peers': ['2002:3c00:0005::', '2002:3c00:0006::'],
+                     'local_id': '2002:3c00:0004::'}
         self.modify_config_for_test(overrides)
         self.process.update_vpnservice(self.vpnservice)
         self._test_ipsec_connection_config(overrides)

@@ -13,7 +13,7 @@ conn {{ipsec_site_connection.id}}
     keyexchange={{ipsec_site_connection.ikepolicy.ike_version}}
     left={{ipsec_site_connection.external_ip}}
     leftsubnet={{ipsec_site_connection['local_cidrs']|join(',')}}
-    leftid={{ipsec_site_connection.external_ip}}
+    leftid={{ipsec_site_connection.local_id}}
     leftfirewall=yes
     right={{ipsec_site_connection.peer_address}}
     rightsubnet={{ipsec_site_connection['peer_cidrs']|join(',')}}

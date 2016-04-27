@@ -226,7 +226,8 @@ class SiteInfo(object):
                                  'router_id': self.info['id'],
                                  'external_ip': str(self.public_net)})
 
-    def prepare_ipsec_conn_info(self, peer, connection=FAKE_IPSEC_CONNECTION):
+    def prepare_ipsec_conn_info(self, peer, connection=FAKE_IPSEC_CONNECTION,
+                                local_id=None, peer_id=None):
         ipsec_connection = copy.deepcopy(connection)
         local_cidrs = [str(s) for s in self.private_nets]
         peer_cidrs = [str(s) for s in peer.private_nets]
@@ -240,6 +241,10 @@ class SiteInfo(object):
             'local_cidrs': local_cidrs,
             'local_ip_vers': 4
         })
+        if local_id:
+            ipsec_connection['local_id'] = local_id
+        if peer_id:
+            ipsec_connection['peer_id'] = peer_id
         self.vpn_service['ipsec_site_connections'] = [ipsec_connection]
 
 
@@ -480,6 +485,13 @@ class TestIPSecBase(base.BaseSudoTestCase):
         site2.prepare_ipsec_conn_info(site1,
                                     FAKE_IPSEC_CONNECTION_SHA256)
 
+    def prepare_ipsec_site_connections_local_id(self, site1, site2):
+        """Builds info for connections in both directions in prep for sync."""
+        site1.prepare_ipsec_conn_info(site2, local_id='@site1.com',
+                                    peer_id='@site2.com')
+        site2.prepare_ipsec_conn_info(site1, local_id='@site2.com',
+                                    peer_id='@site1.com')
+
     def sync_to_create_ipsec_connections(self, site1, site2):
         """Perform a sync, so that connections are created."""
         # Provide service info to sync
@@ -577,6 +589,19 @@ class TestIPSecScenario(TestIPSecBase):
         self.check_ping(site2, site1, success=False)
 
         self.prepare_ipsec_site_connections_sha256(site1, site2)
+        self.sync_to_create_ipsec_connections(site1, site2)
+
+        self.check_ping(site1, site2)
+        self.check_ping(site2, site1)
+
+    def test_single_ipsec_connection_local_id(self):
+        site1 = self.create_site(PUBLIC_NET[4], [self.private_nets[1]])
+        site2 = self.create_site(PUBLIC_NET[5], [self.private_nets[2]])
+
+        self.check_ping(site1, site2, success=False)
+        self.check_ping(site2, site1, success=False)
+
+        self.prepare_ipsec_site_connections_local_id(site1, site2)
         self.sync_to_create_ipsec_connections(site1, site2)
 
         self.check_ping(site1, site2)

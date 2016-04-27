@@ -440,18 +440,20 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
 
     def test_ipsec_site_connection_create(self):
         """Create an IPSec connection with peer CIDRs (old API)."""
-        peer_cidrs = {'peer_cidrs': ['192.168.2.0/24', '192.168.3.0/24']}
+        more_args = {'peer_cidrs': ['192.168.2.0/24', '192.168.3.0/24'],
+                     'local_id': ''}
         no_endpoint_groups = {'local_ep_group_id': None,
                               'peer_ep_group_id': None}
         self._test_ipsec_site_connection_create(
-            more_args=peer_cidrs, defaulted_args=no_endpoint_groups)
+            more_args=more_args, defaulted_args=no_endpoint_groups)
 
     def test_ipsec_site_connection_create_with_endpoints(self):
         """Create an IPSec connection with endpoint groups (new API)."""
-        endpoint_groups = {'local_ep_group_id': _uuid(),
-                           'peer_ep_group_id': _uuid()}
+        more_args = {'local_ep_group_id': _uuid(),
+                     'peer_ep_group_id': _uuid(),
+                     'local_id': ''}
         no_peer_cidrs = {'peer_cidrs': []}
-        self._test_ipsec_site_connection_create(more_args=endpoint_groups,
+        self._test_ipsec_site_connection_create(more_args=more_args,
                                                 defaulted_args=no_peer_cidrs)
 
     def test_ipsec_site_connection_list(self):
