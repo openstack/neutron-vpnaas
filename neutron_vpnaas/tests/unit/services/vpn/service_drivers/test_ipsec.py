@@ -120,6 +120,7 @@ class TestIPsecDriver(base.BaseTestCase):
         local_endpoints = info.get('local_endpoints', [])
         peer_cidrs = info.get('peer_cidrs', ['40.4.0.0/24', '50.5.0.0/24'])
         peer_id = info.get('peer_id', '30.30.0.0')
+        local_id = info.get('local_id', '')
 
         fake_ikepolicy = FakeSqlQueryObject(id='foo-ike', name='ike-name')
         fake_ipsecpolicy = FakeSqlQueryObject(id='foo-ipsec')
@@ -134,6 +135,7 @@ class TestIPsecDriver(base.BaseTestCase):
         fake_ipsec_conn = FakeSqlQueryObject(id='conn-id',
                                              peer_id=peer_id,
                                              peer_address=peer_address,
+                                             local_id=local_id,
                                              ikepolicy=fake_ikepolicy,
                                              ipsecpolicy=fake_ipsecpolicy,
                                              peer_ep_group_id=peer_epg_id,
@@ -193,6 +195,7 @@ class TestIPsecDriver(base.BaseTestCase):
         external_ip = '10.0.0.99'
         peer_id = info.get('peer_id', '30.30.0.0')
         peer_cidrs = info.get('peer_cidrs', ['40.4.0.0/24', '50.5.0.0/24'])
+        local_id = info.get('local_id', '')
 
         return {'name': 'foo-vpn',
                 'id': 'foo-vpn-id',
@@ -213,6 +216,7 @@ class TestIPsecDriver(base.BaseTestCase):
                      'peer_id': peer_id,
                      'external_ip': external_ip,
                      'peer_address': '10.0.0.2',
+                     'local_id': local_id,
                      'ikepolicy': {'id': 'foo-ike',
                                    'name': 'ike-name'},
                      'ipsecpolicy': {'id': 'foo-ipsec'},
@@ -234,6 +238,7 @@ class TestIPsecDriver(base.BaseTestCase):
 
         external_ip = '10.0.0.99'
         peer_id = '30.30.0.0'
+        local_id = info.get('local_id', '')
         return {'name': 'foo-vpn',
                 'id': 'foo-vpn-id',
                 'description': 'foo-vpn-service',
@@ -250,6 +255,7 @@ class TestIPsecDriver(base.BaseTestCase):
                      'peer_id': peer_id,
                      'external_ip': external_ip,
                      'peer_address': '10.0.0.2',
+                     'local_id': local_id,
                      'ikepolicy': {'id': 'foo-ike',
                                    'name': 'ike-name'},
                      'ipsecpolicy': {'id': 'foo-ipsec'},

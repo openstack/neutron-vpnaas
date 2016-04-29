@@ -200,6 +200,9 @@ class BaseSwanProcess(object):
                         'pfs']:
                 self._dialect(ipsec_site_conn['ikepolicy'], key)
                 self._dialect(ipsec_site_conn['ipsecpolicy'], key)
+            if (('local_id' not in ipsec_site_conn.keys()) or
+                (not ipsec_site_conn['local_id'])):
+                ipsec_site_conn['local_id'] = ipsec_site_conn['external_ip']
 
     def update_vpnservice(self, vpnservice):
         self.vpnservice = vpnservice

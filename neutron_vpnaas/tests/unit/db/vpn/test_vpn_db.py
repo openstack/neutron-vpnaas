@@ -2042,7 +2042,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         return self.plugin.create_endpoint_group(self.context, info)
 
     def prepare_connection_info(self, service_id, ike_policy_id,
-                                ipsec_policy_id):
+                                ipsec_policy_id, local_id=''):
         """Creates connection request dictionary.
 
         The peer_cidrs, local_ep_group_id, and peer_ep_group_id are set to
@@ -2055,6 +2055,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
                                           'peer_id': '192.168.1.10',
                                           'peer_address': '192.168.1.10',
                                           'peer_cidrs': [],
+                                          'local_id': local_id,
                                           'mtu': 1500,
                                           'psk': 'shhhh!!!',
                                           'initiator': 'bi-directional',

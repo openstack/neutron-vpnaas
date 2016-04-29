@@ -188,9 +188,14 @@ class BaseIPsecVPNDriver(service_drivers.VpnDriver):
             ipsec_site_connection_dict = dict(ipsec_site_connection)
             try:
                 netaddr.IPAddress(ipsec_site_connection_dict['peer_id'])
+                if ipsec_site_connection_dict['local_id']:
+                    netaddr.IPAddress(ipsec_site_connection_dict['local_id'])
             except netaddr.core.AddrFormatError:
                 ipsec_site_connection_dict['peer_id'] = (
                     '@' + ipsec_site_connection_dict['peer_id'])
+                if ipsec_site_connection_dict['local_id']:
+                    ipsec_site_connection_dict['local_id'] = (
+                        '@' + ipsec_site_connection_dict['local_id'])
             ipsec_site_connection_dict['ikepolicy'] = dict(
                 ipsec_site_connection.ikepolicy)
             ipsec_site_connection_dict['ipsecpolicy'] = dict(

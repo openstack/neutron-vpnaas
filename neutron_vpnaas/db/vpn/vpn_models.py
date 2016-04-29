@@ -94,6 +94,7 @@ class IPsecSiteConnection(model_base.BASEV2,
     description = sa.Column(sa.String(attr.DESCRIPTION_MAX_LEN))
     peer_address = sa.Column(sa.String(255), nullable=False)
     peer_id = sa.Column(sa.String(255), nullable=False)
+    local_id = sa.Column(sa.String(255), nullable=True)
     route_mode = sa.Column(sa.String(8), nullable=False)
     mtu = sa.Column(sa.Integer, nullable=False)
     initiator = sa.Column(sa.Enum("bi-directional", "response-only",

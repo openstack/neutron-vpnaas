@@ -22,7 +22,7 @@ conn {{ipsec_site_connection.id}}
     rightnexthop=%defaultroute
     {% endif -%}
     left={{ipsec_site_connection.external_ip}}
-    leftid={{ipsec_site_connection.external_ip}}
+    leftid={{ipsec_site_connection.local_id}}
     auto={{ipsec_site_connection.initiator}}
     # NOTE:REQUIRED
     # [subnet]
