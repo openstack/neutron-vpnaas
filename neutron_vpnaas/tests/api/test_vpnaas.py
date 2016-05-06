@@ -1,4 +1,4 @@
-# Copyright 2012 OpenStack Foundation
+# Copyright 2012,2016 OpenStack Foundation
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -18,11 +18,15 @@ from tempest.lib.common.utils import data_utils
 from tempest.lib import exceptions as lib_exc
 from tempest import test
 
+from neutron.api.v2 import attributes as attr
 from neutron.tests.tempest import config
 
 from neutron_vpnaas.tests.api import base
 
 CONF = config.CONF
+
+_LONG_NAME = 'x' * (attr.NAME_MAX_LEN + 1)
+_LONG_DESCRIPTION = 'y' * (attr.DESCRIPTION_MAX_LEN + 1)
 
 
 class VPNaaSTestJSON(base.BaseAdminNetworkTest):
@@ -316,3 +320,26 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         body = self.client.show_ipsecpolicy(self.ipsecpolicy['id'])
         ipsecpolicy = body['ipsecpolicy']
         self._assertExpected(self.ipsecpolicy, ipsecpolicy)
+
+    @test.attr(type=['negative', 'smoke'])
+    def test_create_vpnservice_long_name(self):
+        """
+        Test excessively long name.
+
+        Without REST checks, this call would return 500 INTERNAL SERVER
+        error on internal db failure instead.
+        """
+        name = _LONG_NAME
+        self.assertRaises(
+            lib_exc.BadRequest, self.client.create_vpnservice,
+            subnet_id=self.subnet['id'], router_id=self.router['id'],
+            name=name, admin_state_up=True)
+
+    @test.attr(type=['negative', 'smoke'])
+    def test_create_vpnservice_long_description(self):
+        name = data_utils.rand_name('vpn-service1')
+        description = _LONG_DESCRIPTION
+        self.assertRaises(
+            lib_exc.BadRequest, self.client.create_vpnservice,
+            subnet_id=self.subnet['id'], router_id=self.router['id'],
+            name=name, description=description, admin_state_up=True)
