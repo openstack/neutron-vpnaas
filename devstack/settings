@@ -15,6 +15,7 @@ IPSEC_PACKAGE=${IPSEC_PACKAGE:-"openswan"}
 NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.ipsec.OpenSwanDriver"}
 
 # Config files
+NEUTRON_CONF_DIR=${NEUTRON_CONF_DIR:-"/etc/neutron"}
 NEUTRON_VPNAAS_DIR=$DEST/neutron-vpnaas
 Q_VPN_CONF_FILE=$NEUTRON_CONF_DIR/vpn_agent.ini
 NEUTRON_VPNAAS_CONF=$NEUTRON_CONF_DIR/neutron_vpnaas.conf
