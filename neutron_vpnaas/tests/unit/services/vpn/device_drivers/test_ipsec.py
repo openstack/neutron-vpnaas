@@ -264,6 +264,12 @@ EXPECTED_IPSEC_STRONGSWAN_SECRET_CONF = '''
 PLUTO_ACTIVE_STATUS = """000 "%(conn_id)s/0x1": erouted;\n
 000 #4: "%(conn_id)s/0x1":500 STATE_QUICK_R2 (IPsec SA established);""" % {
     'conn_id': FAKE_IPSEC_SITE_CONNECTION2_ID}
+PLUTO_MULTIPLE_SUBNETS_ESTABLISHED_STATUS = """000 "%(conn_id1)s/1x1": erouted;\n
+000 #4: "%(conn_id1)s/1x1":500 STATE_QUICK_R2 (IPsec SA established);\n
+000 "%(conn_id2)s/2x1": erouted;\n
+000 #4: "%(conn_id2)s/2x1":500 STATE_QUICK_R2 (IPsec SA established);\n""" % {
+    'conn_id1': FAKE_IPSEC_SITE_CONNECTION1_ID,
+    'conn_id2': FAKE_IPSEC_SITE_CONNECTION2_ID}
 PLUTO_ACTIVE_NO_IPSEC_SA_STATUS = """000 "%(conn_id)s/0x1": erouted;\n
 000 #258: "%(conn_id)s/0x1":500 STATE_MAIN_R2 (sent MR2, expecting MI3);""" % {
     'conn_id': FAKE_IPSEC_SITE_CONNECTION2_ID}
@@ -753,6 +759,15 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         self.assertEqual(constants.ACTIVE, process_status['status'])
         self.assertEqual(constants.ACTIVE,
                          ipsec_site_conn[connection_id]['status'])
+
+    def _test_connection_names_handling_for_multiple_subnets(self,
+                                                             active_status):
+        """Test connection names handling for multiple subnets."""
+        router_id = self.router.router_id
+        process = self.driver.ensure_process(router_id, self.vpnservice)
+        self._execute.return_value = active_status
+        names = process.get_established_connections()
+        self.assertEqual(2, len(names))
 
     def _test_status_handling_for_deleted_connection(self,
                                                      not_running_status):
@@ -1306,6 +1321,11 @@ class TestOpenSwanProcess(IPSecDeviceLegacy):
     def test_status_handling_for_deleted_connection(self):
         """Test status handling for deleted connection."""
         self._test_status_handling_for_deleted_connection(NOT_RUNNING_STATUS)
+
+    def test_connection_names_handling_for_multiple_subnets(self):
+        """Test connection names handling for multiple subnets."""
+        self._test_connection_names_handling_for_multiple_subnets(
+            PLUTO_MULTIPLE_SUBNETS_ESTABLISHED_STATUS)
 
     def test_parse_connection_status(self):
         """Test the status of ipsec-site-connection parsed correctly."""
