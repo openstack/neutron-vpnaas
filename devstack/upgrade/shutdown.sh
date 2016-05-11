@@ -13,7 +13,24 @@
 # under the License.
 #
 # ``upgrade-neutron-vpnaas``
+set -o errexit
 source $GRENADE_DIR/grenaderc
 source $GRENADE_DIR/functions
+source $BASE_DEVSTACK_DIR/functions
+source $BASE_DEVSTACK_DIR/stackrc  # needed for status directory
+
+# TODO(kevinbenton): figure out best way to source this from devstack plugin
+function neutron_vpnaas_stop {
+    local ipsec_data_dir=$DATA_DIR/neutron/ipsec
+    local pids
+    if [ -d $ipsec_data_dir ]; then
+        pids=$(find $ipsec_data_dir -name 'pluto.pid' -exec cat {} \;)
+    fi
+    if [ -n "$pids" ]; then
+        sudo kill $pids
+    fi
+    stop_process neutron-vpnaas
+}
+ENABLED_SERVICES+=,neutron-vpnaas
 set -o xtrace
 neutron_vpnaas_stop
