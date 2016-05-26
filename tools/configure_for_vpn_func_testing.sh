@@ -17,6 +17,7 @@ set -e
 
 
 IS_GATE=${IS_GATE:-False}
+USE_CONSTRAINT_ENV=${USE_CONSTRAINT_ENV:-False}
 PROJECT_NAME=${PROJECT_NAME:-neutron-vpnaas}
 REPO_BASE=${GATE_DEST:-$(cd $(dirname "$BASH_SOURCE")/../.. && pwd)}
 
