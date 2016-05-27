@@ -16,9 +16,12 @@
 import abc
 
 from neutron.common import rpc as n_rpc
+from neutron.common import utils
 from neutron import manager
 from neutron.plugins.common import constants
+from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import importutils
 import oslo_messaging
 import six
 
@@ -88,7 +91,19 @@ class BaseIPsecVpnAgentApi(object):
         This method will find where is the router, and
         dispatch notification for the agent.
         """
+        """Notify all the agents that are hosting the routers."""
+
+        if not self.driver.l3_plugin.router_scheduler:
+            self.driver.l3_plugin.router_scheduler = importutils.import_object(
+                cfg.CONF.router_scheduler_driver)
+
         admin_context = context if context.is_admin else context.elevated()
+
+        #if utils.is_extension_supported(
+        #        self.driver.l3_plugin, constants.L3_AGENT_SCHEDULER_EXT_ALIAS):
+        if True:
+            self.driver.l3_plugin.schedule_routers(admin_context, [router_id])
+
         if not version:
             version = self.target.version
         l3_agents = self.driver.l3_plugin.get_l3_agents_hosting_routers(
