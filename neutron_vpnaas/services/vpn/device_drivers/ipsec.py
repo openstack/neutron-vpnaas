@@ -16,7 +16,6 @@ import abc
 import copy
 import os
 import re
-import shutil
 import six
 import socket
 
@@ -24,6 +23,7 @@ import eventlet
 import jinja2
 import netaddr
 from neutron.agent.linux import ip_lib
+from neutron.agent.linux import utils as agent_utils
 from neutron.api.v2 import attributes
 from neutron.common import rpc as n_rpc
 from neutron.common import utils as n_utils
@@ -217,7 +217,8 @@ class BaseSwanProcess(object):
 
     def remove_config(self):
         """Remove whole config file."""
-        shutil.rmtree(self.config_dir, ignore_errors=True)
+        agent_utils.execute(
+            cmd=["rm", "-rf", self.config_dir], run_as_root=True)
 
     def _get_config_filename(self, kind):
         config_dir = self.etc_dir

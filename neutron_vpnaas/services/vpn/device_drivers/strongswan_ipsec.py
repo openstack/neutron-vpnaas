@@ -14,11 +14,11 @@
 #    under the License.
 
 import os
-import shutil
 
 from oslo_config import cfg
 
 from neutron.agent.linux import ip_lib
+from neutron.agent.linux import utils
 from neutron.plugins.common import constants
 
 from neutron_vpnaas._i18n import _
@@ -111,9 +111,12 @@ class StrongSwanProcess(ipsec.BaseSwanProcess):
             extra_ok_codes=extra_ok_codes)
 
     def copy_and_overwrite(self, from_path, to_path):
+        # NOTE(toabctl): the agent may run as non-root user, so rm/copy as root
         if os.path.exists(to_path):
-            shutil.rmtree(to_path)
-        shutil.copytree(from_path, to_path)
+            utils.execute(
+                cmd=["rm", "-rf", to_path], run_as_root=True)
+        utils.execute(
+            cmd=["cp", "-a", from_path, to_path], run_as_root=True)
 
     def ensure_configs(self):
         """Generate config files which are needed for StrongSwan.
