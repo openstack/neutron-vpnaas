@@ -1,0 +1,209 @@
+=========================
+VPNaaS for OVN Networking
+=========================
+This blueprint covers the support for VPNaaS with OVN networking by adding a new centralized VPNaaS agent on a group of HA nodes. The new VPN agent will create a namespace on the node and connect the namespace with the OVN distributed logical router, and run the *Swan process in the namespace.
+
+Problem Description
+===================
+
+Currently VPNaaS service plugin only has support for the reference Neutron software routers, such as neutron L3 router. It can't work together with OVN distributed router.
+
+Proposed Change
+===============
+
+          +--------+-------------------------------+----------+ provider
+                   |                               |               or
+                   |                               |             public
+                   |                               |             network
+           +-------+---------+             +-------+--------+
+           |                 |    Transit  |                |
+           |                 |    Network  |   VPN Agent    |
+           |   OVN           |-------------|   Namespace    |
+           |   Distributed   |             |                |
+           |   Router        |             |                |
+           +-----------------+             +----------------+
+               |        
+               |        
+               |        
+               |        
+               |        
+               |                                  
+               |                                  
+               |                                  
+               |                                                           
+               |        private network                 
+     +-------+------------------------+-------------------------+------+
+             |                        |                         |
+             |                        |                         |
+        +----+---+                +---+---+                  +--+---+
+        | VM1    |                | VM2   |                  | VM3  |
+        |        |                |       |                  |      |
+        +--------+                +-------+                  +------+
+
+Add a new VPN agent to support VPN+OVN, the new VPN agent can support any distributed router solution. Together with the new agent, changes for VPNaaS plugin service driver are also needed. This will have no impact on existing VPN solution. The existing VPN agent can still work with neutron l3 router. This does not need any changes for OVN l3 plugin. So it is compatible with current OVN L3 plugin.
+
+Changes on neutron server
+=========================
+Block diagram:
+
+
+            +---------------------------------------------------+
+            |                                                   |
+            |                 Neutron Server                    |
+            |                                                   |
+            +----------------------------------+----------------+
+            ||                                 |                |
+            ||          VPN plugin             |                |
+            ||                                 |                |
+            || +-----------------------------+ |  +-------------+
+            || |                             | |  |   VPN      ||
+            || |    VPN plugin driver        +----> scheduler  ||
+            || |                             | |  |            ||
+            || +----+--------------------+---+ |  +-------------+
+            ||      |                    |     |                |
+            +----------------------------------+----------------+
+                    |                    |
+                    +                    +
+                 RPC message          RPC message
+                    +                    +
+                    |                    |
+                    |                    |
+            +-------v------+       +-----v-------+
+            |              |       |             |
+            |   VPN agent  +-+HA+--+   VPN agent |
+            |              |       |             |
+            +--------------+       +-------------+
+
+
+Above block diagram is same as current VPNaaS framework. The neutron server side includes below components:
+1. VPN plugin
+2. VPN plugin driver
+3. VPN agent scheduler
+
+Both VPN plugin and plugin driver are configurable in neutron.conf and neutron_vpnaas.conf. The main function of VPN plugin is to store the VPN's configuration in VPN database, then it invokes the VPN service driver, this part of code is common for all VPNaaS solutions. For VPN+OVN, there should be no change for this part.
+
+The VPN plugin service driver has different implementation for different VPNaaS solutions. For VPN+OVN, the main function of VPN plugin service driver is to send the RPC message to specified VPN agents. For VPN+neutron L3, the L3 plugin will call the router scheduler to select the agent to host the router when the router is created. But for OVN L3, since OVN L3 router is a distributed router, it does not need the router scheduler. So the VPN plugin does not know where the RPC message should be sent to. 
+One solution for this issue is OVN l3 plugin still invokes the router scheduler to select agent and sends the router create/update RPC message to VPN agent. But this solution has below problems:
+
+1. It is not compatible with current OVN L3 plugin since it needs changes on OVN L3 plugin
+2. It needs to send all routers' RPC message to agent, even the VPN service is not enabled on the router. This has performance issue with scalable network.
+
+Another solution for this issue is to add a new scheduler for VPNaaS. The new scheduler will check if an agent has been assigned for the router when the VPN plugin driver sends a RPC message. It will select agents for the router if there is no agent for the router. The selection algorithm can be same as router scheduler, so some part of the code of router scheduler can be re-used. As with the router scheduler, a scheduler plugin is provided to support different scheduling algorithms.
+
+For other uses of plugin service driver, it will be same as existing plugin service driver. The new VPNaaS plugin service driver only sends out below RPC messages,
+1. vpnservice_updated (existed) - create and delete messages are included in updated message. 
+
+2. External_IP_updated (new and will be discussed later)
+
+Changes on VPN agent
+====================
+Block diagram of vpn agent:
+
+                               +--------------+
+                      +--------+Public Network+------+
+                      |        +--------------+      |
+                      |                              |
+                      |                              |
+                      |                              |
+                +-----+-----------+        +---------+-------+
+                | Agent1 namespace|        | Agent2 namespace|
+                | +-------------+ |        | +-------------+ |
+                | |IPsec Process| +--VRRP--+ |IPsec Process| |
+                | +-------------+ |        | +-------------+ |
+                +-----------------+        +-----------------+
+                      |                              |
+                      |                              |
+                      |                              |
+                      |        +----------------+    |
+                      +--------+Transit Network +----+
+                               +-------+--------+
+                                       |
+                                       |
+                                       |
+                               +-------+--------+
+                       +-------+   OVN Router   +----+
+                       |       +----------------+    |
+                       |                             |
+                       |                             |
+                 +-----+-----------+        +--------+--------+
+                 | Private Network1|        |Private Network2 |
+                 +-----+-----------+        +--------+--------+
+                       |                             |
+                       |                             |
+                       |                             |
+                 +-----+-----------+        +--------+--------+
+                 |       VM1       |        |       VM2       |
+                 +-----------------+        +-----------------+
+
+Namespace management
+--------------------
+
+There will be one namespace per VPN agent router. The *Swan and VRRP processes will be running in the same namespace. Currently, the router namespace is created when the agent receives RPC message of the router creation from neutron L3 plugin. But as discussed above, the OVN L3 plugin does not send RPC message of router creation any more. The original L3 namespace management code will not work. The new VPN agent needs to check if the namespace exists when it receives the vpnservice_updated RPC message and create a new one if it does not exist. With L3 agent, the namespace is removed when the routers is deleted. But for VPN+OVN, the namespace will be removed when the VPN services are deleted from the namespace.
+
+Actually, the L3 agent does not only create the namespace, it also maintains a router object. L3 agent manages the IPtables also via the router object. The VPN agent stores the router object in an array via neutron callback mechanism because VPN agent also needs to add IPtables NAT rules via the router object. Now with OVN, the VPN agent needs to maintain the router object by itself since there is no router creation RPC message any more. This part of code can be re-used from L3 agent but many code changes are needed.
+
+Transit network
+---------------
+The Transit network is used to connect the OVN logical router and namespace. This part is completely new. The transit network's attributes will be same as neutron HA network. And the subnet of this network should be configurable and default is 169.254.64.0/18 (link-local is proposed for transit network now). The transit network and subnets are created when the namespace is created, and two ports in the transit network are created to connect the namespace and OVN logical router. Since these two ports are used to route packets between namespace and OVN router, the ports' attributes should be same as router interface. (More details will be added after learning HA network and route interface implementation).
+
+Routes management
+-----------------
+The static route entries are used to make sure the traffic flow from tenant private network can reach the VPN namespace. This part is completely new. 
+
+The static route entries are:
+1. On namespace:
+    prefix: tenant private network subnet, nexthop: the IP of the transit port on OVN logical router
+
+2. On the OVN logical router:
+    prefix: VPN connection peer subnet, nexthop: the IP of the transit port on the namespace
+
+The route entries are created/deleted together with the IPsec connection creation/deletion RPC message. Need to test and verify that we can add/delete/update the static route entries on the OVN distributed router. The transit network will be using link local addresses.
+
+
+VPN External IP address management
+----------------------------------
+Within the neutron L3 router, VPNaaS will share router gateway public IP address with router SNAT. But for VPN+OVN, the gateway public IP address can't be shared with SNAT because SNAT is not in the namespace context. A new public IP address is needed for the VPNaaS namespace. The namespace will request a public IP address from neutron in the same provider/public network as the OVN router and use that as public IP address for namespace. A validation will be added in VPN plugin driver to check if the public IP address is assigned when the VPN service is configured. An error message will be prompted if there is no public IP address. We can use the neutron command to get the public IP addres and use it for the namespace. We will not need any new CLI or API if we use the existing neutron command to get and release the public IP address. 
+
+An external port in the namespace is created when the namespace is created and removed when the namespace is deleted.
+
+HA
+--
+The HA function is same as it is done currently L3 HA. A VPN HA network is created between multiple VPN agents and the VRRP protocol is run on the VPN HA network. The VPN HA network is created when the namespace is created and subnet of the HA network is configurable. We will use the transit network for VRRP also.
+
+Heartbeat of the VPN agent
+--------------------------
+Currently, VPN agent is using L3 agent heartbeat since it inherits the L3 agent code. But for VPN+OVN, the VPN agent does not inherit the L3 agent code any more. So the heartbeat code should be leveraged from L3 agent to fit for the new VPN agent.
+
+Responsibility of DB operations
+===============================
+The VPN service plugin will remain responsible for the CRUD operations on the VPN DB objects. This will ensure consistency across common fields between different VPN plugin.
+
+
+Data Model Impact
+-----------------
+A external_ip will be added in VPN table. It will be null-able field to preserve compatibility with the current behavior. The transit subnet can't be modified at run time, so it is not stored in VPN table.
+No other modifications to the existing tables are required (Need more discussion for compatibility).
+
+
+REST API Impact
+---------------
+All VPN objects will have a null-able 'external_ip' attribute that indicates the VPN external public IP address. This attribute can also be used in create/update calls to request a specific external public IP address.
+
+Two new configuration parameters are added in neutron-vpnaas.conf
+* vpn_transit_net_cidr = 169.254.64.0/18
+* vpn_ha_net_cidr = 169.254.128.0/18
+
+Work Items
+----------
+* Add new VPN scheduler in the VPNaaS plugin RPC notification
+* Add new namespace management in VPN agent side
+* Add transit network management in VPN agent side
+* Add transit routes management in VPN agent side
+* Add VPN external IP address support in both VPN plugin side and VPN agent side
+* Add external IP address DB model
+* Add HA support on the agent side
+
+
+References
+==========
+
