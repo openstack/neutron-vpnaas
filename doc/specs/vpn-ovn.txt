@@ -174,6 +174,10 @@ Heartbeat of the VPN agent
 --------------------------
 Currently, VPN agent is using L3 agent heartbeat since it inherits the L3 agent code. But for VPN+OVN, the VPN agent does not inherit the L3 agent code any more. So the heartbeat code should be leveraged from L3 agent to fit for the new VPN agent.
 
+VPN Metering
+------------
+Currently VPN depends on the Neutron metering-agent to gather vpn bandwith data and then pushed to oslo message which collected by ceilometer. However the metering-agent is on the top of l3-agnet, so the original metering-agent can't work with this new VPN+OVN. So in the new VPN agent, we need to add extra vpn metering function: when vpn agent manage the vpn namespace as it receives the vpn rpc message, it should also manager the iptables rules in the namespace for metering/billing purpose. As for metering notification, we can still follow and port from current metering agent, then use ceilolmeter to maintain the metering infor DB and offer the API to expose the vpn statistics.
+
 Responsibility of DB operations
 ===============================
 The VPN service plugin will remain responsible for the CRUD operations on the VPN DB objects. This will ensure consistency across common fields between different VPN plugin.
@@ -202,7 +206,7 @@ Work Items
 * Add VPN external IP address support in both VPN plugin side and VPN agent side
 * Add external IP address DB model
 * Add HA support on the agent side
-
+* Add VPN metering function in VPN agent side
 
 References
 ==========
