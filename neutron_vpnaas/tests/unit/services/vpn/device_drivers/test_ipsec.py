@@ -337,6 +337,8 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
         self.iptables = mock.Mock()
         self.apply_mock = mock.Mock()
         self.vpnservice = copy.deepcopy(vpnservice)
+        ipsec_process._get_strongswan_piddir = mock.Mock(
+            return_value="/var/run")
 
     @staticmethod
     def generate_diff(a, b):
