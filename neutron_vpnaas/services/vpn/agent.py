@@ -77,7 +77,7 @@ class VPNAgent(manager.Manager):
             'topic': topics.L3_AGENT,
             'configurations': {
                 'agent_mode': self.conf.agent_mode,
-                'router_id': self.conf.router_id,
+                #'router_id': self.conf.router_id,
                 'handle_internal_only_routers':
                     self.conf.handle_internal_only_routers,
                 'external_network_bridge': self.conf.external_network_bridge,
