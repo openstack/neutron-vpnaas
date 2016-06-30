@@ -15,9 +15,8 @@
 #    under the License.
 
 from oslo_log import log as logging
+from tempest.lib.services.identity.v2.tenants_client import TenantsClient
 from tempest import manager
-from tempest.services.identity.v2.json.tenants_client import \
-    TenantsClient
 
 from neutron.tests.tempest import config
 from neutron.tests.tempest.services.network.json.network_client import \
