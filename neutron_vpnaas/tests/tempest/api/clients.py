@@ -25,6 +25,41 @@ from neutron.tests.tempest.services.network.json.network_client import \
 CONF = config.CONF
 
 
+class NetworkClient(NetworkClientJSON):
+
+    def pluralize(self, resource_name):
+
+        resource_plural_map = {
+            'ikepolicy': 'ikepolicies',
+            'ipsecpolicy': 'ipsecpolicies'
+        }
+
+        if resource_name in resource_plural_map:
+            return resource_plural_map.get(resource_name)
+
+        return super(NetworkClient, self).pluralize(resource_name)
+
+    def get_uri(self, plural_name):
+        # get service prefix from resource name
+
+        service_resource_prefix_list = [
+            'vpnservices',
+            'ikepolicies',
+            'ipsecpolicies',
+            'ipsec_site_connections',
+            'endpoint_groups',
+        ]
+
+        if plural_name in service_resource_prefix_list:
+            plural_name = plural_name.replace("_", "-")
+            service_prefix = 'vpn'
+            uri = '%s/%s/%s' % (self.uri_prefix, service_prefix,
+                                plural_name)
+            return uri
+
+        return super(NetworkClient, self).get_uri(plural_name)
+
+
 class Manager(manager.Manager):
 
     """
@@ -51,7 +86,7 @@ class Manager(manager.Manager):
 
         self._set_identity_clients()
 
-        self.network_client = NetworkClientJSON(
+        self.network_client = NetworkClient(
             self.auth_provider,
             CONF.network.catalog_type,
             CONF.network.region or CONF.identity.region,
