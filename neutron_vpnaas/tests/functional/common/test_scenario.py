@@ -16,6 +16,7 @@ import functools
 import mock
 import netaddr
 import os
+import testtools
 
 from neutron.agent.common import config as agent_config
 from neutron.agent.common import ovs_lib
@@ -568,6 +569,7 @@ class TestIPSecBase(base.BaseSudoTestCase):
 
 class TestIPSecScenario(TestIPSecBase):
 
+    @testtools.skip('bug/1598466')
     def test_single_ipsec_connection(self):
         site1 = self.create_site(PUBLIC_NET[4], [self.private_nets[1]])
         site2 = self.create_site(PUBLIC_NET[5], [self.private_nets[2]])
@@ -581,6 +583,7 @@ class TestIPSecScenario(TestIPSecBase):
         self.check_ping(site1, site2)
         self.check_ping(site2, site1)
 
+    @testtools.skip('bug/1598466')
     def test_single_ipsec_connection_sha256(self):
         site1 = self.create_site(PUBLIC_NET[4], [self.private_nets[1]])
         site2 = self.create_site(PUBLIC_NET[5], [self.private_nets[2]])
@@ -594,6 +597,7 @@ class TestIPSecScenario(TestIPSecBase):
         self.check_ping(site1, site2)
         self.check_ping(site2, site1)
 
+    @testtools.skip('bug/1598466')
     def test_single_ipsec_connection_local_id(self):
         site1 = self.create_site(PUBLIC_NET[4], [self.private_nets[1]])
         site2 = self.create_site(PUBLIC_NET[5], [self.private_nets[2]])
@@ -607,6 +611,7 @@ class TestIPSecScenario(TestIPSecBase):
         self.check_ping(site1, site2)
         self.check_ping(site2, site1)
 
+    @testtools.skip('bug/1598466')
     def test_ipsec_site_connections_with_mulitple_subnets(self):
         """Check with a pair of subnets on each end of connection."""
         site1 = self.create_site(PUBLIC_NET[4], self.private_nets[1:3])
@@ -624,6 +629,7 @@ class TestIPSecScenario(TestIPSecBase):
             self.check_ping(site1, site2, instance=i)
             self.check_ping(site2, site1, instance=i)
 
+    @testtools.skip('bug/1598466')
     def test_ipsec_site_connections_with_l3ha_routers(self):
         """Test ipsec site connection with HA routers.
         This test creates two agents. First agent will have Legacy and HA
@@ -667,6 +673,7 @@ class TestIPSecScenario(TestIPSecBase):
         self.check_ping(site1, site2, 0)
         self.check_ping(site2, site1, 0)
 
+    @testtools.skip('bug/1598466')
     def _test_admin_state_up(self, update_method):
         # Create ipsec connection between two sites
         site1 = self.create_site(PUBLIC_NET[4], [self.private_nets[1]])
@@ -699,11 +706,13 @@ class TestIPSecScenario(TestIPSecBase):
         self.check_ping(site1, site2)
         self.check_ping(site2, site1)
 
+    @testtools.skip('bug/1598466')
     def test_ipsec_site_connections_update_admin_state_up(self):
         """Test updating admin_state_up of ipsec site connections."""
 
         self._test_admin_state_up(self._update_ipsec_connection)
 
+    @testtools.skip('bug/1598466')
     def test_vpnservice_update_admin_state_up(self):
         """Test updating admin_state_up of a vpn service."""
 

@@ -16,8 +16,8 @@ from oslo_config import cfg
 
 from neutron.db.migration.alembic_migrations import external
 from neutron.db.migration import cli as migration
-from neutron.tests.common import base
 from neutron.tests.functional.db import test_migrations
+from neutron.tests.unit import testlib_api
 
 from neutron_vpnaas.db.migration import alembic_migrations
 from neutron_vpnaas.db.models import head
@@ -50,10 +50,10 @@ class _TestModelsMigrationsVPNAAS(test_migrations._TestModelsMigrations):
 
 
 class TestModelsMigrationsMysql(_TestModelsMigrationsVPNAAS,
-                                base.MySQLTestCase):
+                                testlib_api.MySQLTestCaseMixin):
     pass
 
 
 class TestModelsMigrationsPsql(_TestModelsMigrationsVPNAAS,
-                               base.PostgreSQLTestCase):
+                               testlib_api.PostgreSQLTestCaseMixin):
     pass
