@@ -23,12 +23,10 @@ from neutron.tests.tempest import config
 
 from neutron_vpnaas.tests.tempest.api import clients
 
-
 CONF = config.CONF
 
 
 class BaseNetworkTest(test.BaseTestCase):
-
     """
     Base class for the Neutron tests that use the Tempest Neutron REST client
 
@@ -91,10 +89,23 @@ class BaseNetworkTest(test.BaseTestCase):
         cls.vpnservices = []
         cls.ikepolicies = []
         cls.ipsecpolicies = []
+        cls.ipsec_site_connections = []
+        cls.endpoint_groups = []
 
     @classmethod
     def resource_cleanup(cls):
         if CONF.service_available.neutron:
+            # Clean up ipsec connections
+            for ipsec_site_connection in cls.ipsec_site_connections:
+                cls._try_delete_resource(
+                    cls.client.delete_ipsec_site_connection,
+                    ipsec_site_connection['id'])
+
+            # Clean up ipsec endpoint group
+            for endpoint_group in cls.endpoint_groups:
+                cls._try_delete_resource(cls.client.delete_endpoint_group,
+                                         endpoint_group['id'])
+
             # Clean up ipsec policies
             for ipsecpolicy in cls.ipsecpolicies:
                 cls._try_delete_resource(cls.client.delete_ipsecpolicy,
@@ -107,6 +118,37 @@ class BaseNetworkTest(test.BaseTestCase):
             for vpnservice in cls.vpnservices:
                 cls._try_delete_resource(cls.client.delete_vpnservice,
                                          vpnservice['id'])
+            # Clean up routers
+            for router in cls.routers:
+                ports = cls.client.list_router_interfaces(router['id'])
+                for port in ports['ports']:
+                    router_info = {'router_id': router['id'],
+                                   'port_id': port['id']}
+                    cls._try_delete_resource(
+                        cls.client.remove_router_interface_with_port_id,
+                        **router_info)
+                router_info = {'router_id': router['id'],
+                               'external_gateway_info': {}}
+                cls._try_delete_resource(cls.client.update_router,
+                                         **router_info)
+                cls._try_delete_resource(cls.client.delete_router,
+                                         router['id'])
+            # Clean up ports
+            for port in cls.ports:
+                cls._try_delete_resource(cls.client.delete_port,
+                                         port['id'])
+            # Clean up subnets
+            for subnet in cls.subnets:
+                cls._try_delete_resource(cls.client.delete_subnet,
+                                         subnet['id'])
+            # Clean up networks
+            for network in cls.networks:
+                cls._try_delete_resource(cls.client.delete_network,
+                                         network['id'])
+            # Clean up shared networks
+            for network in cls.shared_networks:
+                cls._try_delete_resource(cls.admin_client.delete_network,
+                                         network['id'])
 
     @classmethod
     def _try_delete_resource(cls, delete_callable, *args, **kwargs):
@@ -241,6 +283,16 @@ class BaseNetworkTest(test.BaseTestCase):
         return vpnservice
 
     @classmethod
+    def create_vpnservice_no_subnet(cls, router_id):
+        """Wrapper utility that returns a test vpn service."""
+        body = cls.client.create_vpnservice(
+            router_id=router_id, admin_state_up=True,
+            name=data_utils.rand_name("vpnservice-"))
+        vpnservice = body['vpnservice']
+        cls.vpnservices.append(vpnservice)
+        return vpnservice
+
+    @classmethod
     def create_ikepolicy(cls, name):
         """Wrapper utility that returns a test ike policy."""
         body = cls.client.create_ikepolicy(name=name)
@@ -256,9 +308,40 @@ class BaseNetworkTest(test.BaseTestCase):
         cls.ipsecpolicies.append(ipsecpolicy)
         return ipsecpolicy
 
+    @classmethod
+    def create_ipsec_site_connection(cls, ikepolicy_id, ipsecpolicy_id,
+                                     vpnservice_id):
+        """Wrapper utility that returns a test vpn connection."""
+        body = cls.client.create_ipsec_site_connection(
+            psk="secret",
+            initiator="bi-directional",
+            ipsecpolicy_id=ipsecpolicy_id,
+            admin_state_up=True,
+            mtu=1500,
+            ikepolicy_id=ikepolicy_id,
+            vpnservice_id=vpnservice_id,
+            peer_address="172.24.4.233",
+            peer_id="172.24.4.233",
+            peer_cidrs=['1.1.1.0/24', '2.2.2.0/24'],
+            name=data_utils.rand_name("ipsec_site_connection-"))
+        ipsec_site_connection = body['ipsec_site_connection']
+        cls.ipsec_site_connections.append(ipsec_site_connection)
+        return ipsec_site_connection
+
+    @classmethod
+    def create_endpoint_group(cls, name, type, endpoints):
+        """Wrapper utility that returns a test ipsec policy."""
+        body = cls.client.create_endpoint_group(
+            endpoints=endpoints,
+            type=type,
+            description='endpoint type:' + type,
+            name=name)
+        endpoint_group = body['endpoint_group']
+        cls.endpoint_groups.append(endpoint_group)
+        return endpoint_group
+
 
 class BaseAdminNetworkTest(BaseNetworkTest):
-
     credentials = ['primary', 'admin']
 
     @classmethod

@@ -55,11 +55,28 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         cls.create_router_interface(cls.router['id'], cls.subnet['id'])
         cls.vpnservice = cls.create_vpnservice(cls.subnet['id'],
                                                cls.router['id'])
+        vpnservice2 = cls.create_vpnservice_no_subnet(cls.router['id'])
+        cls.vpnservice_no_subnet = vpnservice2
 
         cls.ikepolicy = cls.create_ikepolicy(
             data_utils.rand_name("ike-policy-"))
         cls.ipsecpolicy = cls.create_ipsecpolicy(
             data_utils.rand_name("ipsec-policy-"))
+
+        cls.endpoint_group_local = cls.create_endpoint_group(
+            data_utils.rand_name("endpoint-group-local-"),
+            'subnet',
+            cls.subnet['id'])
+
+        cls.endpoint_group_remote = cls.create_endpoint_group(
+            data_utils.rand_name("endpoint-group-remote-"),
+            'cidr',
+            ["10.101.0.0/24", "10.102.0.0/24"])
+
+        cls.ipsec_site_connection = cls.create_ipsec_site_connection(
+            cls.ikepolicy['id'],
+            cls.ipsecpolicy['id'],
+            cls.vpnservice['id'])
 
     def _delete_ike_policy(self, ike_policy_id):
         # Deletes a ike policy and verifies if it is deleted or not
@@ -84,6 +101,13 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         except lib_exc.NotFound:
             pass
 
+    def _delete_ipsec_site_connection(self, conn_id):
+        #
+        try:
+            self.client.delete_ipsec_site_connection(conn_id)
+        except lib_exc.NotFound:
+            pass
+
     def _assertExpected(self, expected, actual):
         # Check if not expected keys/values exists in actual response body
         for key, value in six.iteritems(expected):
@@ -96,6 +120,21 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         body = self.client.list_vpnservices()
         vpn_services = [vs['id'] for vs in body['vpnservices']]
         self.assertNotIn(vpn_service_id, vpn_services)
+
+    def _delete_endpoint_group(self, endpoint_group_id):
+        # Delete a endpoint-group and verifies if it is deleted or not
+        endpoint_group_list = list()
+        all_endpoint = self.client.list_endpoint_groups()
+        for endpoint in all_endpoint['endpoint_groups']:
+            endpoint_group_list.append(endpoint['id'])
+        if endpoint_group_id in endpoint_group_list:
+            self.client.delete_endpoint_group(endpoint_group_id)
+            # Asserting that the endpoint is not found in list after deletion
+            endpoint_group = self.client.list_endpoint_groups()
+            #endpoint_group_id_list = list()
+            for e in endpoint_group['endpoint_groups']:
+                endpoint_group_list.append(e['id'])
+            self.assertNotIn(endpoint_group_list, endpoint_group_id)
 
     def _get_tenant_id(self):
         """
@@ -343,3 +382,331 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             lib_exc.BadRequest, self.client.create_vpnservice,
             subnet_id=self.subnet['id'], router_id=self.router['id'],
             name=name, description=description, admin_state_up=True)
+
+    @test.attr(type='smoke')
+    def test_list_vpn_connections(self):
+        # Verify the VPN service exists in the list of all VPN services
+        body = self.client.list_ipsec_site_connections()
+        ipsec_site_connections = body['ipsec_site_connections']
+        self.assertIn(self.ipsec_site_connection['id'],
+                      [v['id'] for v in ipsec_site_connections])
+
+    @test.attr(type='smoke')
+    def test_create_delete_vpn_connection(self):
+        # Verify create VPN connection
+        name = data_utils.rand_name("ipsec_site_connection-")
+        body = self.client.create_ipsec_site_connection(
+            ipsecpolicy_id=self.ipsecpolicy['id'],
+            ikepolicy_id=self.ikepolicy['id'],
+            vpnservice_id=self.vpnservice['id'],
+            peer_address="172.24.4.233",
+            peer_id="172.24.4.233",
+            peer_cidrs=['10.1.1.0/24', '10.2.2.0/24'],
+            name=name,
+            mtu=1500,
+            admin_state_up=True,
+            initiator="bi-directional",
+            psk="secret")
+        ipsec_site_connection = body['ipsec_site_connection']
+        self.assertEqual(ipsec_site_connection['name'], name)
+        self.assertEqual(ipsec_site_connection['mtu'], 1500)
+        self.addCleanup(self._delete_ipsec_site_connection,
+                        ipsec_site_connection['id'])
+
+        # Verification of IPsec connection delete
+        self.client.delete_ipsec_site_connection(ipsec_site_connection['id'])
+        body = self.client.list_ipsec_site_connections()
+        ipsec_site_connections = body['ipsec_site_connections']
+        self.assertNotIn(ipsec_site_connection['id'],
+                      [v['id'] for v in ipsec_site_connections])
+
+    @test.attr(type=['negative', 'smoke'])
+    def test_create_vpn_connection_missing_peer_cidr(self):
+        # Verify create VPN connection with JSON missing peer cidr
+        # in legacy mode
+        name = data_utils.rand_name("ipsec_site_connection-")
+        self.assertRaises(
+            lib_exc.BadRequest,
+            self.client.create_ipsec_site_connection,
+            ipsecpolicy_id=self.ipsecpolicy['id'],
+            ikepolicy_id=self.ikepolicy['id'],
+            vpnservice_id=self.vpnservice['id'],
+            peer_address="172.24.4.233",
+            peer_id="172.24.4.233",
+            name=name,
+            mtu=1500,
+            admin_state_up=True,
+            initiator="bi-directional",
+            psk="secret")
+
+    @test.attr(type=['negative', 'smoke'])
+    def test_create_vpn_service_subnet_not_on_router(self):
+        # Verify create VPN service with a subnet not on router
+        tenant_id = self._get_tenant_id()
+
+        # Create vpn service for the newly created tenant
+        network2 = self.create_network()
+        subnet2 = self.create_subnet(network2)
+        router2 = self.create_router(data_utils.rand_name('router-'),
+                                     external_network_id=self.ext_net_id)
+        self.addCleanup(self.admin_client.delete_router, router2['id'])
+        self.addCleanup(self.admin_client.delete_network, network2['id'])
+        name = data_utils.rand_name('vpn-service')
+        self.assertRaises(
+            lib_exc.BadRequest,
+            self.admin_client.create_vpnservice,
+            subnet_id=subnet2['id'],
+            router_id=router2['id'],
+            name=name,
+            admin_state_up=True,
+            tenant_id=tenant_id)
+
+    @test.attr(type=['negative', 'smoke'])
+    def test_create_vpn_connection_small_MTU(self):
+        # Verify create VPN connection with small MTU
+        name = data_utils.rand_name("ipsec_site_connection-")
+        self.assertRaises(
+            lib_exc.BadRequest,
+            self.client.create_ipsec_site_connection,
+            ipsecpolicy_id=self.ipsecpolicy['id'],
+            ikepolicy_id=self.ikepolicy['id'],
+            vpnservice_id=self.vpnservice['id'],
+            peer_address="172.24.4.233",
+            peer_id="172.24.4.233",
+            peer_cidrs=['10.1.1.0/24', '10.2.2.0/24'],
+            name=name,
+            mtu=63,
+            admin_state_up=True,
+            initiator="bi-directional",
+            psk="secret")
+
+    @test.attr(type=['negative', 'smoke'])
+    def test_create_vpn_connection_small_dpd(self):
+        # Verify create VPN connection with small dpd
+        name = data_utils.rand_name("ipsec_site_connection-")
+        self.assertRaises(
+            lib_exc.BadRequest,
+            self.client.create_ipsec_site_connection,
+            ipsecpolicy_id=self.ipsecpolicy['id'],
+            ikepolicy_id=self.ikepolicy['id'],
+            vpnservice_id=self.vpnservice['id'],
+            peer_address="172.24.4.233",
+            peer_id="172.24.4.233",
+            peer_cidrs=['10.1.1.0/24', '10.2.2.0/24'],
+            name=name,
+            dpd=59,
+            admin_state_up=True,
+            initiator="bi-directional",
+            psk="secret")
+
+    @test.attr(type=['negative', 'smoke'])
+    def test_create_vpn_connection_wrong_peer_cidr(self):
+        # Verify create VPN connection with wrong peer cidr
+        name = data_utils.rand_name("ipsec_site_connection-")
+        self.assertRaises(
+            lib_exc.BadRequest,
+            self.client.create_ipsec_site_connection,
+            ipsecpolicy_id=self.ipsecpolicy['id'],
+            ikepolicy_id=self.ikepolicy['id'],
+            vpnservice_id=self.vpnservice['id'],
+            peer_address="172.24.4.233",
+            peer_id="172.24.4.233",
+            peer_cidrs=['1.0.0.0/33'],
+            name=name,
+            mtu=1500,
+            admin_state_up=True,
+            initiator="bi-directional",
+            psk="secret")
+
+    @test.attr(type=['negative', 'smoke'])
+    def test_create_connection_with_cidr_and_endpoint_group(self):
+        tenant_id = self._get_tenant_id()
+        # Create endpoint group for the newly created tenant
+        name = data_utils.rand_name('endpoint_group')
+        body = self.client.create_endpoint_group(
+                        tenant_id=tenant_id,
+                        name=name,
+                        type='cidr',
+                        endpoints=["10.101.0.0/24", "10.102.0.0/24"])
+        endpoint_group_local = body['endpoint_group']
+        self.addCleanup(self._delete_endpoint_group,
+                        endpoint_group_local['id'])
+        name = data_utils.rand_name('endpoint_group')
+        body = self.client.create_endpoint_group(
+                        tenant_id=tenant_id,
+                        name=name,
+                        type='cidr',
+                        endpoints=["10.103.0.0/24", "10.104.0.0/24"])
+        endpoint_group_remote = body['endpoint_group']
+        self.addCleanup(self._delete_endpoint_group,
+                        endpoint_group_remote['id'])
+        # Create connections
+        name = data_utils.rand_name("ipsec_site_connection-")
+        self.assertRaises(
+            lib_exc.BadRequest,
+            self.client.create_ipsec_site_connection,
+            ipsecpolicy_id=self.ipsecpolicy['id'],
+            ikepolicy_id=self.ikepolicy['id'],
+            vpnservice_id=self.vpnservice_no_subnet['id'],
+            peer_address="172.24.4.233",
+            peer_id="172.24.4.233",
+            peer_cidr="10.1.0.0/24",
+            peer_ep_group_id=endpoint_group_local['id'],
+            local_ep_group_id=endpoint_group_remote['id'],
+            name=name,
+            admin_state_up=True,
+            initiator="bi-directional",
+            psk="secret")
+
+    @test.attr(type=['negative', 'smoke'])
+    def test_create_vpn_connection_with_only_local_endpoint_group(self):
+        # Verify create VPN connection without subnet in vpnservice
+        # and has only local endpoint group
+        tenant_id = self._get_tenant_id()
+        # Create endpoint group for the newly created tenant
+        tenant_id = self._get_tenant_id()
+        name = data_utils.rand_name('endpoint_group')
+        body = self.client.create_endpoint_group(
+                        tenant_id=tenant_id,
+                        name=name,
+                        type='cidr',
+                        endpoints=["10.101.0.0/24", "10.102.0.0/24"])
+        endpoint_group = body['endpoint_group']
+        self.addCleanup(self._delete_endpoint_group, endpoint_group['id'])
+        # Create connections
+        name = data_utils.rand_name("ipsec_site_connection-")
+        self.assertRaises(
+            lib_exc.BadRequest,
+            self.client.create_ipsec_site_connection,
+            ipsecpolicy_id=self.ipsecpolicy['id'],
+            ikepolicy_id=self.ikepolicy['id'],
+            vpnservice_id=self.vpnservice_no_subnet['id'],
+            peer_address="172.24.4.233",
+            peer_id="172.24.4.233",
+            local_ep_group_id=endpoint_group['id'],
+            name=name,
+            admin_state_up=True,
+            initiator="bi-directional",
+            psk="secret")
+
+    @test.attr(type=['negative', 'smoke'])
+    def test_create_vpn_connection_with_only_remote_endpoint_group(self):
+        # Verify create VPN connection without subnet in vpnservice
+        # and only have only local endpoint group
+        tenant_id = self._get_tenant_id()
+        # Create endpoint group for the newly created tenant
+        tenant_id = self._get_tenant_id()
+        name = data_utils.rand_name('endpoint_group')
+        body = self.client.create_endpoint_group(
+                        tenant_id=tenant_id,
+                        name=name,
+                        type='cidr',
+                        endpoints=["10.101.0.0/24", "10.102.0.0/24"])
+        endpoint_group = body['endpoint_group']
+        self.addCleanup(self._delete_endpoint_group, endpoint_group['id'])
+        # Create connections
+        name = data_utils.rand_name("ipsec_site_connection-")
+        self.assertRaises(
+            lib_exc.BadRequest,
+            self.client.create_ipsec_site_connection,
+            ipsecpolicy_id=self.ipsecpolicy['id'],
+            ikepolicy_id=self.ikepolicy['id'],
+            vpnservice_id=self.vpnservice_no_subnet['id'],
+            peer_address="172.24.4.233",
+            peer_id="172.24.4.233",
+            peer_ep_group_id=endpoint_group['id'],
+            name=name,
+            admin_state_up=True,
+            initiator="bi-directional",
+            psk="secret")
+
+    @test.attr(type=['negative', 'smoke'])
+    def test_create_connection_with_mix_ip_endpoint_group(self):
+        tenant_id = self._get_tenant_id()
+        # Create endpoint group for the newly created tenant
+        name = data_utils.rand_name('endpoint_group')
+        body = self.client.create_endpoint_group(
+                        tenant_id=tenant_id,
+                        name=name,
+                        type='cidr',
+                        endpoints=["10.101.0.0/24", "10.102.0.0/24"])
+        endpoint_group = body['endpoint_group']
+        self.addCleanup(self._delete_endpoint_group, endpoint_group['id'])
+        name_v6 = data_utils.rand_name('endpoint_group')
+        body_v6 = self.client.create_endpoint_group(
+                        tenant_id=tenant_id,
+                        name=name_v6,
+                        type='cidr',
+                        endpoints=["fec0:101::/64", "fec0:102::/64"])
+        endpoint_group_v6 = body_v6['endpoint_group']
+        self.addCleanup(self._delete_endpoint_group, endpoint_group_v6['id'])
+        # Create connections
+        name = data_utils.rand_name("ipsec_site_connection-")
+        self.assertRaises(
+            lib_exc.BadRequest,
+            self.client.create_ipsec_site_connection,
+            ipsecpolicy_id=self.ipsecpolicy['id'],
+            ikepolicy_id=self.ikepolicy['id'],
+            vpnservice_id=self.vpnservice_no_subnet['id'],
+            peer_address="172.24.4.233",
+            peer_id="172.24.4.233",
+            peer_ep_group_id=endpoint_group['id'],
+            local_ep_group_id=endpoint_group_v6['id'],
+            name=name,
+            admin_state_up=True,
+            initiator="bi-directional",
+            psk="secret")
+
+    @test.attr(type=['negative', 'smoke'])
+    def test_create_connection_with_subnet_remote_endpoint_group(self):
+        tenant_id = self._get_tenant_id()
+        # Create endpoint group for the newly created tenant
+        name = data_utils.rand_name('endpoint_group')
+        body = self.client.create_endpoint_group(
+                        tenant_id=tenant_id,
+                        name=name,
+                        type='cidr',
+                        endpoints=["10.101.0.0/24", "10.102.0.0/24"])
+        endpoint_group = body['endpoint_group']
+        self.addCleanup(self._delete_endpoint_group, endpoint_group['id'])
+        # Create connections
+        name = data_utils.rand_name("ipsec_site_connection-")
+        self.assertRaises(
+            lib_exc.BadRequest,
+            self.client.create_ipsec_site_connection,
+            ipsecpolicy_id=self.ipsecpolicy['id'],
+            ikepolicy_id=self.ikepolicy['id'],
+            vpnservice_id=self.vpnservice['id'],
+            peer_address="172.24.4.233",
+            peer_ep_group_id=endpoint_group['id'],
+            name=name,
+            admin_state_up=True,
+            initiator="bi-directional",
+            psk="secret")
+
+    @test.attr(type=['negative', 'smoke'])
+    def test_create_connection_with_subnet_local_endpoint_group(self):
+        tenant_id = self._get_tenant_id()
+        # Create endpoint group for the newly created tenant
+        name = data_utils.rand_name('endpoint_group')
+        body = self.client.create_endpoint_group(
+                        tenant_id=tenant_id,
+                        name=name,
+                        type='cidr',
+                        endpoints=["10.101.0.0/24", "10.102.0.0/24"])
+        endpoint_group = body['endpoint_group']
+        self.addCleanup(self._delete_endpoint_group, endpoint_group['id'])
+        # Create connections
+        name = data_utils.rand_name("ipsec_site_connection-")
+        self.assertRaises(
+            lib_exc.BadRequest,
+            self.client.create_ipsec_site_connection,
+            ipsecpolicy_id=self.ipsecpolicy['id'],
+            ikepolicy_id=self.ikepolicy['id'],
+            vpnservice_id=self.vpnservice['id'],
+            peer_address="172.24.4.233",
+            local_ep_group_id=endpoint_group['id'],
+            name=name,
+            admin_state_up=True,
+            initiator="bi-directional",
+            psk="secret")
