@@ -45,3 +45,4 @@ def upgrade():
             ondelete='CASCADE'
         ),
     )
+
