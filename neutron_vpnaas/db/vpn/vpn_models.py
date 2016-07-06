@@ -182,3 +182,19 @@ class VPNEndpointGroup(model_base.BASEV2, models_v2.HasId,
                                  backref='endpoint_group',
                                  lazy='joined',
                                  cascade='all, delete, delete-orphan')
+
+class VPNExternalPorts(model_base.BASEV2):
+    __tablename__ = 'vpn_external_ports'
+    router_id = sa.Column(
+        sa.String(36),
+        sa.ForeignKey('routers.id', ondelete="CASCADE"),
+        primary_key=True)
+    port_id = sa.Column(
+        sa.String(36),
+        sa.ForeignKey('ports.id', ondelete="CASCADE"),
+        primary_key=True)
+    port = orm.relationship(
+        models_v2.Port,
+        backref=orm.backref('vpn_external_ports', uselist=False,
+                            cascade="all,delete"),
+        lazy='joined')
