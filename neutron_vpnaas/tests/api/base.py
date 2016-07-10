@@ -15,7 +15,6 @@
 #    under the License.
 
 import netaddr
-from oslo_log import log as logging
 from tempest.lib.common.utils import data_utils
 from tempest.lib import exceptions as lib_exc
 from tempest import test
@@ -26,8 +25,6 @@ from neutron_vpnaas.tests.api import clients
 
 
 CONF = config.CONF
-
-LOG = logging.getLogger(__name__)
 
 
 class BaseNetworkTest(test.BaseTestCase):
