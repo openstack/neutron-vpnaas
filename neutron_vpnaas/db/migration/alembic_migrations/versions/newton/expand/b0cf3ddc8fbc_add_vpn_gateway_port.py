@@ -13,20 +13,21 @@
 #    under the License.
 #
 
-"""integration with ovn networking
+"""add vpn gateway port
 
-Revision ID: d87df9a74b67
+Revision ID: b0cf3ddc8fbc
 Revises: 52783a36bd67
-Create Date: 2016-07-06 05:45:56.931540
+Create Date: 2016-07-11 14:28:46.052425
 
 """
 
 # revision identifiers, used by Alembic.
-revision = 'd87df9a74b67'
+revision = 'b0cf3ddc8fbc'
 down_revision = '52783a36bd67'
 
 from alembic import op
 import sqlalchemy as sa
+
 
 def upgrade():
     op.create_table(
@@ -45,4 +46,3 @@ def upgrade():
             ondelete='CASCADE'
         ),
     )
-
