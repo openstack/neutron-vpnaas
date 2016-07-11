@@ -30,7 +30,7 @@ import sqlalchemy as sa
 
 def upgrade():
     op.create_table(
-        'vpn_external_ports',
+        'vpn_ext_gws',
         sa.Column('router_id', sa.String(length=36), nullable=False),
         sa.Column('port_id', sa.String(length=36), nullable=False),
         sa.PrimaryKeyConstraint('router_id', 'port_id'),

@@ -12,6 +12,6 @@
 
 from neutron_vpnaas.services.vpn import agent
 
-
+agent.main()
 def main():
     agent.main()
