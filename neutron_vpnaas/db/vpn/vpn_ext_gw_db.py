@@ -13,18 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import netaddr
-
 from neutron_lib import constants as l3_constants
 
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 import sqlalchemy as sa
 from sqlalchemy import orm
 
-from neutron._i18n import _
-from neutron.common import utils
 from neutron.callbacks import events
 from neutron.callbacks import exceptions
 from neutron.callbacks import registry
@@ -43,6 +38,7 @@ LOG = logging.getLogger(__name__)
 
 DEVICE_OWNER_VPN_ROUTER_GW = l3_constants.DEVICE_OWNER_NETWORK_PREFIX + \
                              "vpn_router_gateway"
+
 
 class VPNEXTGWInfo(model_base.BASEV2):
     __tablename__ = 'vpn_ext_gws'
@@ -64,6 +60,7 @@ class VPNEXTGWInfo(model_base.BASEV2):
 
 class VPNExtGW_dbonly_mixin(extraroute_db.ExtraRoute_db_mixin):
     """Mixin class to support vpn external ports configuration on router."""
+
     @staticmethod
     def _make_vpn_ext_gw_dict(router_db):
         vpn_gw_info = router_db[VPN_GW]
@@ -87,37 +84,34 @@ class VPNExtGW_dbonly_mixin(extraroute_db.ExtraRoute_db_mixin):
     db_base_plugin_v2.NeutronDbPluginV2.register_dict_extend_funcs(
         l3.ROUTERS, ['_extend_router_dict_vpn_ext_gw'])
 
-    def _get_vpn_gw_port(self, context, router):
-        return None
-
-    def _update_current_vpn_gw_port(self, context, router_id, vpn_gw_port,
-                                ext_ips):
+    def _update_current_vpn_gw_port(self, context, vpn_gw_port,
+                                    ext_ips):
         self._core_plugin.update_port(context, vpn_gw_port['id'],
-                                      {'port':{'fixed_ips': ext_ips}})
+                                      {'port': {'fixed_ips': ext_ips}})
         context.session.expire(vpn_gw_port)
 
     def _delete_current_vpn_gw_port(self, context, router_id, router,
-                                new_network_id):
+                                    new_network_id):
         """Delete gw port if attached to an old network."""
         vpn_gw_port = router[VPN_GW]
         port_requires_deletion = (
-            vpn_gw_port and vpn_gw_port.port and \
-                vpn_gw_port.port['network_id'] != new_network_id)
+            vpn_gw_port and vpn_gw_port.port and
+            vpn_gw_port.port['network_id'] != new_network_id)
         if not port_requires_deletion:
             return
         admin_ctx = context.elevated()
         old_network_id = vpn_gw_port.port['network_id']
 
-        #TODO checking if GW IP is using
+        # TODO checking if GW IP is using
         gw_ips = [x['ip_address'] for x in vpn_gw_port.port.fixed_ips]
         with context.session.begin(subtransactions=True):
             gw_port = vpn_gw_port.port
             router[VPN_GW] = None
-            #TODO check if the router instance is deleted
+            # TODO check if the router instance is deleted
             context.session.add(router)
             context.session.delete(vpn_gw_port)
             context.session.expire(gw_port)
-            #self._check_router_gw_port_in_use(context, router_id)
+            # self._check_router_gw_port_in_use(context, router_id)
         self._core_plugin.delete_port(
             admin_ctx, gw_port['id'], l3_port_check=False)
         registry.notify(resources.ROUTER_GATEWAY,
@@ -125,7 +119,6 @@ class VPNExtGW_dbonly_mixin(extraroute_db.ExtraRoute_db_mixin):
                         router_id=router_id,
                         network_id=old_network_id,
                         gateway_ips=gw_ips)
-
 
     def _create_vpn_router_gw_port(self, context, router, network_id, ext_ips):
         # Port has no 'tenant-id', as it is hidden from user
@@ -145,7 +138,7 @@ class VPNExtGW_dbonly_mixin(extraroute_db.ExtraRoute_db_mixin):
 
         with context.session.begin(subtransactions=True):
             gw_port = self._core_plugin._get_port(context.elevated(),
-                                                         gw_port['id'])
+                                                  gw_port['id'])
 
             vpn_router_port = VPNEXTGWInfo(
                 router_id=router['id'],
@@ -156,7 +149,7 @@ class VPNExtGW_dbonly_mixin(extraroute_db.ExtraRoute_db_mixin):
             context.session.add(vpn_router_port)
 
     def _create_vpn_gw_port(self, context, router_id, router, new_network_id,
-                        ext_ips):
+                            ext_ips):
         vpn_gw_info = router[VPN_GW]
         new_valid_gw_port_attachment = (
             new_network_id and (not vpn_gw_info or
@@ -176,10 +169,10 @@ class VPNExtGW_dbonly_mixin(extraroute_db.ExtraRoute_db_mixin):
                 # raise the underlying exception
                 raise e.errors[0].error
 
-            #self._check_for_dup_router_subnets(context, router,
+            # self._check_for_dup_router_subnets(context, router,
             #                                   new_network_id, subnets)
             self._create_vpn_router_gw_port(context, router,
-                                        new_network_id, ext_ips)
+                                            new_network_id, ext_ips)
             registry.notify(resources.ROUTER_GATEWAY,
                             events.AFTER_CREATE,
                             self._create_vpn_gw_port,
@@ -204,13 +197,12 @@ class VPNExtGW_dbonly_mixin(extraroute_db.ExtraRoute_db_mixin):
                                             ext_ips)
         if vpn_gw_port and ext_ip_change and vpn_gw_port['network_id'] \
                 == network_id:
-            self._update_current_vpn_gw_port(context, router_id, vpn_gw_port,
-                                         ext_ips)
+            self._update_current_vpn_gw_port(context, vpn_gw_port, ext_ips)
         else:
             self._delete_current_vpn_gw_port(context, router_id, router,
-                                         network_id)
+                                             network_id)
             self._create_vpn_gw_port(context, router_id, router, network_id,
-                                 ext_ips)
+                                     ext_ips)
 
     def _get_vpn_gw_info_by_router_id(self, context, id):
         router_db = self._get_router(context, id)

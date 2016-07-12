@@ -27,27 +27,27 @@ ROUTERS = 'routers'
 RESOURCE_ATTRIBUTE_MAP = {
     ROUTERS: {
         VPN_GW: {'allow_post': True, 'allow_put': True,
-                           'is_visible': True, 'default': None,
-                           'enforce_policy': True,
-                           'validate': {
-                               'type:dict_or_nodata': {
-                                   'network_id': {'type:uuid': None,
-                                                  'required': True},
-                                   'external_fixed_ips': {
-                                       'convert_list_to':
-                                       converters.convert_kvp_list_to_dict,
-                                       'type:fixed_ips': None,
-                                       'default': None,
-                                       'required': False,
-                                   }
-                               }
-                           }}
+                 'is_visible': True, 'default': None,
+                 'enforce_policy': True,
+                 'validate': {
+                     'type:dict_or_nodata': {
+                         'network_id': {'type:uuid': None,
+                                        'required': True},
+                         'external_fixed_ips': {
+                             'convert_list_to':
+                                 converters.convert_kvp_list_to_dict,
+                             'type:fixed_ips': None,
+                             'default': None,
+                             'required': False,
+                         }
+                     }
+                 }}
     },
 }
 
+
 @six.add_metaclass(abc.ABCMeta)
 class Vpn_ext_gw(extensions.ExtensionDescriptor):
-
     @classmethod
     def get_name(cls):
         return "VPN External Gateway"
@@ -87,6 +87,3 @@ class Vpn_ext_gw(extensions.ExtensionDescriptor):
             return RESOURCE_ATTRIBUTE_MAP
         else:
             return {}
-
-
-
