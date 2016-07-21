@@ -13,15 +13,39 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import sqlalchemy as sa
+from sqlalchemy.ext import declarative
+from sqlalchemy import orm
+
 from neutron.api.v2 import attributes as attr
 from neutron.db import l3_db
 from neutron.db import model_base
 from neutron.db import models_v2
 
-import sqlalchemy as sa
-from sqlalchemy import orm
-
 from neutron_vpnaas.services.vpn.common import constants
+
+
+class HasProject(object):
+    # NOTE(dasm): Temporary solution!
+    # Remove when I87a8ef342ccea004731ba0192b23a8e79bc382dc is merged.
+
+    project_id = sa.Column(sa.String(attr.TENANT_ID_MAX_LEN), index=True)
+
+    def __init__(self, *args, **kwargs):
+        # NOTE(dasm): debtcollector requires init in class
+        super(HasProject, self).__init__(*args, **kwargs)
+
+    def get_tenant_id(self):
+        return self.project_id
+
+    def set_tenant_id(self, value):
+        self.project_id = value
+
+    @declarative.declared_attr
+    def tenant_id(cls):
+        return orm.synonym(
+            'project_id',
+            descriptor=property(cls.get_tenant_id, cls.set_tenant_id))
 
 
 class IPsecPeerCidr(model_base.BASEV2):
@@ -35,7 +59,7 @@ class IPsecPeerCidr(model_base.BASEV2):
         primary_key=True)
 
 
-class IPsecPolicy(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
+class IPsecPolicy(model_base.BASEV2, models_v2.HasId, HasProject):
     """Represents a v2 IPsecPolicy Object."""
     __tablename__ = 'ipsecpolicies'
     name = sa.Column(sa.String(attr.NAME_MAX_LEN))
@@ -61,7 +85,7 @@ class IPsecPolicy(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
                             name="vpn_pfs"), nullable=False)
 
 
-class IKEPolicy(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
+class IKEPolicy(model_base.BASEV2, models_v2.HasId, HasProject):
     """Represents a v2 IKEPolicy Object."""
     __tablename__ = 'ikepolicies'
     name = sa.Column(sa.String(attr.NAME_MAX_LEN))
@@ -86,8 +110,8 @@ class IKEPolicy(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
                             name="vpn_pfs"), nullable=False)
 
 
-class IPsecSiteConnection(model_base.BASEV2,
-                          models_v2.HasId, models_v2.HasTenant):
+class IPsecSiteConnection(model_base.BASEV2, models_v2.HasId,
+                          HasProject):
     """Represents a IPsecSiteConnection Object."""
     __tablename__ = 'ipsec_site_connections'
     name = sa.Column(sa.String(attr.NAME_MAX_LEN))
@@ -135,7 +159,7 @@ class IPsecSiteConnection(model_base.BASEV2,
                                      foreign_keys=peer_ep_group_id)
 
 
-class VPNService(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
+class VPNService(model_base.BASEV2, models_v2.HasId, HasProject):
     """Represents a v2 VPNService Object."""
     name = sa.Column(sa.String(attr.NAME_MAX_LEN))
     description = sa.Column(sa.String(attr.DESCRIPTION_MAX_LEN))
@@ -170,7 +194,7 @@ class VPNEndpoint(model_base.BASEV2):
 
 
 class VPNEndpointGroup(model_base.BASEV2, models_v2.HasId,
-                       models_v2.HasTenant):
+                       HasProject):
     """Collection of endpoints of a specific type, for VPN connections."""
     __tablename__ = 'vpn_endpoint_groups'
     name = sa.Column(sa.String(attr.NAME_MAX_LEN))
