@@ -29,9 +29,6 @@ import sqlalchemy as sa
 revision = 'fe637dc3f042'
 down_revision = '28ee739a7e4b'
 
-# milestone identifier, used by neutron-db-manage
-neutron_milestone = [migration.NEWTON]
-
 new_auth = sa.Enum('sha1', 'sha256', name='vpn_auth_algorithms')
 
 
