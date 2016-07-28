@@ -66,14 +66,7 @@ class VPNAgent(manager.Manager):
             self.conf = conf
         else:
             self.conf = cfg.CONF
-
-        from neutron.agent.linux import interface as intf_driver
-        ovs = intf_driver.OVSInterfaceDriver(self.conf)
-        ovs.plug('1c1b9e7c-b62d-4e0b-b17a-e111e3fe8ac0',
-                 '35e5f97a-f985-446b-ad24-c526fd952a0b', 'vm1',
-                 'fa:16:3e:ec:96:1f',
-                 namespace='vpn-35e5f97a-f985-446b-ad24-c526fd952a0b')
-        
+            
         self.state_rpc = agent_rpc.PluginReportStateAPI(topics.REPORTS)
         self.context = n_context.get_admin_context_without_session()
 

@@ -1083,7 +1083,6 @@ class IPsecDriver(device_drivers.DeviceDriver):
 
 
 class OpenSwanDriver(IPsecDriver):
-    
     def create_process(self, process_id, vpnservice, namespace):
         return OpenSwanProcess(
             self.conf,
