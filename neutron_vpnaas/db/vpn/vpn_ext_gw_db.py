@@ -108,7 +108,7 @@ class VPNExtGW_dbonly_mixin(extraroute_db.ExtraRoute_db_mixin):
             gw_port = vpn_gw_port.port
             router[VPN_GW] = None
             # TODO check if the router instance is deleted
-            context.session.add(router)
+            #context.session.add(router)
             context.session.delete(vpn_gw_port)
             context.session.expire(gw_port)
             # self._check_router_gw_port_in_use(context, router_id)
