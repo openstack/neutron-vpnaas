@@ -25,24 +25,19 @@ case $VENV in
     dsvm-functional | dsvm-functional-sswan)
         owner=stack
         sudo_env=
-        ;;
-    api)
-        owner=tempest
-        # Configure the api tests to use the tempest.conf set by devstack.
-        sudo_env="TEMPEST_CONFIG_DIR=$TEMPEST_DIR/etc"
+
+        # Set owner permissions according to job's requirements.
+        cd $NEUTRON_VPNAAS_DIR
+        sudo chown -R $owner:stack $NEUTRON_VPNAAS_DIR
+
+        echo "Running neutron $VENV test suite"
+        set +e
+        sudo -H -u $owner $sudo_env tox -e $VENV
+        testr_exit_code=$?
+        set -e
+
+        # Collect and parse results
+        generate_testr_results
+        exit $testr_exit_code
         ;;
 esac
-
-# Set owner permissions according to job's requirements.
-cd $NEUTRON_VPNAAS_DIR
-sudo chown -R $owner:stack $NEUTRON_VPNAAS_DIR
-
-echo "Running neutron $VENV test suite"
-set +e
-sudo -H -u $owner $sudo_env tox -e $VENV
-testr_exit_code=$?
-set -e
-
-# Collect and parse results
-generate_testr_results
-exit $testr_exit_code

@@ -21,7 +21,7 @@ from tempest import test
 
 from neutron.tests.tempest import config
 
-from neutron_vpnaas.tests.api import clients
+from neutron_vpnaas.tests.tempest.api import clients
 
 
 CONF = config.CONF
@@ -167,8 +167,8 @@ class BaseNetworkTest(test.BaseTestCase):
         ip_version = ip_version if ip_version is not None else cls._ip_version
         gateway_not_set = gateway == ''
         if ip_version == 4:
-            cidr = cidr or netaddr.IPNetwork(CONF.network.tenant_network_cidr)
-            mask_bits = mask_bits or CONF.network.tenant_network_mask_bits
+            cidr = cidr or netaddr.IPNetwork(CONF.network.project_network_cidr)
+            mask_bits = mask_bits or CONF.network.project_network_mask_bits
         elif ip_version == 6:
             cidr = (
                 cidr or netaddr.IPNetwork(CONF.network.tenant_network_v6_cidr))

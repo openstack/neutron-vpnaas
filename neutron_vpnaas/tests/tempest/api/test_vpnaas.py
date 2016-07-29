@@ -21,7 +21,7 @@ from tempest import test
 from neutron.api.v2 import attributes as attr
 from neutron.tests.tempest import config
 
-from neutron_vpnaas.tests.api import base
+from neutron_vpnaas.tests.tempest.api import base
 
 CONF = config.CONF
 
