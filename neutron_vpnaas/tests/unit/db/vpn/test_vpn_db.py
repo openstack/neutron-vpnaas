@@ -912,6 +912,31 @@ class TestVpnaas(VPNPluginDbTestCase):
                                                   expected_code=webob.exc.
                                                   HTTPConflict.code)
 
+    def test_delete_router_interface_not_in_use_by_vpnservice(self):
+        """Test delete router interface not in use by vpn service."""
+        with self.subnet(cidr='10.2.0.0/24') as subnet, \
+                self.router() as router1, self.router() as router2, \
+                self.vpnservice(subnet=subnet, router=router1), \
+                self.port(subnet=subnet) as port:
+            self._router_interface_action('add',
+                                          router2['router']['id'],
+                                          None,
+                                          port['port']['id'],
+                                          expected_code=webob.exc.
+                                          HTTPOk.code)
+            self._router_interface_action('remove',
+                                          router1['router']['id'],
+                                          subnet['subnet']['id'],
+                                          None,
+                                          expected_code=webob.exc.
+                                          HTTPConflict.code)
+            self._router_interface_action('remove',
+                                          router2['router']['id'],
+                                          None,
+                                          port['port']['id'],
+                                          expected_code=webob.exc.
+                                          HTTPOk.code)
+
     def test_delete_external_gateway_interface_in_use_by_vpnservice(self):
         """Test delete external gateway interface in use by vpn service."""
         with self.subnet(cidr='10.2.0.0/24') as subnet:
@@ -1622,7 +1647,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                 self.assertRaises(vpnaas.SubnetInUseByVPNService,
                                   self.plugin.check_subnet_in_use,
                                   context.get_admin_context(),
-                                  subnet['subnet']['id'])
+                                  subnet['subnet']['id'],
+                                  router['router']['id'])
 
     def test_check_router_has_no_vpn(self):
         with mock.patch.object(
