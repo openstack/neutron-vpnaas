@@ -35,6 +35,15 @@ section of devstack's local.conf file::
 
        enable_plugin neutron-vpnaas https://git.openstack.org/openstack/neutron-vpnaas stable/kilo
 
+The default implementation for IPSEC package under DevStack is 'openswan'.
+However, depending upon the Linux distribution, you may need to override
+this value. Select 'libreswan' for Fedora/RHEL/CentOS or 'strongswan' for
+Ubuntu 14.4.04+::
+
+    For example, install libreswan for CentOS/RHEL 7::
+
+        IPSEC_PACKAGE=libreswan
+
 This VPNaaS devstack plugin code will then
 
 #. Install the common VPNaaS configuration and code,
