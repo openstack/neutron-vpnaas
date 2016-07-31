@@ -177,14 +177,14 @@ class IPsecHelper(object):
                                     router_id=router_id)
         
         lrouter = utils.ovn_name(router_id)
-        network = "%s/%s" % (VPN_TRANSIT_LIP, 28)
+        networks = ["%s/%s" % (VPN_TRANSIT_LIP, 28)]
         
         lrouter_port_name = utils.ovn_lrouter_port_name(lport)
         with self._ovn.transaction(check_error=True) as txn:
             txn.add(self._ovn.add_lrouter_port(name=lrouter_port_name,
                                                lrouter=lrouter,
                                                mac=mac,
-                                               network=network))
+                                               networks=networks))
             
             txn.add(self._ovn.set_lrouter_port_in_lswitch_port(
                 lport, lrouter_port_name))
