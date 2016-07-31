@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import collections
+import netaddr
 
 from neutron.common import rpc as n_rpc
 from neutron.common import utils as nutils
@@ -21,6 +22,8 @@ from oslo_log import log as logging
 from oslo_utils import uuidutils
 from oslo_config import cfg
 
+from neutron_vpnaas.extensions.vpn_ext_gw import VPN_GW
+from neutron_vpnaas.extensions.vpn_ext_gw import RouterIsNotVPNExternal
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn.service_drivers import base_ipsec
 from neutron_vpnaas.services.vpn.service_drivers import ipsec_validator
@@ -284,6 +287,25 @@ class BaseOvnIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
         if self._OVNHelper is None:
             self._OVNHelper = IPsecHelper()
         return self._OVNHelper
+
+    def _get_gateway_ips(self, router):
+        """Obtain the IPv4 and/or IPv6 GW IP for the router.
+
+        If there are multiples, (arbitrarily) use the first one.
+        """
+        if router[VPN_GW] == None or router[VPN_GW].port == None:
+            raise RouterIsNotVPNExternal(router_id=router['id'])
+        
+        v4_ip = v6_ip = None
+        for fixed_ip in router[VPN_GW].port['fixed_ips']:
+            addr = fixed_ip['ip_address']
+            vers = netaddr.IPAddress(addr).version
+            if vers == 4:
+                if v4_ip is None:
+                    v4_ip = addr
+            elif v6_ip is None:
+                v6_ip = addr
+        return v4_ip, v6_ip
     
     def _setup(self, context, vpnservice_id):
         vpnservice = self.service_plugin._get_vpnservice(

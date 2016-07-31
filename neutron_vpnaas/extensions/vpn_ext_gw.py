@@ -17,11 +17,18 @@ import abc
 import six
 
 from neutron_lib.api import converters
+from neutron_lib import exceptions as nexception
+
 from neutron.api import extensions
 from neutron.api.v2 import attributes as attr
 from neutron.api.v2 import resource_helper
 from neutron.plugins.common import constants as nconstants
 
+
+class RouterIsNotVPNExternal(nexception.BadRequest):
+    message = _("Router %(router_id)s has no VPN external network gateway set")
+    
+    
 VPN_GW = 'vpn_external_gateway_info'
 ROUTERS = 'routers'
 RESOURCE_ATTRIBUTE_MAP = {
