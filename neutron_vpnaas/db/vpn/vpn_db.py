@@ -635,24 +635,25 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
 class VPNPluginRpcDbMixin(object):
     def _get_agent_hosting_vpn_services(self, context, host):
 
-        plugin = manager.NeutronManager.get_plugin()
-        agent = plugin._get_agent_by_type_and_host(
-            context, n_constants.AGENT_TYPE_L3, host)
-        agent_conf = plugin.get_configuration_dict(agent)
+        #plugin = manager.NeutronManager.get_plugin()
+        #agent = plugin._get_agent_by_type_and_host(
+        #    context, n_constants.AGENT_TYPE_L3, host)
+        #agent_conf = plugin.get_configuration_dict(agent)
         # Retrieve the agent_mode to check if this is the
         # right agent to deploy the vpn service. In the
         # case of distributed the vpn service should reside
         # only on a dvr_snat node.
-        agent_mode = agent_conf.get('agent_mode', 'legacy')
-        if not agent.admin_state_up or agent_mode == 'dvr':
-            return []
+        #agent_mode = agent_conf.get('agent_mode', 'legacy')
+        #if not agent.admin_state_up or agent_mode == 'dvr':
+        #    return []
         query = context.session.query(vpn_models.VPNService)
         query = query.join(vpn_models.IPsecSiteConnection)
-        query = query.join(l3_agent_db.RouterL3AgentBinding,
-                           l3_agent_db.RouterL3AgentBinding.router_id ==
-                           vpn_models.VPNService.router_id)
-        query = query.filter(
-            l3_agent_db.RouterL3AgentBinding.l3_agent_id == agent.id)
+        #query = query.join(l3_agent_db.RouterL3AgentBinding,
+        #                   l3_agent_db.RouterL3AgentBinding.router_id ==
+        #                   vpn_models.VPNService.router_id)
+        #query = query.join(l3_agent_db.RouterL3AgentBinding, True)
+        #query = query.filter(
+        #    l3_agent_db.RouterL3AgentBinding.l3_agent_id == agent.id)
         return query
 
     def _build_local_subnet_cidr_map(self, context):
