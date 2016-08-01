@@ -62,7 +62,7 @@ class DeviceManager(object):
 
     def set_default_route(self, subnet, device_name, namespace):
         device = ip_lib.IPDevice(device_name, namespace=namespace)
-        gateway = device.route.get_gateway()
+        gateway = device.route.get_gateway(ip_version=subnet['ip_version'])
         if gateway:
             gateway = gateway.get('gateway')
         new_gateway = subnet['gateway_ip']
@@ -101,7 +101,7 @@ class DeviceManager(object):
             interface_name = p['name']
             self.driver.unplug(interface_name, namespace=namespace)
 
-    def setup_external(self, network, subnet, process_id):
+    def setup_external(self, network, process_id):
         vpn_port = self.get_vpn_external_port(process_id)
         LOG.info('external vpn port find is %s' % vpn_port)
         ns_name = self.get_namespace_name(process_id)
@@ -122,13 +122,18 @@ class DeviceManager(object):
                 return None
 
         ip_cidrs = []
-        net = netaddr.IPNetwork(subnet['cidr'])
+        subnets = []
         for fixed_ip in vpn_port['fixed_ips']:
+            subnet_id = fixed_ip['subnet_id']
+            subnet = self.plugin.get_subnet_info(subnet_id)
+            net = netaddr.IPNetwork(subnet['cidr'])
             ip_cidr = '%s/%s' % (fixed_ip['ip_address'], net.prefixlen)
             ip_cidrs.append(ip_cidr)
+            subnets.append(subnet)
         self.driver.init_l3(interface_name, ip_cidrs,
                             namespace=ns_name)
-        self.set_default_route(subnet, interface_name, ns_name)
+        for subnet in subnets:
+            self.set_default_route(subnet, interface_name, ns_name)
         return interface_name
 
     def setup_internal(self, process_id):
@@ -248,8 +253,7 @@ class OvnSwanDriver(ipsec.IPsecDriver):
 
         #setUp vpn external port on provider net
         net = self.agent_rpc.get_provider_network4vpn(router_id)
-        subnet = self.agent_rpc.get_subnet_info(net['subnets'][0])
-        self.devmgr.setup_external(net, subnet, router_id)
+        self.devmgr.setup_external(net, router_id)
 
         #setUp vpn internal port on transit net
         self.devmgr.setup_internal(router_id)
