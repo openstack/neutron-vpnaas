@@ -27,9 +27,9 @@ from neutron.agent.linux import external_process
 from neutron.agent.linux import interface
 from neutron.agent.linux import ip_lib
 from neutron.agent.linux import utils as linux_utils
-from neutron.common import config as common_config
 from neutron.common import constants as l3_constants
 from neutron.common import utils as common_utils
+from neutron.conf import common as common_config
 from neutron.plugins.common import constants
 from neutron.services.provider_configuration import serviceprovider_opts
 from neutron.tests.common import l3_test_common
