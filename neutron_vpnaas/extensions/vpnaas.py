@@ -279,7 +279,7 @@ RESOURCE_ATTRIBUTE_MAP = {
                 'default': {},
                 'validate': {
                     'type:dict_or_empty': {
-                        'actions': {
+                        'action': {
                             'type:values': vpn_dpd_supported_actions,
                         },
                         'interval': {
