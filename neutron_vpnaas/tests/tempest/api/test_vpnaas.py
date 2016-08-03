@@ -102,7 +102,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             pass
 
     def _delete_ipsec_site_connection(self, conn_id):
-        #
+        # Deletes an ipsec site connection if it exists
         try:
             self.client.delete_ipsec_site_connection(conn_id)
         except lib_exc.NotFound:
@@ -131,7 +131,6 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             self.client.delete_endpoint_group(endpoint_group_id)
             # Asserting that the endpoint is not found in list after deletion
             endpoint_group = self.client.list_endpoint_groups()
-            #endpoint_group_id_list = list()
             for e in endpoint_group['endpoint_groups']:
                 endpoint_group_list.append(e['id'])
             self.assertNotIn(endpoint_group_list, endpoint_group_id)
@@ -392,7 +391,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
                       [v['id'] for v in ipsec_site_connections])
 
     @test.attr(type='smoke')
-    def test_create_delete_vpn_connection(self):
+    def test_create_delete_vpn_connection_with_legacy_mode(self):
         # Verify create VPN connection
         name = data_utils.rand_name("ipsec_site_connection-")
         body = self.client.create_ipsec_site_connection(
@@ -523,11 +522,12 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         tenant_id = self._get_tenant_id()
         # Create endpoint group for the newly created tenant
         name = data_utils.rand_name('endpoint_group')
+        subnet_id = self.subnet['id']
         body = self.client.create_endpoint_group(
                         tenant_id=tenant_id,
                         name=name,
-                        type='cidr',
-                        endpoints=["10.101.0.0/24", "10.102.0.0/24"])
+                        type='subnet',
+                        endpoints=subnet_id)
         endpoint_group_local = body['endpoint_group']
         self.addCleanup(self._delete_endpoint_group,
                         endpoint_group_local['id'])
@@ -559,18 +559,19 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             psk="secret")
 
     @test.attr(type=['negative', 'smoke'])
-    def test_create_vpn_connection_with_only_local_endpoint_group(self):
+    def test_create_vpn_connection_with_missing_remote_endpoint_group(self):
         # Verify create VPN connection without subnet in vpnservice
         # and has only local endpoint group
         tenant_id = self._get_tenant_id()
         # Create endpoint group for the newly created tenant
         tenant_id = self._get_tenant_id()
         name = data_utils.rand_name('endpoint_group')
+        subnet_id = self.subnet['id']
         body = self.client.create_endpoint_group(
                         tenant_id=tenant_id,
                         name=name,
-                        type='cidr',
-                        endpoints=["10.101.0.0/24", "10.102.0.0/24"])
+                        type='subnet',
+                        endpoints=subnet_id)
         endpoint_group = body['endpoint_group']
         self.addCleanup(self._delete_endpoint_group, endpoint_group['id'])
         # Create connections
@@ -590,7 +591,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             psk="secret")
 
     @test.attr(type=['negative', 'smoke'])
-    def test_create_vpn_connection_with_only_remote_endpoint_group(self):
+    def test_create_vpn_connection_with_missing_local_endpoint_group(self):
         # Verify create VPN connection without subnet in vpnservice
         # and only have only local endpoint group
         tenant_id = self._get_tenant_id()
@@ -625,23 +626,28 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         tenant_id = self._get_tenant_id()
         # Create endpoint group for the newly created tenant
         name = data_utils.rand_name('endpoint_group')
+        subnet_id = self.subnet['id']
         body = self.client.create_endpoint_group(
                         tenant_id=tenant_id,
                         name=name,
-                        type='cidr',
-                        endpoints=["10.101.0.0/24", "10.102.0.0/24"])
-        endpoint_group = body['endpoint_group']
-        self.addCleanup(self._delete_endpoint_group, endpoint_group['id'])
+                        type='subnet',
+                        endpoints=subnet_id)
+        endpoint_group_local = body['endpoint_group']
+        self.addCleanup(self._delete_endpoint_group,
+                        endpoint_group_local['id'])
         name_v6 = data_utils.rand_name('endpoint_group')
         body_v6 = self.client.create_endpoint_group(
                         tenant_id=tenant_id,
                         name=name_v6,
                         type='cidr',
                         endpoints=["fec0:101::/64", "fec0:102::/64"])
-        endpoint_group_v6 = body_v6['endpoint_group']
-        self.addCleanup(self._delete_endpoint_group, endpoint_group_v6['id'])
+        endpoint_group_remote = body_v6['endpoint_group']
+        self.addCleanup(self._delete_endpoint_group,
+                        endpoint_group_remote['id'])
         # Create connections
         name = data_utils.rand_name("ipsec_site_connection-")
+        self.assertEqual(endpoint_group_local['type'], 'subnet')
+        self.assertEqual(endpoint_group_remote['type'], 'cidr')
         self.assertRaises(
             lib_exc.BadRequest,
             self.client.create_ipsec_site_connection,
@@ -650,15 +656,15 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             vpnservice_id=self.vpnservice_no_subnet['id'],
             peer_address="172.24.4.233",
             peer_id="172.24.4.233",
-            peer_ep_group_id=endpoint_group['id'],
-            local_ep_group_id=endpoint_group_v6['id'],
+            peer_ep_group_id=endpoint_group_local['id'],
+            local_ep_group_id=endpoint_group_remote['id'],
             name=name,
             admin_state_up=True,
             initiator="bi-directional",
             psk="secret")
 
     @test.attr(type=['negative', 'smoke'])
-    def test_create_connection_with_subnet_remote_endpoint_group(self):
+    def test_create_connection_with_subnet_and_remote_endpoint_group(self):
         tenant_id = self._get_tenant_id()
         # Create endpoint group for the newly created tenant
         name = data_utils.rand_name('endpoint_group')
@@ -685,15 +691,16 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             psk="secret")
 
     @test.attr(type=['negative', 'smoke'])
-    def test_create_connection_with_subnet_local_endpoint_group(self):
+    def test_create_connection_with_subnet_and_local_endpoint_group(self):
         tenant_id = self._get_tenant_id()
         # Create endpoint group for the newly created tenant
         name = data_utils.rand_name('endpoint_group')
+        subnet_id = self.subnet['id']
         body = self.client.create_endpoint_group(
                         tenant_id=tenant_id,
                         name=name,
-                        type='cidr',
-                        endpoints=["10.101.0.0/24", "10.102.0.0/24"])
+                        type='subnet',
+                        endpoints=subnet_id)
         endpoint_group = body['endpoint_group']
         self.addCleanup(self._delete_endpoint_group, endpoint_group['id'])
         # Create connections
@@ -710,3 +717,167 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             admin_state_up=True,
             initiator="bi-directional",
             psk="secret")
+
+    @test.attr(type='smoke')
+    def test_create_update_delete_endpoint_group(self):
+        # Creates a endpoint-group
+        name = data_utils.rand_name('endpoint_group')
+        body = (self.client.create_endpoint_group(
+                name=name,
+                type='cidr',
+                endpoints=["10.2.0.0/24", "10.3.0.0/24"]))
+        endpoint_group = body['endpoint_group']
+        self.assertIsNotNone(endpoint_group['id'])
+        self.addCleanup(self._delete_endpoint_group, endpoint_group['id'])
+        # Update endpoint-group
+        body = {'name': data_utils.rand_name("new_endpoint_group")}
+        self.client.update_endpoint_group(endpoint_group['id'],
+                        name=name)
+        # Confirm that update was successful by verifying using 'show'
+        body = self.client.show_endpoint_group(endpoint_group['id'])
+        endpoint_group = body['endpoint_group']
+        self.assertEqual(name, endpoint_group['name'])
+        # Verification of endpoint-group delete
+        endpoint_group_id = endpoint_group['id']
+        self.client.delete_endpoint_group(endpoint_group['id'])
+        body = self.client.list_endpoint_groups()
+        endpoint_group = [enp['id'] for enp in body['endpoint_groups']]
+        self.assertNotIn(endpoint_group_id, endpoint_group)
+
+    @test.attr(type='smoke')
+    def test_admin_create_endpoint_group_for_tenant(self):
+        # Create endpoint group for the newly created tenant
+        tenant_id = self._get_tenant_id()
+        name = data_utils.rand_name('endpoint_group')
+        body = (self.client.
+                create_endpoint_group(
+                        name=name,
+                        type='cidr',
+                        endpoints=["10.2.0.0/24", "10.3.0.0/24"],
+                        tenant_id=tenant_id))
+        endpoint_group = body['endpoint_group']
+        self.assertIsNotNone(endpoint_group['id'])
+        self.addCleanup(self._delete_endpoint_group, endpoint_group['id'])
+        # Assert that created endpoint group is found in API list call
+        endpoint_group_id = endpoint_group['id']
+        self.client.delete_endpoint_group(endpoint_group['id'])
+        body = self.client.list_endpoint_groups()
+        endpoint_group = [enp['id'] for enp in body['endpoint_groups']]
+        self.assertNotIn(endpoint_group_id, endpoint_group)
+
+    @test.attr(type='smoke')
+    def test_show_endpoint_group(self):
+        # Verifies the details of an endpoint group
+        body = self.client.show_endpoint_group(self.endpoint_group_local['id'])
+        endpoint_group = body['endpoint_group']
+        self.assertEqual(self.endpoint_group_local['id'], endpoint_group['id'])
+        self.assertEqual(self.endpoint_group_local['name'],
+                         endpoint_group['name'])
+        self.assertEqual(self.endpoint_group_local['description'],
+                         endpoint_group['description'])
+        self.assertEqual(self.endpoint_group_local['tenant_id'],
+                         endpoint_group['tenant_id'])
+        self.assertEqual(self.endpoint_group_local['type'],
+                         endpoint_group['type'])
+        self.assertEqual(self.endpoint_group_local['endpoints'],
+                         endpoint_group['endpoints'])
+        # Verifies the details of an endpoint group
+        body = self.client.show_endpoint_group(
+                         self.endpoint_group_remote['id'])
+        endpoint_group = body['endpoint_group']
+        #endpoint_group_remote = endpoint_group['id']
+        self.assertEqual(self.endpoint_group_remote['id'],
+                         endpoint_group['id'])
+        self.assertEqual(self.endpoint_group_remote['name'],
+                         endpoint_group['name'])
+        self.assertEqual(self.endpoint_group_remote['description'],
+                         endpoint_group['description'])
+        self.assertEqual(self.endpoint_group_remote['tenant_id'],
+                         endpoint_group['tenant_id'])
+        self.assertEqual(self.endpoint_group_remote['type'],
+                         endpoint_group['type'])
+        self.assertEqual(self.endpoint_group_remote['endpoints'],
+                         endpoint_group['endpoints'])
+
+    @test.attr(type='smoke')
+    def test_create_delete_vpn_connection_with_ep_group(self):
+        # Creates a endpoint-group with type cidr
+        name = data_utils.rand_name('endpoint_group')
+        body = self.client.create_endpoint_group(
+                name=name,
+                type='cidr',
+                endpoints=["10.2.0.0/24", "10.3.0.0/24"])
+        endpoint_group_remote = body['endpoint_group']
+        self.addCleanup(self._delete_endpoint_group,
+                        endpoint_group_remote['id'])
+        # Creates a endpoint-group with type subnet
+        name = data_utils.rand_name('endpoint_group')
+        subnet_id = self.subnet['id']
+        body2 = self.client.create_endpoint_group(
+                name=name,
+                type='subnet',
+                endpoints=subnet_id)
+        endpoint_group_local = body2['endpoint_group']
+        self.addCleanup(self._delete_endpoint_group,
+                        endpoint_group_local['id'])
+        # Verify create VPN connection
+        name = data_utils.rand_name("ipsec_site_connection-")
+        body = self.client.create_ipsec_site_connection(
+            ipsecpolicy_id=self.ipsecpolicy['id'],
+            ikepolicy_id=self.ikepolicy['id'],
+            vpnservice_id=self.vpnservice_no_subnet['id'],
+            peer_ep_group_id=endpoint_group_remote['id'],
+            local_ep_group_id=endpoint_group_local['id'],
+            name=name,
+            mtu=1500,
+            admin_state_up=True,
+            initiator="bi-directional",
+            peer_address="172.24.4.233",
+            peer_id="172.24.4.233",
+            psk="secret")
+        ipsec_site_connection = body['ipsec_site_connection']
+        self.assertEqual(ipsec_site_connection['name'], name)
+        self.assertEqual(ipsec_site_connection['mtu'], 1500)
+        self.addCleanup(self._delete_ipsec_site_connection,
+                        ipsec_site_connection['id'])
+
+        # Verification of IPsec connection delete
+        self.client.delete_ipsec_site_connection(ipsec_site_connection['id'])
+        body = self.client.list_ipsec_site_connections()
+        ipsec_site_connections = body['ipsec_site_connections']
+        self.assertNotIn(ipsec_site_connection['id'],
+                      [v['id'] for v in ipsec_site_connections])
+
+    @test.attr(type=['negative', 'smoke'])
+    def test_fail_create_endpoint_group_when_wrong_type(self):
+        # Creates a endpoint-group with wrong type
+        name = data_utils.rand_name('endpoint_group')
+        self.assertRaises(
+            lib_exc.BadRequest,
+            self.client.create_endpoint_group,
+            name=name,
+            type='subnet',
+            endpoints=["10.2.0.0/24", "10.3.0.0/24"])
+
+    @test.attr(type=['negative', 'smoke'])
+    def test_fail_create_endpoint_group_when_provide_subnet_id_with_cidr(self):
+        # Creates a endpoint-group when provide subnet id with type cidr
+        name = data_utils.rand_name('endpoint_group')
+        subnet_id = self.subnet['id']
+        self.assertRaises(
+            lib_exc.BadRequest,
+            self.client.create_endpoint_group,
+            name=name,
+            type='cidr',
+            endpoints=subnet_id)
+
+    @test.attr(type=['negative', 'smoke'])
+    def test_fail_create_endpoint_group_with_mixed_IP_version(self):
+        # Creates a endpoint-group with mixed IP version
+        name = data_utils.rand_name('endpoint_group')
+        self.assertRaises(
+            lib_exc.BadRequest,
+            self.client.create_endpoint_group,
+            name=name,
+            type='cidr',
+            endpoints=["10.2.0.0/24", "2000::1"])
