@@ -95,6 +95,8 @@ class Nol3VPNAgent(manager.Manager):
 
         self.service = vpn_service.VPNService(self)
         self.device_drivers = self.service.load_device_drivers(host)
+        for driver in self.device_drivers:
+            driver.sync(driver.context, [])
 
     def enqueue_state_change(self, router_id, state):
         pass
