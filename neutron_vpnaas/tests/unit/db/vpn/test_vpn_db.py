@@ -20,9 +20,7 @@ import os
 
 import mock
 from neutron.api import extensions as api_extensions
-from neutron.api.v2 import attributes
 from neutron.common import config
-from neutron.common import constants as l3_constants
 from neutron import context
 from neutron.db import agentschedulers_db
 from neutron.db import l3_agentschedulers_db
@@ -34,6 +32,7 @@ from neutron.plugins.common import constants as nconstants
 from neutron.scheduler import l3_agent_scheduler
 from neutron.tests.unit.db import test_db_base_plugin_v2 as test_db_plugin
 from neutron.tests.unit.extensions import test_l3 as test_l3_plugin
+from neutron_lib import constants as lib_constants
 from oslo_db import exception as db_exc
 from oslo_utils import uuidutils
 import six
@@ -1699,10 +1698,10 @@ class NeutronResourcesMixin(object):
                 {'ip_address': subnet['gateway_ip'],
                  'subnet_id': subnet['id']}
             ],
-            'mac_address': attributes.ATTR_NOT_SPECIFIED,
+            'mac_address': lib_constants.ATTR_NOT_SPECIFIED,
             'admin_state_up': True,
             'device_id': router['id'],
-            'device_owner': l3_constants.DEVICE_OWNER_ROUTER_INTF,
+            'device_owner': lib_constants.DEVICE_OWNER_ROUTER_INTF,
             'name': ''
         }}
         return self.core_plugin.create_port(self.context, port)

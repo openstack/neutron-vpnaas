@@ -15,11 +15,11 @@
 import netaddr
 import socket
 
-from neutron.api.v2 import attributes
 from neutron.db import l3_db
 from neutron.db import models_v2
 from neutron import manager
 from neutron.plugins.common import constants as nconstants
+from neutron_lib.api import validators
 from neutron_lib import exceptions as nexception
 
 from neutron_vpnaas._i18n import _
@@ -79,7 +79,7 @@ class VpnReferenceValidator(object):
     def resolve_peer_address(self, ipsec_sitecon, router):
         address = ipsec_sitecon['peer_address']
         # check if address is an ip address or fqdn
-        invalid_ip_address = attributes._validate_ip_address(address)
+        invalid_ip_address = validators.validate_ip_address(address)
         if invalid_ip_address:
             # resolve fqdn
             try:
@@ -289,7 +289,7 @@ class VpnReferenceValidator(object):
     def _validate_cidrs(self, cidrs):
         """Ensure valid IPv4/6 CIDRs."""
         for cidr in cidrs:
-            msg = attributes._validate_subnet(cidr)
+            msg = validators.validate_subnet(cidr)
             if msg:
                 raise vpnaas.InvalidEndpointInEndpointGroup(
                     group_type=constants.CIDR_ENDPOINT, endpoint=cidr,
@@ -298,7 +298,7 @@ class VpnReferenceValidator(object):
     def _validate_subnets(self, context, subnet_ids):
         """Ensure UUIDs OK and subnets exist."""
         for subnet_id in subnet_ids:
-            msg = attributes._validate_uuid(subnet_id)
+            msg = validators.validate_uuid(subnet_id)
             if msg:
                 raise vpnaas.InvalidEndpointInEndpointGroup(
                     group_type=constants.SUBNET_ENDPOINT, endpoint=subnet_id,

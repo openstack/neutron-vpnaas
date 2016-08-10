@@ -21,6 +21,8 @@ from neutron.api.v2 import attributes as attr
 from neutron.api.v2 import resource_helper
 from neutron.plugins.common import constants as nconstants
 
+from neutron_lib.api import converters
+
 from neutron_vpnaas.services.vpn.common import constants
 
 
@@ -47,7 +49,7 @@ RESOURCE_ATTRIBUTE_MAP = {
                  },
                  'is_visible': True},
         'endpoints': {'allow_post': True, 'allow_put': False,
-                      'convert_to': attr.convert_to_list,
+                      'convert_to': converters.convert_to_list,
                       'is_visible': True},
     },
 }
