@@ -19,7 +19,7 @@ import socket
 import stat
 import time
 
-from rally.common import log as logging
+from rally.common import logging
 from rally.plugins.openstack.wrappers import network as network_wrapper
 from rally.task import utils as task_utils
 

@@ -13,7 +13,7 @@
 # under the License.
 
 from neutron_vpnaas._i18n import _LI
-from rally.common import log as logging
+from rally.common import logging
 from rally.task import scenario
 from rally.task import types as types
 
@@ -25,8 +25,8 @@ LOG = logging.getLogger(__name__)
 class TestVpnTenantScenario(vpn_base.VpnBase):
     """Rally scenarios for VPNaaS"""
 
-    @types.set(image=types.ImageResourceType,
-               flavor=types.FlavorResourceType)
+    @types.convert(image={"type": "glance_image"},
+                   flavor={"type": "nova_flavor"})
     @scenario.configure()
     def multitenants_vpn_test(self, **kwargs):
         """Test VPN connectivity under two different tenants.

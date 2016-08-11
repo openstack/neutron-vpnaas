@@ -19,7 +19,7 @@ import threading
 import time
 
 from oslo_utils import uuidutils
-from rally.common import log as logging
+from rally.common import logging
 from rally.plugins.openstack import scenario as rally_base
 from rally.task import atomic
 
