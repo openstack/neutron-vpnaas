@@ -26,12 +26,12 @@ import jinja2
 import netaddr
 from neutron.agent.linux import ip_lib
 from neutron.agent.linux import utils as agent_utils
-from neutron.api.v2 import attributes
 from neutron.common import rpc as n_rpc
 from neutron.common import utils as n_utils
 from neutron import context
 from neutron.plugins.common import constants
 from neutron.plugins.common import utils as plugin_utils
+from neutron_lib.api import validators
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -556,7 +556,7 @@ class OpenSwanProcess(BaseSwanProcess):
 
     def _get_nexthop(self, address, connection_id):
         # check if address is an ip address or fqdn
-        invalid_ip_address = attributes._validate_ip_address(address)
+        invalid_ip_address = validators.validate_ip_address(address)
         if invalid_ip_address:
             ip_addr = self._resolve_fqdn(address)
             if not ip_addr:

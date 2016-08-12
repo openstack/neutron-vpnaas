@@ -17,7 +17,6 @@
 from neutron.callbacks import events
 from neutron.callbacks import registry
 from neutron.callbacks import resources
-from neutron.common import constants as n_constants
 from neutron.db import common_db_mixin as base_db
 from neutron.db import l3_agentschedulers_db as l3_agent_db
 from neutron.db import models_v2
@@ -25,6 +24,7 @@ from neutron.extensions import l3 as l3_exception
 from neutron import manager
 from neutron.plugins.common import constants as p_constants
 from neutron.plugins.common import utils
+from neutron_lib import constants as lib_constants
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import uuidutils
@@ -637,7 +637,7 @@ class VPNPluginRpcDbMixin(object):
 
         plugin = manager.NeutronManager.get_plugin()
         agent = plugin._get_agent_by_type_and_host(
-            context, n_constants.AGENT_TYPE_L3, host)
+            context, lib_constants.AGENT_TYPE_L3, host)
         agent_conf = plugin.get_configuration_dict(agent)
         # Retrieve the agent_mode to check if this is the
         # right agent to deploy the vpn service. In the
