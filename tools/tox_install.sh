@@ -22,11 +22,7 @@ BRANCH_NAME=master
 
 set -e
 
-install_cmd="pip install"
-if [ "$1" = "constrained" ]; then
-    install_cmd="$install_cmd $2"
-    shift
-fi
+install_cmd="pip install -c$1"
 shift
 
 if [ -d "$NEUTRON_DIR" ]; then
