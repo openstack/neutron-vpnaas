@@ -68,7 +68,7 @@ class Manager(manager.Manager):
 
     default_params = {
         'disable_ssl_certificate_validation':
-            CONF.identity.disable_ssl_certificate_validation,
+            CONF.service_clients.disable_ssl_certificate_validation,
         'ca_certs': CONF.identity.ca_certificates_file,
         'trace_requests': CONF.debug.trace_requests
     }
