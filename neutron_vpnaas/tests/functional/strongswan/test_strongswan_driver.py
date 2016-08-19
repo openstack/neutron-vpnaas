@@ -179,6 +179,11 @@ class TestStrongSwanScenario(test_scenario.TestIPSecBase):
         ipsec_connection['dpd_interval'] = dpddelay
         ipsec_connection['dpd_timeout'] = dpdtimeout
 
+    def _override_auth_algorithm_for_site(self, site, auth):
+        ipsec_connection = site.vpn_service['ipsec_site_connections'][0]
+        ipsec_connection['ipsecpolicy']['auth_algorithm'] = auth
+        ipsec_connection['ikepolicy']['auth_algorithm'] = auth
+
     def test_strongswan_connection_with_non_default_value(self):
         site1 = self.create_site(test_scenario.PUBLIC_NET[4],
                 [self.private_nets[1]])
@@ -195,6 +200,23 @@ class TestStrongSwanScenario(test_scenario.TestIPSecBase):
         self._override_ipsecpolicy_for_site(site2, FAKE_IPSEC_POLICY2)
         self._override_dpd_for_site(site1, 'hold', 60, 240)
         self._override_dpd_for_site(site2, 'hold', 60, 240)
+        self.sync_to_create_ipsec_connections(site1, site2)
+
+        self.check_ping(site1, site2)
+        self.check_ping(site2, site1)
+
+    def test_strongswan_connection_with_sha256(self):
+        site1 = self.create_site(test_scenario.PUBLIC_NET[4],
+                [self.private_nets[1]])
+        site2 = self.create_site(test_scenario.PUBLIC_NET[5],
+                [self.private_nets[2]])
+
+        self.check_ping(site1, site2, success=False)
+        self.check_ping(site2, site1, success=False)
+
+        self.prepare_ipsec_site_connections(site1, site2)
+        self._override_auth_algorithm_for_site(site1, 'sha256')
+        self._override_auth_algorithm_for_site(site2, 'sha256')
         self.sync_to_create_ipsec_connections(site1, site2)
 
         self.check_ping(site1, site2)
