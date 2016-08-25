@@ -80,6 +80,7 @@ class StrongSwanProcess(ipsec.BaseSwanProcess):
     def __init__(self, conf, process_id, vpnservice, namespace):
         self.DIALECT_MAP['v1'] = 'ikev1'
         self.DIALECT_MAP['v2'] = 'ikev2'
+        self.DIALECT_MAP['sha256'] = 'sha256'
         self._strongswan_piddir = self._get_strongswan_piddir()
         LOG.debug("strongswan piddir is '%s'" % (self._strongswan_piddir))
         super(StrongSwanProcess, self).__init__(conf, process_id,
