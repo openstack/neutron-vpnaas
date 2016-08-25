@@ -14,18 +14,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from tempest.lib.services.identity.v2.tenants_client import TenantsClient
+from tempest.lib.services.identity.v2 import tenants_client as tenants_cli
 from tempest import manager
 
 from neutron.tests.tempest import config
-from neutron.tests.tempest.services.network.json.network_client import \
-     NetworkClientJSON
+from neutron.tests.tempest.services.network.json import network_client
 
 
 CONF = config.CONF
 
 
-class NetworkClient(NetworkClientJSON):
+class NetworkClient(network_client.NetworkClientJSON):
 
     def pluralize(self, resource_name):
 
@@ -106,5 +105,5 @@ class Manager(manager.Manager):
         params_v2_admin = params.copy()
         params_v2_admin['endpoint_type'] = CONF.identity.v2_admin_endpoint_type
         # Client uses admin endpoint type of Keystone API v2
-        self.tenants_client = TenantsClient(self.auth_provider,
-                                            **params_v2_admin)
+        self.tenants_client = tenants_cli.TenantsClient(self.auth_provider,
+                                                        **params_v2_admin)
