@@ -18,6 +18,7 @@ BRANCH_NAME=master
 neutron_installed=$(echo "import neutron" | python 2>/dev/null ; echo $?)
 
 set -e
+set -x
 
 install_cmd="pip install -c$1"
 shift
