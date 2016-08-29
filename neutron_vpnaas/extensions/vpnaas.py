@@ -23,7 +23,7 @@ from neutron.api.v2 import resource_helper
 from neutron.plugins.common import constants as nconstants
 from neutron.services import service_base
 from neutron_lib.api import converters
-from neutron_lib.api import validators
+from neutron_lib.api import validators as validators
 from neutron_lib import exceptions as nexception
 
 from neutron_vpnaas._i18n import _
@@ -168,7 +168,8 @@ def _validate_subnet_list_or_none(data, key_specs=None):
     if data is not None:
         validators.validate_subnet_list(data, key_specs)
 
-attr.validators['type:subnet_list_or_none'] = _validate_subnet_list_or_none
+validators.add_validator('type:subnet_list_or_none',
+                        _validate_subnet_list_or_none)
 
 vpn_supported_initiators = ['bi-directional', 'response-only']
 vpn_supported_encryption_algorithms = ['3des', 'aes-128',
@@ -186,8 +187,8 @@ vpn_supported_auth_mode = ['psk']
 vpn_supported_auth_algorithms = ['sha1', 'sha256']
 vpn_supported_phase1_negotiation_mode = ['main']
 
-vpn_lifetime_limits = (60, attr.UNLIMITED)
-positive_int = (0, attr.UNLIMITED)
+vpn_lifetime_limits = (60, validators.UNLIMITED)
+positive_int = (0, validators.UNLIMITED)
 
 RESOURCE_ATTRIBUTE_MAP = {
 
