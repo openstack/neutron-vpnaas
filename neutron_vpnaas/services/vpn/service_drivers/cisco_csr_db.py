@@ -12,7 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from neutron.db import model_base
+from neutron_lib.db import model_base
 from neutron_lib import exceptions as nexception
 from oslo_db import exception as db_exc
 from oslo_log import log as logging

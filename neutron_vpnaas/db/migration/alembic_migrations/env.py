@@ -14,12 +14,12 @@
 
 from alembic import context
 from logging import config as logging_config
+from neutron_lib.db import model_base
 from oslo_config import cfg
 from oslo_db.sqlalchemy import session
 import sqlalchemy as sa
 from sqlalchemy import event
 
-from neutron.db import model_base
 
 from neutron_vpnaas.db.migration import alembic_migrations
 
