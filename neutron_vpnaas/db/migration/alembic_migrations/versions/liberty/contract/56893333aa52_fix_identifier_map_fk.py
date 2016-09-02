@@ -27,6 +27,7 @@ from sqlalchemy.sql import expression as expr
 from sqlalchemy.sql import func
 from sqlalchemy.sql import table
 
+from neutron.db import migration
 from neutron.db.migration import cli
 
 
@@ -41,12 +42,16 @@ def upgrade():
     identifier_map = table('cisco_csr_identifier_map',
                            column('ipsec_site_conn_id', sa.String(36)))
     ipsec_site_conn_id = identifier_map.columns['ipsec_site_conn_id']
+
     op.execute(identifier_map.update(values={
         ipsec_site_conn_id: expr.case([(func.length(ipsec_site_conn_id) > 36,
                                       func.substr(ipsec_site_conn_id, 1, 36))],
                                       else_=ipsec_site_conn_id)}))
 
-    op.alter_column(table_name='cisco_csr_identifier_map',
-                    column_name='ipsec_site_conn_id',
-                    type_=sa.String(36),
-                    existing_nullable=True)
+    # Need to drop foreign key constraint before mysql will allow changes
+
+    with migration.remove_fks_from_table('cisco_csr_identifier_map'):
+        op.alter_column(table_name='cisco_csr_identifier_map',
+                        column_name='ipsec_site_conn_id',
+                        type_=sa.String(36),
+                        existing_nullable=True)
