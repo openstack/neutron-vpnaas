@@ -65,12 +65,11 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         res = self.api.post(_get_path('vpn/ikepolicies', fmt=self.fmt),
                             self.serialize(data),
                             content_type='application/%s' % self.fmt)
-        instance.create_ikepolicy.assert_called_with(mock.ANY,
-                                                     ikepolicy=data)
+        self.assertEqual(1, instance.create_ikepolicy.call_count)
         self.assertEqual(exc.HTTPCreated.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('ikepolicy', res)
-        self.assertEqual(return_value, res['ikepolicy'])
+        self.assertDictSupersetOf(return_value, res['ikepolicy'])
 
     def test_ikepolicy_list(self):
         """Test case to list all ikepolicies."""
@@ -178,12 +177,11 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         res = self.api.post(_get_path('vpn/ipsecpolicies', fmt=self.fmt),
                             self.serialize(data),
                             content_type='application/%s' % self.fmt)
-        instance.create_ipsecpolicy.assert_called_with(mock.ANY,
-                                                       ipsecpolicy=data)
+        self.assertEqual(1, instance.create_ipsecpolicy.call_count)
         self.assertEqual(exc.HTTPCreated.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('ipsecpolicy', res)
-        self.assertEqual(return_value, res['ipsecpolicy'])
+        self.assertDictSupersetOf(return_value, res['ipsecpolicy'])
 
     def test_ipsecpolicy_list(self):
         """Test case to list an ipsecpolicy."""
@@ -299,12 +297,11 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         res = self.api.post(_get_path('vpn/vpnservices', fmt=self.fmt),
                             self.serialize(data),
                             content_type='application/%s' % self.fmt)
-        instance.create_vpnservice.assert_called_with(mock.ANY,
-                                                      vpnservice=actual_args)
+        self.assertEqual(1, instance.create_vpnservice.call_count)
         self.assertEqual(exc.HTTPCreated.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('vpnservice', res)
-        self.assertEqual(return_value, res['vpnservice'])
+        self.assertDictSupersetOf(return_value, res['vpnservice'])
 
     def test_vpnservice_create(self):
         """Create VPN service using subnet (older API)."""
@@ -431,12 +428,11 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
                                       fmt=self.fmt),
                             self.serialize(data),
                             content_type='application/%s' % self.fmt)
-        instance.create_ipsec_site_connection.assert_called_with(
-            mock.ANY, ipsec_site_connection=actual_args)
+        self.assertEqual(1, instance.create_ipsec_site_connection.call_count)
         self.assertEqual(exc.HTTPCreated.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('ipsec_site_connection', res)
-        self.assertEqual(return_value, res['ipsec_site_connection'])
+        self.assertDictSupersetOf(return_value, res['ipsec_site_connection'])
 
     def test_ipsec_site_connection_create(self):
         """Create an IPSec connection with peer CIDRs (old API)."""

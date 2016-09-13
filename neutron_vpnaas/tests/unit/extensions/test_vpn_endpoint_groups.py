@@ -69,12 +69,11 @@ class VpnEndpointGroupsTestCase(base.ExtensionTestCase):
         res = self.api.post(_get_path('vpn/endpoint-groups', fmt=self.fmt),
                             self.serialize(data),
                             content_type='application/%s' % self.fmt)
-        instance.create_endpoint_group.assert_called_with(
-            mock.ANY, endpoint_group=data)
+        self.assertEqual(1, instance.create_endpoint_group.call_count)
         self.assertEqual(exc.HTTPCreated.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('endpoint_group', res)
-        self.assertEqual(res['endpoint_group'], return_value)
+        self.assertDictSupersetOf(return_value, res['endpoint_group'])
 
     def test_create_cidr_endpoint_group_create(self):
         """Test creation of CIDR type endpoint group."""
