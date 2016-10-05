@@ -26,7 +26,3 @@ Q_PLUGIN_EXTRA_CONF_PATH=$NEUTRON_CONF_DIR
 Q_PLUGIN_EXTRA_CONF_FILES+=$NEUTRON_VPNAAS_CONF_FILE
 
 declare -a Q_VPN_EXTRA_CONF_FILES
-
-# Need this because if FW and VPN enabled, the FW config must be included,
-# when starting the agent. VPN-agent is a L3-agent is a FW-agent.
-Q_FWAAS_CONF_FILE=$NEUTRON_CONF_DIR/fwaas_driver.ini
