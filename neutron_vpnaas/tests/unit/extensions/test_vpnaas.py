@@ -452,6 +452,34 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         self._test_ipsec_site_connection_create(more_args=more_args,
                                                 defaulted_args=no_peer_cidrs)
 
+    def test_ipsec_site_connection_create_with_invalid_cidr_format(self):
+        peer_cidrs = ['192.168.2.0/24', '10/8']
+        data = {
+            'ipsec_site_connection': {'name': 'connection1',
+                                      'description': 'Remote-connection1',
+                                      'peer_address': '192.168.1.10',
+                                      'peer_id': '192.168.1.10',
+                                      'peer_cidrs': peer_cidrs,
+                                      'mtu': 1500,
+                                      'psk': 'abcd',
+                                      'initiator': 'bi-directional',
+                                      'dpd': {
+                                          'action': 'hold',
+                                          'interval': 30,
+                                          'timeout': 120},
+                                      'ikepolicy_id': _uuid(),
+                                      'ipsecpolicy_id': _uuid(),
+                                      'vpnservice_id': _uuid(),
+                                      'admin_state_up': True,
+                                      'tenant_id': _uuid()}
+        }
+        res = self.api.post(_get_path('vpn/ipsec-site-connections',
+                                      fmt=self.fmt),
+                            self.serialize(data),
+                            content_type='application/%s' % self.fmt,
+                            expect_errors=True)
+        self.assertEqual(exc.HTTPBadRequest.code, res.status_int)
+
     def test_ipsec_site_connection_list(self):
         """Test case to list all ipsec_site_connections."""
         ipsecsite_con_id = _uuid()

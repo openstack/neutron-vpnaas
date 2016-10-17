@@ -484,6 +484,23 @@ class TestIPsecDriverValidation(base.BaseTestCase):
         cidrs = self.validator._get_peer_cidrs(peer_epg)
         self.assertEqual(expected_cidrs, cidrs)
 
+    def test_ipsec_conn_check_peer_cidrs(self):
+        peer_cidrs = ['10.10.10.0/24', '20.20.20.0/24']
+        try:
+            self.validator._check_peer_cidrs(peer_cidrs)
+        except Exception:
+            self.fail("All peer cidrs format should be valid")
+
+    def test_fail_ipsec_conn_peer_cidrs_with_invalid_format(self):
+        peer_cidrs = ['invalid_cidr']
+        self.assertRaises(vpnaas.IPsecSiteConnectionPeerCidrError,
+                          self.validator._check_peer_cidrs,
+                          peer_cidrs)
+        peer_cidrs = ['192/24']
+        self.assertRaises(vpnaas.IPsecSiteConnectionPeerCidrError,
+                          self.validator._check_peer_cidrs,
+                          peer_cidrs)
+
     def test_fail_ipsec_conn_endpoint_group_types(self):
         local_epg = {'id': 'should-be-subnets',
                      'type': v_constants.CIDR_ENDPOINT,
