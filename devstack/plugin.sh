@@ -54,9 +54,6 @@ function neutron_vpnaas_configure_agent {
 function neutron_vpnaas_start {
     local cfg_file
     local opts="--config-file $NEUTRON_CONF --config-file=$Q_L3_CONF_FILE --config-file=$Q_VPN_CONF_FILE"
-    if is_service_enabled q-fwaas; then
-        opts+=" --config-file $Q_FWAAS_CONF_FILE"
-    fi
     for cfg_file in ${Q_VPN_EXTRA_CONF_FILES[@]}; do
         opts+=" --config-file $cfg_file"
     done
