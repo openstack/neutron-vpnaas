@@ -131,6 +131,14 @@ class VpnReferenceValidator(object):
             raise vpnaas.MixedIPVersionsForIPSecEndpoints(group=group_id)
         return ip_versions.pop()
 
+    def _check_peer_cidrs(self, peer_cidrs):
+        """Ensure all CIDRs have the valid format."""
+        for peer_cidr in peer_cidrs:
+            msg = validators.validate_subnet(peer_cidr)
+            if msg:
+                raise vpnaas.IPsecSiteConnectionPeerCidrError(
+                    peer_cidr=peer_cidr)
+
     def _check_peer_cidrs_ip_versions(self, peer_cidrs):
         """Ensure all CIDRs have the same IP version."""
         if len(peer_cidrs) == 1:
@@ -231,8 +239,8 @@ class VpnReferenceValidator(object):
         For legacy mode, we use the (sole) subnet IP version, and the peer
         CIDR(s). All IP versions must be the same.
 
-        This method also checks MTU (based on the local IP version), and
-        DPD settings.
+        This method also checks peer_cidrs format(legacy mode),
+        MTU (based on the local IP version), and DPD settings.
         """
         if not local_ip_version:
             # Using endpoint groups
@@ -246,6 +254,7 @@ class VpnReferenceValidator(object):
             peer_ip_version = self._check_peer_endpoint_ip_versions(
                 ipsec_sitecon['peer_ep_group_id'], peer_cidrs)
         else:
+            self._check_peer_cidrs(ipsec_sitecon['peer_cidrs'])
             peer_ip_version = self._check_peer_cidrs_ip_versions(
                 ipsec_sitecon['peer_cidrs'])
         self._validate_compatible_ip_versions(local_ip_version,

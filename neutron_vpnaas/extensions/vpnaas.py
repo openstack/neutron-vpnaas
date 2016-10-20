@@ -47,6 +47,11 @@ class IPsecSiteConnectionMtuError(nexception.InvalidInput):
                 "for ipv%(version)s")
 
 
+class IPsecSiteConnectionPeerCidrError(nexception.InvalidInput):
+    message = _("ipsec_site_connection peer cidr %(peer_cidr)s is "
+                "invalid CIDR")
+
+
 class IKEPolicyNotFound(nexception.NotFound):
     message = _("IKEPolicy %(ikepolicy_id)s could not be found")
 
@@ -166,7 +171,7 @@ class EndpointGroupInUse(nexception.BadRequest):
 
 def _validate_subnet_list_or_none(data, key_specs=None):
     if data is not None:
-        validators.validate_subnet_list(data, key_specs)
+        return validators.validate_subnet_list(data, key_specs)
 
 validators.add_validator('type:subnet_list_or_none',
                         _validate_subnet_list_or_none)
