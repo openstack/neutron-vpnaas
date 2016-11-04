@@ -98,6 +98,22 @@ class CiscoCsrVpnValidator(vpn_validator.VpnReferenceValidator):
                                        key='encapsulation_mode',
                                        value=mode)
 
+    def validate_ike_auth_algorithm(self, ike_policy):
+        """Ensure IKE Policy auth algorithm is supported."""
+        auth_algorithm = ike_policy.get('auth_algorithm')
+        if auth_algorithm in ["sha384", "sha512"]:
+            raise CsrValidationFailure(resource='IKE Policy',
+                                       key='auth_algorithm',
+                                       value=auth_algorithm)
+
+    def validate_ipsec_auth_algorithm(self, ipsec_policy):
+        """Ensure IPSec Policy auth algorithm is supported."""
+        auth_algorithm = ipsec_policy.get('auth_algorithm')
+        if auth_algorithm in ["sha384", "sha512"]:
+            raise CsrValidationFailure(resource='IPsec Policy',
+                                       key='auth_algorithm',
+                                       value=auth_algorithm)
+
     def validate_ipsec_site_connection(self, context, ipsec_sitecon,
                                        ip_version):
         """Validate IPSec site connection for Cisco CSR.
@@ -117,6 +133,8 @@ class CiscoCsrVpnValidator(vpn_validator.VpnReferenceValidator):
         self.validate_lifetime('IKE Policy', ike_policy)
         self.validate_lifetime('IPSec Policy', ipsec_policy)
         self.validate_ike_version(ike_policy)
+        self.validate_ike_auth_algorithm(ike_policy)
+        self.validate_ipsec_auth_algorithm(ipsec_policy)
         self.validate_mtu(ipsec_sitecon)
         self.validate_public_ip_present(router)
         self.validate_peer_id(ipsec_sitecon)

@@ -333,3 +333,11 @@ class VpnReferenceValidator(object):
             self._validate_cidrs(endpoints)
         elif group_type == constants.SUBNET_ENDPOINT:
             self._validate_subnets(context, endpoints)
+
+    def validate_ike_policy(self, context, ike_policy):
+        """Reference implementation of validation for IKE Policy.
+
+        Service driver can override and implement specific logic
+        for IKE Policy validation.
+        """
+        pass

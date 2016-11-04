@@ -312,11 +312,13 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
 
     def create_ikepolicy(self, context, ikepolicy):
         ike = ikepolicy['ikepolicy']
+        validator = self._get_validator()
         lifetime_info = ike['lifetime']
         lifetime_units = lifetime_info.get('units', 'seconds')
         lifetime_value = lifetime_info.get('value', 3600)
 
         with context.session.begin(subtransactions=True):
+            validator.validate_ike_policy(context, ike)
             ike_db = vpn_models.IKEPolicy(
                 id=uuidutils.generate_uuid(),
                 tenant_id=ike['tenant_id'],
@@ -336,7 +338,9 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
 
     def update_ikepolicy(self, context, ikepolicy_id, ikepolicy):
         ike = ikepolicy['ikepolicy']
+        validator = self._get_validator()
         with context.session.begin(subtransactions=True):
+            validator.validate_ike_policy(context, ike)
             if context.session.query(vpn_models.IPsecSiteConnection).filter_by(
                     ikepolicy_id=ikepolicy_id).first():
                 raise vpnaas.IKEPolicyInUse(ikepolicy_id=ikepolicy_id)

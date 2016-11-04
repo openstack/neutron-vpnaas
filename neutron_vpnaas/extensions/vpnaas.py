@@ -189,7 +189,7 @@ vpn_supported_lifetime_units = ['seconds']
 vpn_supported_pfs = ['group2', 'group5', 'group14']
 vpn_supported_ike_versions = ['v1', 'v2']
 vpn_supported_auth_mode = ['psk']
-vpn_supported_auth_algorithms = ['sha1', 'sha256']
+vpn_supported_auth_algorithms = ['sha1', 'sha256', 'sha384', 'sha512']
 vpn_supported_phase1_negotiation_mode = ['main']
 
 vpn_lifetime_limits = (60, validators.UNLIMITED)
