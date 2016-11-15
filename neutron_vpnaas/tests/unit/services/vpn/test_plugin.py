@@ -16,12 +16,12 @@ import contextlib
 
 import mock
 from neutron import context
-from neutron import manager
 from neutron.plugins.common import constants as p_constants
 from neutron.tests.unit.db import test_agentschedulers_db
 from neutron.tests.unit.extensions import test_agent as test_agent_ext_plugin
 
 from neutron_lib import constants as lib_constants
+from neutron_lib.plugins import directory
 
 from neutron_vpnaas.db.vpn import vpn_validator
 from neutron_vpnaas.services.vpn.service_drivers import ipsec as ipsec_driver
@@ -98,7 +98,7 @@ class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
             with self.ipsecpolicy(name=ipsecname) as ipsecpolicy:
                 with self.subnet() as subnet:
                     with self.router() as router:
-                        plugin = manager.NeutronManager.get_plugin()
+                        plugin = directory.get_plugin()
                         agent = {'host': FAKE_HOST,
                                  'agent_type': lib_constants.AGENT_TYPE_L3,
                                  'binary': 'fake-binary',
@@ -138,8 +138,7 @@ class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
 
     def test_get_agent_hosting_vpn_services(self):
         with self.vpnservice_set():
-            service_plugin = manager.NeutronManager.get_service_plugins()[
-                p_constants.VPN]
+            service_plugin = directory.get_plugin(p_constants.VPN)
             vpnservices = service_plugin._get_agent_hosting_vpn_services(
                 self.adminContext, FAKE_HOST)
             vpnservices = vpnservices.all()
@@ -155,8 +154,7 @@ class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
     def test_update_status(self):
         with self.vpnservice_set() as vpnservice:
             self._register_agent_states()
-            service_plugin = manager.NeutronManager.get_service_plugins()[
-                p_constants.VPN]
+            service_plugin = directory.get_plugin(p_constants.VPN)
             service_plugin.update_status_by_agent(
                 self.adminContext,
                 [{'status': 'ACTIVE',

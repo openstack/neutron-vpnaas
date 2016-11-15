@@ -21,10 +21,10 @@ from neutron.db import common_db_mixin as base_db
 from neutron.db import l3_agentschedulers_db as l3_agent_db
 from neutron.db import models_v2
 from neutron.extensions import l3 as l3_exception
-from neutron import manager
 from neutron.plugins.common import constants as p_constants
 from neutron.plugins.common import utils
 from neutron_lib import constants as lib_constants
+from neutron_lib.plugins import directory
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import uuidutils
@@ -635,7 +635,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
 class VPNPluginRpcDbMixin(object):
     def _get_agent_hosting_vpn_services(self, context, host):
 
-        plugin = manager.NeutronManager.get_plugin()
+        plugin = directory.get_plugin()
         agent = plugin._get_agent_by_type_and_host(
             context, lib_constants.AGENT_TYPE_L3, host)
         agent_conf = plugin.get_configuration_dict(agent)
@@ -709,8 +709,7 @@ class VPNPluginRpcDbMixin(object):
 
 
 def vpn_callback(resource, event, trigger, **kwargs):
-    vpn_plugin = manager.NeutronManager.get_service_plugins().get(
-        p_constants.VPN)
+    vpn_plugin = directory.get_plugin(p_constants.VPN)
     if vpn_plugin:
         context = kwargs.get('context')
         if resource == resources.ROUTER_GATEWAY:
@@ -725,8 +724,7 @@ def vpn_callback(resource, event, trigger, **kwargs):
 def migration_callback(resource, event, trigger, **kwargs):
     context = kwargs['context']
     router = kwargs['router']
-    vpn_plugin = manager.NeutronManager.get_service_plugins().get(
-        p_constants.VPN)
+    vpn_plugin = directory.get_plugin(p_constants.VPN)
     if vpn_plugin:
         vpn_plugin.check_router_in_use(context, router['id'])
     return True
@@ -736,8 +734,7 @@ def subnet_callback(resource, event, trigger, **kwargs):
     """Respond to subnet based notifications - see if subnet in use."""
     context = kwargs['context']
     subnet_id = kwargs['subnet_id']
-    vpn_plugin = manager.NeutronManager.get_service_plugins().get(
-        p_constants.VPN)
+    vpn_plugin = directory.get_plugin(p_constants.VPN)
     if vpn_plugin:
         vpn_plugin.check_subnet_in_use_by_endpoint_group(context, subnet_id)
 

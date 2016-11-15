@@ -27,12 +27,12 @@ from neutron.db import l3_agentschedulers_db
 from neutron.db import servicetype_db as sdb
 from neutron import extensions as nextensions
 from neutron.extensions import l3 as l3_exception
-from neutron import manager
 from neutron.plugins.common import constants as nconstants
 from neutron.scheduler import l3_agent_scheduler
 from neutron.tests.unit.db import test_db_base_plugin_v2 as test_db_plugin
 from neutron.tests.unit.extensions import test_l3 as test_l3_plugin
 from neutron_lib import constants as lib_constants
+from neutron_lib.plugins import directory
 from oslo_db import exception as db_exc
 from oslo_utils import uuidutils
 import six
@@ -417,8 +417,7 @@ class VPNTestMixin(object):
                  if k in dpd))
 
     def _set_active(self, model, resource_id):
-        service_plugin = manager.NeutronManager.get_service_plugins()[
-            nconstants.VPN]
+        service_plugin = directory.get_plugin(nconstants.VPN)
         adminContext = context.get_admin_context()
         with adminContext.session.begin(subtransactions=True):
             resource_db = service_plugin._get_resource(
@@ -1625,15 +1624,13 @@ class TestVpnaas(VPNPluginDbTestCase):
                                   subnet['subnet']['id'])
 
     def test_check_router_has_no_vpn(self):
-        with mock.patch.object(
-            manager.NeutronManager, 'get_service_plugins') as sp:
-            vpn_plugin = mock.Mock()
-            sp.return_value = {'VPN': vpn_plugin}
-            kwargs = {'context': mock.ANY, 'router': {'id': 'foo_id'}}
-            self.assertTrue(vpn_db.migration_callback(
-                mock.ANY, mock.ANY, mock.ANY, **kwargs))
-            vpn_plugin.check_router_in_use.assert_called_once_with(
-                mock.ANY, 'foo_id')
+        vpn_plugin = mock.Mock()
+        directory.add_plugin('VPN', vpn_plugin)
+        kwargs = {'context': mock.ANY, 'router': {'id': 'foo_id'}}
+        self.assertTrue(vpn_db.migration_callback(
+            mock.ANY, mock.ANY, mock.ANY, **kwargs))
+        vpn_plugin.check_router_in_use.assert_called_once_with(
+            mock.ANY, 'foo_id')
 
 
 # Note: Below are new database related tests that only exercise the database
@@ -1740,9 +1737,8 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
                            'test_vpn_db.TestVpnCorePlugin')
         super(TestVpnDatabase, self).setUp(self.plugin_str)
         # Get the plugins
-        self.core_plugin = manager.NeutronManager.get_plugin()
-        self.l3_plugin = manager.NeutronManager.get_service_plugins().get(
-            nconstants.L3_ROUTER_NAT)
+        self.core_plugin = directory.get_plugin()
+        self.l3_plugin = directory.get_plugin(lib_constants.L3)
 
         # Create VPN database instance
         self.plugin = vpn_db.VPNPluginDb()

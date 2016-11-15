@@ -20,7 +20,9 @@ from neutron import context as n_ctx
 from neutron.db import l3_db
 from neutron.db import servicetype_db as st_db
 from neutron.plugins.common import constants as nconstants
+from neutron_lib import constants as lconstants
 from neutron_lib import exceptions as nexception
+from neutron_lib.plugins import directory
 from oslo_utils import uuidutils
 from sqlalchemy.orm import query
 
@@ -74,12 +76,9 @@ class TestIPsecDriverValidation(base.BaseTestCase):
     def setUp(self):
         super(TestIPsecDriverValidation, self).setUp()
         self.l3_plugin = mock.Mock()
-        mock.patch(
-            'neutron.manager.NeutronManager.get_service_plugins',
-            return_value={nconstants.L3_ROUTER_NAT: self.l3_plugin}).start()
         self.core_plugin = mock.Mock()
-        mock.patch('neutron.manager.NeutronManager.get_plugin',
-                   return_value=self.core_plugin).start()
+        directory.add_plugin(lconstants.CORE, self.core_plugin)
+        directory.add_plugin(lconstants.L3, self.l3_plugin)
         self.context = n_ctx.Context('some_user', 'some_tenant')
         self.service_plugin = mock.Mock()
         self.validator = vpn_validator.IpsecVpnValidator(self.service_plugin)
