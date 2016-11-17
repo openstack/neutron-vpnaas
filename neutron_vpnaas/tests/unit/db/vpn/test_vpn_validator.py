@@ -201,10 +201,34 @@ class TestIPsecDriverValidation(base.BaseTestCase):
                                           expected_exception=True)
 
     def test_validate_ipsec_policy(self):
+        # Validate IPsec Policy transform_protocol and auth_algorithm
         ipsec_policy = {'transform_protocol': 'ah-esp'}
         self.assertRaises(vpn_validator.IpsecValidationFailure,
                           self.validator.validate_ipsec_policy,
                           self.context, ipsec_policy)
+
+        auth_algorithm = {'auth_algorithm': 'sha384'}
+        self.assertRaises(vpn_validator.IpsecValidationFailure,
+                          self.validator.validate_ipsec_policy,
+                          self.context, auth_algorithm)
+
+        auth_algorithm = {'auth_algorithm': 'sha512'}
+        self.assertRaises(vpn_validator.IpsecValidationFailure,
+                          self.validator.validate_ipsec_policy,
+                          self.context, auth_algorithm)
+
+    def test_validate_ike_policy(self):
+        # Validate IKE Policy auth_algorithm
+
+        auth_algorithm = {'auth_algorithm': 'sha384'}
+        self.assertRaises(vpn_validator.IkeValidationFailure,
+                          self.validator.validate_ike_policy,
+                          self.context, auth_algorithm)
+
+        auth_algorithm = {'auth_algorithm': 'sha512'}
+        self.assertRaises(vpn_validator.IkeValidationFailure,
+                          self.validator.validate_ike_policy,
+                          self.context, auth_algorithm)
 
     def test_defaults_for_ipsec_site_connections_on_update(self):
         """Check that defaults are used for any values not specified."""

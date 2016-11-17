@@ -248,6 +248,30 @@ class TestCiscoIPsecDriverValidation(base.BaseTestCase):
                           self.validator.validate_ipsec_encap_mode,
                           policy_info)
 
+    def test_ipsec_auth_algorithm_unsupported(self):
+        """Failure test for unsupported auth algorithm for IPSec Policy."""
+        auth_algorithm = {'auth_algorithm': 'sha384'}
+        self.assertRaises(validator.CsrValidationFailure,
+                          self.validator.validate_ipsec_auth_algorithm,
+                          auth_algorithm)
+
+        auth_algorithm = {'auth_algorithm': 'sha512'}
+        self.assertRaises(validator.CsrValidationFailure,
+                          self.validator.validate_ipsec_auth_algorithm,
+                          auth_algorithm)
+
+    def test_ike_auth_algorithm_unsupported(self):
+        """Failure test for unsupported auth algorithm for IKE Policy."""
+        auth_algorithm = {'auth_algorithm': 'sha384'}
+        self.assertRaises(validator.CsrValidationFailure,
+                          self.validator.validate_ike_auth_algorithm,
+                          auth_algorithm)
+
+        auth_algorithm = {'auth_algorithm': 'sha512'}
+        self.assertRaises(validator.CsrValidationFailure,
+                          self.validator.validate_ike_auth_algorithm,
+                          auth_algorithm)
+
 
 class TestCiscoIPsecDriverMapping(base.BaseTestCase):
 
