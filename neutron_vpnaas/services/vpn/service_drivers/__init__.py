@@ -16,8 +16,8 @@
 import abc
 
 from neutron.common import rpc as n_rpc
-from neutron import manager
-from neutron.plugins.common import constants
+from neutron_lib import constants
+from neutron_lib.plugins import directory
 from oslo_log import log as logging
 import oslo_messaging
 import six
@@ -38,8 +38,7 @@ class VpnDriver(object):
 
     @property
     def l3_plugin(self):
-        return manager.NeutronManager.get_service_plugins().get(
-            constants.L3_ROUTER_NAT)
+        return directory.get_plugin(constants.L3)
 
     @property
     def service_type(self):

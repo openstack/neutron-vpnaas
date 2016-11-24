@@ -17,10 +17,10 @@ import socket
 
 from neutron.db import l3_db
 from neutron.db import models_v2
-from neutron import manager
-from neutron.plugins.common import constants as nconstants
 from neutron_lib.api import validators
+from neutron_lib import constants as const
 from neutron_lib import exceptions as nexception
+from neutron_lib.plugins import directory
 
 from neutron_vpnaas._i18n import _
 from neutron_vpnaas.extensions import vpnaas
@@ -38,8 +38,7 @@ class VpnReferenceValidator(object):
         try:
             return self._l3_plugin
         except AttributeError:
-            self._l3_plugin = manager.NeutronManager.get_service_plugins().get(
-                nconstants.L3_ROUTER_NAT)
+            self._l3_plugin = directory.get_plugin(const.L3)
             return self._l3_plugin
 
     @property
@@ -47,7 +46,7 @@ class VpnReferenceValidator(object):
         try:
             return self._core_plugin
         except AttributeError:
-            self._core_plugin = manager.NeutronManager.get_plugin()
+            self._core_plugin = directory.get_plugin()
             return self._core_plugin
 
     def _check_dpd(self, ipsec_sitecon):

@@ -19,6 +19,8 @@ from neutron import context as n_ctx
 from neutron.db import servicetype_db as st_db
 from neutron.plugins.common import constants
 from neutron.tests.unit import testlib_api
+from neutron_lib import constants as lib_const
+from neutron_lib.plugins import directory
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
@@ -92,9 +94,7 @@ class TestCiscoIPsecDriverValidation(base.BaseTestCase):
     def setUp(self):
         super(TestCiscoIPsecDriverValidation, self).setUp()
         self.l3_plugin = mock.Mock()
-        mock.patch(
-            'neutron.manager.NeutronManager.get_service_plugins',
-            return_value={constants.L3_ROUTER_NAT: self.l3_plugin}).start()
+        directory.add_plugin(lib_const.L3, self.l3_plugin)
         self.context = n_ctx.Context('some_user', 'some_tenant')
         self.vpn_service = {'router_id': '123'}
         self.router = mock.Mock()
@@ -387,9 +387,7 @@ class TestCiscoIPsecDriver(testlib_api.SqlTestCase):
         }
 
         l3_plugin = mock.Mock()
-        mock.patch(
-            'neutron.manager.NeutronManager.get_service_plugins',
-            return_value={constants.L3_ROUTER_NAT: l3_plugin}).start()
+        directory.add_plugin(lib_const.L3, l3_plugin)
 
         l3_plugin.get_host_for_router.return_value = FAKE_HOST
         l3_agent = mock.Mock()
