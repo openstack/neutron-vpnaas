@@ -15,16 +15,16 @@
 
 import abc
 
+from neutron_lib.api import converters
+from neutron_lib.api import extensions
+from neutron_lib.api import validators as validators
+from neutron_lib import exceptions as nexception
 import six
 
-from neutron.api import extensions
 from neutron.api.v2 import attributes as attr
 from neutron.api.v2 import resource_helper
 from neutron.plugins.common import constants as nconstants
 from neutron.services import service_base
-from neutron_lib.api import converters
-from neutron_lib.api import validators as validators
-from neutron_lib import exceptions as nexception
 
 from neutron_vpnaas._i18n import _
 
