@@ -466,7 +466,6 @@ class Vpnaas(extensions.ExtensionDescriptor):
         plural_mappings = resource_helper.build_plural_mappings(
             special_mappings, RESOURCE_ATTRIBUTE_MAP)
         plural_mappings['peer_cidrs'] = 'peer_cidr'
-        attr.PLURALS.update(plural_mappings)
         return resource_helper.build_resource_info(plural_mappings,
                                                    RESOURCE_ATTRIBUTE_MAP,
                                                    nconstants.VPN,
