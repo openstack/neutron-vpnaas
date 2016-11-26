@@ -27,8 +27,6 @@ down_revision = '24f28869838b'
 from alembic import op
 import sqlalchemy as sa
 
-from neutron.api.v2 import attributes as attr
-
 from neutron_vpnaas.services.vpn.common import constants
 
 
@@ -37,10 +35,10 @@ def upgrade():
         'vpn_endpoint_groups',
         sa.Column('id', sa.String(length=36), nullable=False,
                   primary_key=True),
-        sa.Column('tenant_id', sa.String(length=attr.TENANT_ID_MAX_LEN),
+        sa.Column('tenant_id', sa.String(length=255),
                   index=True),
-        sa.Column('name', sa.String(length=attr.NAME_MAX_LEN)),
-        sa.Column('description', sa.String(length=attr.DESCRIPTION_MAX_LEN)),
+        sa.Column('name', sa.String(length=255)),
+        sa.Column('description', sa.String(length=255)),
         sa.Column('endpoint_type',
                   sa.Enum(constants.SUBNET_ENDPOINT, constants.CIDR_ENDPOINT,
                           constants.VLAN_ENDPOINT, constants.NETWORK_ENDPOINT,

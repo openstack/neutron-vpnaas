@@ -16,12 +16,12 @@ import abc
 
 import six
 
-from neutron.api.v2 import attributes as attr
 from neutron.api.v2 import resource_helper
 from neutron.plugins.common import constants as nconstants
 
 from neutron_lib.api import converters
 from neutron_lib.api import extensions
+from neutron_lib.db import constants as db_const
 
 from neutron_vpnaas.services.vpn.common import constants
 
@@ -34,14 +34,16 @@ RESOURCE_ATTRIBUTE_MAP = {
                'is_visible': True,
                'primary_key': True},
         'tenant_id': {'allow_post': True, 'allow_put': False,
-                      'validate': {'type:string': attr.TENANT_ID_MAX_LEN},
+                      'validate': {
+                          'type:string': db_const.PROJECT_ID_FIELD_SIZE},
                       'required_by_policy': True,
                       'is_visible': True},
         'name': {'allow_post': True, 'allow_put': True,
-                 'validate': {'type:string': attr.NAME_MAX_LEN},
+                 'validate': {'type:string': db_const.NAME_FIELD_SIZE},
                  'is_visible': True, 'default': ''},
         'description': {'allow_post': True, 'allow_put': True,
-                        'validate': {'type:string': attr.DESCRIPTION_MAX_LEN},
+                        'validate': {
+                            'type:string': db_const.DESCRIPTION_FIELD_SIZE},
                         'is_visible': True, 'default': ''},
         'type': {'allow_post': True, 'allow_put': False,
                  'validate': {

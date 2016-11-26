@@ -13,11 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from neutron_lib.db import constants as db_const
 from neutron_lib.db import model_base
 import sqlalchemy as sa
 from sqlalchemy import orm
 
-from neutron.api.v2 import attributes as attr
 from neutron.db import l3_db
 from neutron.db import models_v2
 
@@ -38,8 +38,8 @@ class IPsecPeerCidr(model_base.BASEV2):
 class IPsecPolicy(model_base.BASEV2, model_base.HasId, model_base.HasProject):
     """Represents a v2 IPsecPolicy Object."""
     __tablename__ = 'ipsecpolicies'
-    name = sa.Column(sa.String(attr.NAME_MAX_LEN))
-    description = sa.Column(sa.String(attr.DESCRIPTION_MAX_LEN))
+    name = sa.Column(sa.String(db_const.NAME_FIELD_SIZE))
+    description = sa.Column(sa.String(db_const.DESCRIPTION_FIELD_SIZE))
     transform_protocol = sa.Column(sa.Enum("esp", "ah", "ah-esp",
                                            name="ipsec_transform_protocols"),
                                    nullable=False)
@@ -65,8 +65,8 @@ class IPsecPolicy(model_base.BASEV2, model_base.HasId, model_base.HasProject):
 class IKEPolicy(model_base.BASEV2, model_base.HasId, model_base.HasProject):
     """Represents a v2 IKEPolicy Object."""
     __tablename__ = 'ikepolicies'
-    name = sa.Column(sa.String(attr.NAME_MAX_LEN))
-    description = sa.Column(sa.String(attr.DESCRIPTION_MAX_LEN))
+    name = sa.Column(sa.String(db_const.NAME_FIELD_SIZE))
+    description = sa.Column(sa.String(db_const.DESCRIPTION_FIELD_SIZE))
     auth_algorithm = sa.Column(sa.Enum("sha1", "sha256",
                                        "sha384", "sha512",
                                        name="vpn_auth_algorithms"),
@@ -92,8 +92,8 @@ class IPsecSiteConnection(model_base.BASEV2, model_base.HasId,
                           model_base.HasProject):
     """Represents a IPsecSiteConnection Object."""
     __tablename__ = 'ipsec_site_connections'
-    name = sa.Column(sa.String(attr.NAME_MAX_LEN))
-    description = sa.Column(sa.String(attr.DESCRIPTION_MAX_LEN))
+    name = sa.Column(sa.String(db_const.NAME_FIELD_SIZE))
+    description = sa.Column(sa.String(db_const.DESCRIPTION_FIELD_SIZE))
     peer_address = sa.Column(sa.String(255), nullable=False)
     peer_id = sa.Column(sa.String(255), nullable=False)
     local_id = sa.Column(sa.String(255), nullable=True)
@@ -139,8 +139,8 @@ class IPsecSiteConnection(model_base.BASEV2, model_base.HasId,
 
 class VPNService(model_base.BASEV2, model_base.HasId, model_base.HasProject):
     """Represents a v2 VPNService Object."""
-    name = sa.Column(sa.String(attr.NAME_MAX_LEN))
-    description = sa.Column(sa.String(attr.DESCRIPTION_MAX_LEN))
+    name = sa.Column(sa.String(db_const.NAME_FIELD_SIZE))
+    description = sa.Column(sa.String(db_const.DESCRIPTION_FIELD_SIZE))
     status = sa.Column(sa.String(16), nullable=False)
     admin_state_up = sa.Column(sa.Boolean(), nullable=False)
     external_v4_ip = sa.Column(sa.String(16))
@@ -175,8 +175,8 @@ class VPNEndpointGroup(model_base.BASEV2, model_base.HasId,
                        model_base.HasProject):
     """Collection of endpoints of a specific type, for VPN connections."""
     __tablename__ = 'vpn_endpoint_groups'
-    name = sa.Column(sa.String(attr.NAME_MAX_LEN))
-    description = sa.Column(sa.String(attr.DESCRIPTION_MAX_LEN))
+    name = sa.Column(sa.String(db_const.NAME_FIELD_SIZE))
+    description = sa.Column(sa.String(db_const.DESCRIPTION_FIELD_SIZE))
     endpoint_type = sa.Column(sa.Enum(*constants.VPN_SUPPORTED_ENDPOINT_TYPES,
                                       name="vpn_endpoint_type"),
                               nullable=False)

@@ -26,7 +26,6 @@ from oslo_utils import uuidutils
 import sqlalchemy as sa
 from sqlalchemy.sql import expression as sa_expr
 
-from neutron.api.v2 import attributes as attr
 from neutron.db import migration
 
 from neutron_vpnaas.services.vpn.common import constants as v_constants
@@ -45,8 +44,8 @@ vpnservices = sa.Table(
     'vpnservices', sa.MetaData(),
     sa.Column('id', sa.String(length=36), nullable=False),
     sa.Column('tenant_id', sa.String(length=255), nullable=False),
-    sa.Column('name', sa.String(attr.NAME_MAX_LEN)),
-    sa.Column('description', sa.String(attr.DESCRIPTION_MAX_LEN)),
+    sa.Column('name', sa.String(255)),
+    sa.Column('description', sa.String(255)),
     sa.Column('status', sa.String(16), nullable=False),
     sa.Column('admin_state_up', sa.Boolean(), nullable=False),
     sa.Column('external_v4_ip', sa.String(16)),
@@ -58,8 +57,8 @@ ipsec_site_conns = sa.Table(
     'ipsec_site_connections', sa.MetaData(),
     sa.Column('id', sa.String(length=36), nullable=False),
     sa.Column('tenant_id', sa.String(length=255), nullable=False),
-    sa.Column('name', sa.String(attr.NAME_MAX_LEN)),
-    sa.Column('description', sa.String(attr.DESCRIPTION_MAX_LEN)),
+    sa.Column('name', sa.String(255)),
+    sa.Column('description', sa.String(255)),
     sa.Column('peer_address', sa.String(255), nullable=False),
     sa.Column('peer_id', sa.String(255), nullable=False),
     sa.Column('route_mode', sa.String(8), nullable=False),

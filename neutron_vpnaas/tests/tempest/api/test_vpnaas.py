@@ -13,20 +13,20 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from neutron_lib.db import constants as db_const
 import six
 from tempest.lib.common.utils import data_utils
 from tempest.lib import exceptions as lib_exc
 from tempest import test
 
-from neutron.api.v2 import attributes as attr
 from neutron.tests.tempest import config
 
 from neutron_vpnaas.tests.tempest.api import base
 
 CONF = config.CONF
 
-_LONG_NAME = 'x' * (attr.NAME_MAX_LEN + 1)
-_LONG_DESCRIPTION = 'y' * (attr.DESCRIPTION_MAX_LEN + 1)
+_LONG_NAME = 'x' * (db_const.NAME_FIELD_SIZE + 1)
+_LONG_DESCRIPTION = 'y' * (db_const.DESCRIPTION_FIELD_SIZE + 1)
 
 
 class VPNaaSTestJSON(base.BaseAdminNetworkTest):
