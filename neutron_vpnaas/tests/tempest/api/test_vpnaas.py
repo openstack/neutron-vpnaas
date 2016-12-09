@@ -14,7 +14,6 @@
 #    under the License.
 
 from neutron_lib.db import constants as db_const
-import six
 from tempest.lib.common.utils import data_utils
 from tempest.lib import exceptions as lib_exc
 from tempest import test
@@ -110,7 +109,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
 
     def _assertExpected(self, expected, actual):
         # Check if not expected keys/values exists in actual response body
-        for key, value in six.iteritems(expected):
+        for key, value in expected.items():
             self.assertIn(key, actual)
             self.assertEqual(value, actual[key])
 
@@ -287,7 +286,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         # Confirm that update was successful by verifying using 'show'
         body = self.client.show_ikepolicy(ikepolicy['id'])
         ike_policy = body['ikepolicy']
-        for key, value in six.iteritems(new_ike):
+        for key, value in new_ike.items():
             self.assertIn(key, ike_policy)
             self.assertEqual(value, ike_policy[key])
 

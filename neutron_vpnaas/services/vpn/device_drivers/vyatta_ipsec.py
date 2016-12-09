@@ -26,7 +26,6 @@ from oslo_log import log as logging
 import oslo_messaging as messaging
 from oslo_service import loopingcall
 from oslo_service import periodic_task
-import six
 
 from neutron_vpnaas._i18n import _, _LE, _LW
 from neutron_vpnaas.services.vpn.common import topics
@@ -274,7 +273,7 @@ class _VyattaPeriodicTasks(periodic_task.PeriodicTasks):
 
         status = list()
 
-        for router_id, svc_set in six.iteritems(svc_by_vrouter):
+        for router_id, svc_set in svc_by_vrouter.items():
             vrouter = self.driver.vpn_service.get_router_client(router_id)
             resources = self.driver.get_router_resources(router_id)
 

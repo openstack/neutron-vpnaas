@@ -35,7 +35,6 @@ from neutron_lib import constants as lib_constants
 from neutron_lib.plugins import directory
 from oslo_db import exception as db_exc
 from oslo_utils import uuidutils
-import six
 import webob.exc
 
 from neutron_vpnaas.db.vpn import vpn_db
@@ -487,7 +486,7 @@ class TestVpnaas(VPNPluginDbTestCase):
     def _check_policy(self, policy, keys, lifetime):
         for k, v in keys:
             self.assertEqual(policy[k], v)
-        for k, v in six.iteritems(lifetime):
+        for k, v in lifetime.items():
             self.assertEqual(policy['lifetime'][k], v)
 
     def test_create_ikepolicy(self):
@@ -557,7 +556,7 @@ class TestVpnaas(VPNPluginDbTestCase):
             self.assertEqual(len(res), 1)
             for k, v in keys:
                 self.assertEqual(res['ikepolicies'][0][k], v)
-            for k, v in six.iteritems(lifetime):
+            for k, v in lifetime.items():
                 self.assertEqual(res['ikepolicies'][0]['lifetime'][k], v)
 
     def test_list_ikepolicies_with_sort_emulated(self):
