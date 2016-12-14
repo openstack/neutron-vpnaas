@@ -8,11 +8,11 @@ AGENT_VPN_BINARY="$NEUTRON_BIN_DIR/neutron-vpn-agent"
 VPN_PLUGIN=${VPN_PLUGIN:-"neutron_vpnaas.services.vpn.plugin.VPNDriverPlugin"}
 
 # Service Driver
-NEUTRON_VPNAAS_SERVICE_PROVIDER=${NEUTRON_VPNAAS_SERVICE_PROVIDER:-"VPN:openswan:neutron_vpnaas.services.vpn.service_drivers.ipsec.IPsecVPNDriver:default"}
+NEUTRON_VPNAAS_SERVICE_PROVIDER=${NEUTRON_VPNAAS_SERVICE_PROVIDER:-"VPN:strongswan:neutron_vpnaas.services.vpn.service_drivers.ipsec.IPsecVPNDriver:default"}
 
 # Device driver
-IPSEC_PACKAGE=${IPSEC_PACKAGE:-"openswan"}
-NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.ipsec.OpenSwanDriver"}
+IPSEC_PACKAGE=${IPSEC_PACKAGE:-"strongswan"}
+NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec:StrongSwanDriver"}
 
 # Config files
 NEUTRON_CONF_DIR=${NEUTRON_CONF_DIR:-"/etc/neutron"}
