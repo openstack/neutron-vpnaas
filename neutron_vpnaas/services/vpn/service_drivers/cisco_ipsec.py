@@ -196,6 +196,8 @@ class CiscoCsrIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
     def make_vpnservice_dict(self, context, vpnservice, router_info):
         """Collect all service info, including Cisco info for IPSec conn."""
         vpnservice_dict = dict(vpnservice)
+        # Populate tenant_id for RPC compat
+        vpnservice_dict['tenant_id'] = vpnservice_dict['project_id']
         vpnservice_dict['ipsec_conns'] = []
         vpnservice_dict['subnet'] = dict(vpnservice.subnet)
         vpnservice_dict['router_info'] = self._get_router_info(router_info)

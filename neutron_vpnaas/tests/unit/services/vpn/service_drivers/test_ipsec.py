@@ -166,7 +166,8 @@ class TestIPsecDriver(base.BaseTestCase):
                                              external_v4_ip=external_ip,
                                              external_v6_ip=None,
                                              subnet_id=subnet_id,
-                                             router_id='foo-router-id')
+                                             router_id='foo-router-id',
+                                             project_id='foo-project-id')
         if local_endpoints:
             fake_vpnservice.subnet = None
         else:
@@ -207,6 +208,8 @@ class TestIPsecDriver(base.BaseTestCase):
                            'network_id': 'foo-net-id'},
                 'subnet_id': 'foo-subnet-id',
                 'external_ip': external_ip,
+                'project_id': 'foo-project-id',
+                'tenant_id': 'foo-project-id',
                 'ipsec_site_connections': [
                     {'id': 'conn-id',
                      'peer_id': peer_id,
@@ -246,6 +249,8 @@ class TestIPsecDriver(base.BaseTestCase):
                 'subnet': None,
                 'subnet_id': None,
                 'external_ip': external_ip,
+                'project_id': 'foo-project-id',
+                'tenant_id': 'foo-project-id',
                 'ipsec_site_connections': [
                     {'id': 'conn-id',
                      'peer_id': peer_id,

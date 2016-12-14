@@ -169,6 +169,8 @@ class BaseIPsecVPNDriver(service_drivers.VpnDriver):
         also converting parameter name for vpn agent driver
         """
         vpnservice_dict = dict(vpnservice)
+        # Populate tenant_id for RPC compat
+        vpnservice_dict['tenant_id'] = vpnservice_dict['project_id']
         vpnservice_dict['ipsec_site_connections'] = []
         if vpnservice.subnet:
             vpnservice_dict['subnet'] = dict(vpnservice.subnet)
