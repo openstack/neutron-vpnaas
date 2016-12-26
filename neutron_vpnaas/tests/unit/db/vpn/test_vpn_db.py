@@ -464,7 +464,7 @@ class VPNPluginDbTestCase(VPNTestMixin,
         self.plugin = vpn_plugin.VPNPlugin()
         ext_mgr = api_extensions.PluginAwareExtensionManager(
             extensions_path,
-            {nconstants.CORE: self.core_plugin,
+            {lib_constants.CORE: self.core_plugin,
              nconstants.VPN: self.plugin}
         )
         app = config.load_paste_app('extensions_test_app')
