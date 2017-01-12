@@ -104,7 +104,9 @@ class TestVPNServiceEventHandlers(VPNBaseTestCase):
         self.l3_agent.device_drivers = [self.device_driver]
 
     def test_router_added_actions(self):
-        ri = legacy_router.LegacyRouter(FAKE_ROUTER_ID, **self.ri_kwargs)
+        ri = legacy_router.LegacyRouter(router_id=FAKE_ROUTER_ID,
+                                        agent=self.l3_agent,
+                                        **self.ri_kwargs)
         vpn_service.router_added_actions(mock.Mock(), mock.Mock(),
                                          self.l3_agent, router=ri)
         self.device_driver.create_router.assert_called_once_with(ri)
@@ -112,14 +114,18 @@ class TestVPNServiceEventHandlers(VPNBaseTestCase):
                                                         [ri.router])
 
     def test_router_removed_actions(self):
-        ri = legacy_router.LegacyRouter(FAKE_ROUTER_ID, **self.ri_kwargs)
+        ri = legacy_router.LegacyRouter(router_id=FAKE_ROUTER_ID,
+                                        agent=self.l3_agent,
+                                        **self.ri_kwargs)
         vpn_service.router_removed_actions(mock.Mock(), mock.Mock(),
                                            self.l3_agent, router=ri)
         self.device_driver.destroy_router.assert_called_once_with(
             FAKE_ROUTER_ID)
 
     def test_router_updated_actions(self):
-        ri = legacy_router.LegacyRouter(FAKE_ROUTER_ID, **self.ri_kwargs)
+        ri = legacy_router.LegacyRouter(router_id=FAKE_ROUTER_ID,
+                                        agent=self.l3_agent,
+                                        **self.ri_kwargs)
         vpn_service.router_updated_actions(mock.Mock(), mock.Mock(),
                                            self.l3_agent, router=ri)
         self.device_driver.sync.assert_called_once_with(self.l3_agent.context,

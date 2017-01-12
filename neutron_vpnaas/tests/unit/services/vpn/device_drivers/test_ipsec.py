@@ -422,7 +422,8 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         self._make_router_info_for_test()
 
     def _make_router_info_for_test(self):
-        self.router = legacy_router.LegacyRouter(FAKE_ROUTER_ID,
+        self.router = legacy_router.LegacyRouter(router_id=FAKE_ROUTER_ID,
+                                                 agent=self.agent,
                                                  **self.ri_kwargs)
         self.router.router['distributed'] = False
         self.router.iptables_manager.ipv4['nat'] = self.iptables

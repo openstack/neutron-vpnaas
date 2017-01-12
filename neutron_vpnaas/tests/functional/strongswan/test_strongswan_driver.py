@@ -118,7 +118,9 @@ class TestStrongSwanDeviceDriver(base.BaseSudoTestCase):
         ri_kwargs = {'router': {'id': FAKE_ROUTER_ID},
                      'agent_conf': self.conf,
                      'interface_driver': mock.sentinel.interface_driver}
-        self.router = legacy_router.LegacyRouter(FAKE_ROUTER_ID, **ri_kwargs)
+        self.router = legacy_router.LegacyRouter(router_id=FAKE_ROUTER_ID,
+                                                 agent=mock.Mock(),
+                                                 **ri_kwargs)
         self.router.router['distributed'] = False
         self.router_id = FAKE_VPN_SERVICE['router_id']
 
