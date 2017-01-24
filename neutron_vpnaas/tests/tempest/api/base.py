@@ -14,11 +14,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import netaddr
 from tempest.lib.common.utils import data_utils
-from tempest.lib import exceptions as lib_exc
-from tempest import test
 
+from neutron.tests.tempest.api import base
 from neutron.tests.tempest import config
 
 from neutron_vpnaas.tests.tempest.api import clients
@@ -26,71 +24,25 @@ from neutron_vpnaas.tests.tempest.api import clients
 CONF = config.CONF
 
 
-class BaseNetworkTest(test.BaseTestCase):
-    """
-    Base class for the Neutron tests that use the Tempest Neutron REST client
-
-    Per the Neutron API Guide, API v1.x was removed from the source code tree
-    (docs.openstack.org/api/openstack-network/2.0/content/Overview-d1e71.html)
-    Therefore, v2.x of the Neutron API is assumed. It is also assumed that the
-    following options are defined in the [network] section of etc/tempest.conf:
-
-        tenant_network_cidr with a block of cidr's from which smaller blocks
-        can be allocated for tenant networks
-
-        tenant_network_mask_bits with the mask bits to be used to partition the
-        block defined by tenant-network_cidr
-
-    Finally, it is assumed that the following option is defined in the
-    [service_available] section of etc/tempest.conf
-
-        neutron as True
-    """
-
-    force_tenant_isolation = False
-    credentials = ['primary']
-
-    # Default to ipv4.
-    _ip_version = 4
-
-    @classmethod
-    def get_client_manager(cls, credential_type=None, roles=None,
-                           force_new=None):
-        manager = test.BaseTestCase.get_client_manager(
-            credential_type=credential_type,
-            roles=roles,
-            force_new=force_new)
-        # Neutron uses a different clients manager than the one in the Tempest
-        return clients.Manager(manager.credentials)
-
-    @classmethod
-    def skip_checks(cls):
-        super(BaseNetworkTest, cls).skip_checks()
-        # Create no network resources for these tests.
-        if not CONF.service_available.neutron:
-            raise cls.skipException("Neutron support is required")
-        if cls._ip_version == 6 and not CONF.network_feature_enabled.ipv6:
-            raise cls.skipException("IPv6 Tests are disabled.")
-
-    @classmethod
-    def setup_clients(cls):
-        super(BaseNetworkTest, cls).setup_clients()
-        cls.client = cls.os.network_client
-
+class BaseNetworkTest(base.BaseNetworkTest):
     @classmethod
     def resource_setup(cls):
         super(BaseNetworkTest, cls).resource_setup()
-        cls.network_cfg = CONF.network
-        cls.networks = []
-        cls.shared_networks = []
-        cls.subnets = []
-        cls.ports = []
-        cls.routers = []
         cls.vpnservices = []
         cls.ikepolicies = []
         cls.ipsecpolicies = []
         cls.ipsec_site_connections = []
         cls.endpoint_groups = []
+
+    @classmethod
+    def get_client_manager(cls, credential_type=None, roles=None,
+                           force_new=None):
+        manager = super(BaseNetworkTest, cls).get_client_manager(
+            credential_type=credential_type,
+            roles=roles,
+            force_new=force_new)
+        # Neutron uses a different clients manager than the one in the Tempest
+        return clients.Manager(manager.credentials)
 
     @classmethod
     def resource_cleanup(cls):
@@ -118,166 +70,16 @@ class BaseNetworkTest(test.BaseTestCase):
             for vpnservice in cls.vpnservices:
                 cls._try_delete_resource(cls.client.delete_vpnservice,
                                          vpnservice['id'])
-            # Clean up routers
-            for router in cls.routers:
-                ports = cls.client.list_router_interfaces(router['id'])
-                for port in ports['ports']:
-                    router_info = {'router_id': router['id'],
-                                   'port_id': port['id']}
-                    cls._try_delete_resource(
-                        cls.client.remove_router_interface_with_port_id,
-                        **router_info)
-                router_info = {'router_id': router['id'],
-                               'external_gateway_info': {}}
-                cls._try_delete_resource(cls.client.update_router,
-                                         **router_info)
-                cls._try_delete_resource(cls.client.delete_router,
-                                         router['id'])
-            # Clean up ports
-            for port in cls.ports:
-                cls._try_delete_resource(cls.client.delete_port,
-                                         port['id'])
-            # Clean up subnets
-            for subnet in cls.subnets:
-                cls._try_delete_resource(cls.client.delete_subnet,
-                                         subnet['id'])
-            # Clean up networks
-            for network in cls.networks:
-                cls._try_delete_resource(cls.client.delete_network,
-                                         network['id'])
-            # Clean up shared networks
-            for network in cls.shared_networks:
-                cls._try_delete_resource(cls.admin_client.delete_network,
-                                         network['id'])
+        super(BaseNetworkTest, cls).resource_cleanup()
 
     @classmethod
-    def _try_delete_resource(cls, delete_callable, *args, **kwargs):
-        """Cleanup resources in case of test-failure
-
-        Some resources are explicitly deleted by the test.
-        If the test failed to delete a resource, this method will execute
-        the appropriate delete methods. Otherwise, the method ignores NotFound
-        exceptions thrown for resources that were correctly deleted by the
-        test.
-
-        :param delete_callable: delete method
-        :param args: arguments for delete method
-        :param kwargs: keyword arguments for delete method
-        """
-        try:
-            delete_callable(*args, **kwargs)
-        # if resource is not found, this means it was deleted in the test
-        except lib_exc.NotFound:
-            pass
-
-    @classmethod
-    def create_network(cls, network_name=None, **kwargs):
-        """Wrapper utility that returns a test network."""
-        network_name = network_name or data_utils.rand_name('test-network-')
-
-        body = cls.client.create_network(name=network_name, **kwargs)
-        network = body['network']
-        cls.networks.append(network)
-        return network
-
-    @classmethod
-    def create_shared_network(cls, network_name=None):
-        network_name = network_name or data_utils.rand_name('sharednetwork-')
-        post_body = {'name': network_name, 'shared': True}
-        body = cls.admin_client.create_network(**post_body)
-        network = body['network']
-        cls.shared_networks.append(network)
-        return network
-
-    @classmethod
-    def create_router_interface(cls, router_id, subnet_id):
-        """Wrapper utility that returns a router interface."""
-        interface = cls.client.add_router_interface_with_subnet_id(
-            router_id, subnet_id)
-        return interface
-
-    @classmethod
-    def create_subnet(cls, network, gateway='', cidr=None, mask_bits=None,
-                      ip_version=None, client=None, **kwargs):
-        """Wrapper utility that returns a test subnet."""
-
-        # allow tests to use admin client
-        if not client:
-            client = cls.client
-
-        # The cidr and mask_bits depend on the ip version.
-        ip_version = ip_version if ip_version is not None else cls._ip_version
-        gateway_not_set = gateway == ''
-        if ip_version == 4:
-            cidr = cidr or netaddr.IPNetwork(CONF.network.project_network_cidr)
-            mask_bits = mask_bits or CONF.network.project_network_mask_bits
-        elif ip_version == 6:
-            cidr = (
-                cidr or netaddr.IPNetwork(CONF.network.tenant_network_v6_cidr))
-            mask_bits = mask_bits or CONF.network.tenant_network_v6_mask_bits
-        # Find a cidr that is not in use yet and create a subnet with it
-        for subnet_cidr in cidr.subnet(mask_bits):
-            if gateway_not_set:
-                gateway_ip = str(netaddr.IPAddress(subnet_cidr) + 1)
-            else:
-                gateway_ip = gateway
-            try:
-                body = client.create_subnet(
-                    network_id=network['id'],
-                    cidr=str(subnet_cidr),
-                    ip_version=ip_version,
-                    gateway_ip=gateway_ip,
-                    **kwargs)
-                break
-            except lib_exc.BadRequest as e:
-                is_overlapping_cidr = 'overlaps with another subnet' in str(e)
-                if not is_overlapping_cidr:
-                    raise
-        else:
-            message = 'Available CIDR for subnet creation could not be found'
-            raise ValueError(message)
-        subnet = body['subnet']
-        cls.subnets.append(subnet)
-        return subnet
-
-    @classmethod
-    def create_port(cls, network, **kwargs):
-        """Wrapper utility that returns a test port."""
-        body = cls.client.create_port(network_id=network['id'],
-                                      **kwargs)
-        port = body['port']
-        cls.ports.append(port)
-        return port
-
-    @classmethod
-    def update_port(cls, port, **kwargs):
-        """Wrapper utility that updates a test port."""
-        body = cls.client.update_port(port['id'],
-                                      **kwargs)
-        return body['port']
-
-    @classmethod
-    def create_router(cls, router_name=None, admin_state_up=False,
-                      external_network_id=None, enable_snat=None,
-                      **kwargs):
-        ext_gw_info = {}
-        if external_network_id:
-            ext_gw_info['network_id'] = external_network_id
-        if enable_snat:
-            ext_gw_info['enable_snat'] = enable_snat
-        body = cls.client.create_router(
-            router_name, external_gateway_info=ext_gw_info,
-            admin_state_up=admin_state_up, **kwargs)
-        router = body['router']
-        cls.routers.append(router)
-        return router
-
-    @classmethod
-    def create_vpnservice(cls, subnet_id, router_id):
+    def create_vpnservice(cls, subnet_id, router_id, name=None):
         """Wrapper utility that returns a test vpn service."""
+        if name is None:
+            name = data_utils.rand_name("vpnservice-")
         body = cls.client.create_vpnservice(
             subnet_id=subnet_id, router_id=router_id, admin_state_up=True,
-            name=data_utils.rand_name("vpnservice-"))
+            name=name)
         vpnservice = body['vpnservice']
         cls.vpnservices.append(vpnservice)
         return vpnservice
@@ -310,20 +112,28 @@ class BaseNetworkTest(test.BaseTestCase):
 
     @classmethod
     def create_ipsec_site_connection(cls, ikepolicy_id, ipsecpolicy_id,
-                                     vpnservice_id):
+                                     vpnservice_id, psk="secret",
+                                     peer_address="172.24.4.233",
+                                     peer_id="172.24.4.233",
+                                     peer_cidrs=None,
+                                     name=None):
         """Wrapper utility that returns a test vpn connection."""
+        if peer_cidrs is None:
+            peer_cidrs = ['1.1.1.0/24', '2.2.2.0/24']
+        if name is None:
+            name = data_utils.rand_name("ipsec_site_connection-")
         body = cls.client.create_ipsec_site_connection(
-            psk="secret",
+            psk=psk,
             initiator="bi-directional",
             ipsecpolicy_id=ipsecpolicy_id,
             admin_state_up=True,
             mtu=1500,
             ikepolicy_id=ikepolicy_id,
             vpnservice_id=vpnservice_id,
-            peer_address="172.24.4.233",
-            peer_id="172.24.4.233",
-            peer_cidrs=['1.1.1.0/24', '2.2.2.0/24'],
-            name=data_utils.rand_name("ipsec_site_connection-"))
+            peer_address=peer_address,
+            peer_id=peer_id,
+            peer_cidrs=peer_cidrs,
+            name=name)
         ipsec_site_connection = body['ipsec_site_connection']
         cls.ipsec_site_connections.append(ipsec_site_connection)
         return ipsec_site_connection
