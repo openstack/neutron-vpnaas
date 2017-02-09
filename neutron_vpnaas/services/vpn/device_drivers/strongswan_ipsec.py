@@ -179,7 +179,8 @@ class StrongSwanProcess(ipsec.BaseSwanProcess):
         self._execute([self.binary, 'start'])
         # initiate ipsec connection
         for ipsec_site_conn in self.vpnservice['ipsec_site_connections']:
-            self._execute([self.binary, 'up', ipsec_site_conn['id']])
+            self._execute([self.binary, 'stroke', 'up-nb',
+                           ipsec_site_conn['id']])
 
     def stop(self):
         self._execute([self.binary, 'stop'])
