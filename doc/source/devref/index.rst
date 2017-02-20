@@ -24,6 +24,13 @@ flavors, design details on VPNaaS internals, and testing. Developers
 will extend this, as needed, in the future to contain more information.
 
 
+VPNaaS Team
+-----------
+.. toctree::
+   :maxdepth: 3
+
+   team
+
 VPNaaS Flavors
 -----------------
 .. toctree::
