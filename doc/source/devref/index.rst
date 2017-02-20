@@ -41,11 +41,12 @@ VPNaaS Internals
 
    multiple-local-subnets
 
-VPNaaS Rally Tests
---------------------
+VPNaaS Tests
+------------
 .. toctree::
    :maxdepth: 3
 
+   vpnaas-tempest-test
    vpnaas-rally-test
 
 Testing
