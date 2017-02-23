@@ -18,7 +18,7 @@ from neutron.callbacks import events
 from neutron.callbacks import registry
 from neutron.callbacks import resources
 from neutron.db import common_db_mixin as base_db
-from neutron.db import l3_agentschedulers_db as l3_agent_db
+from neutron.db.models import l3agent
 from neutron.db import models_v2
 from neutron.extensions import l3 as l3_exception
 from neutron.plugins.common import constants as p_constants
@@ -652,11 +652,11 @@ class VPNPluginRpcDbMixin(object):
             return []
         query = context.session.query(vpn_models.VPNService)
         query = query.join(vpn_models.IPsecSiteConnection)
-        query = query.join(l3_agent_db.RouterL3AgentBinding,
-                           l3_agent_db.RouterL3AgentBinding.router_id ==
+        query = query.join(l3agent.RouterL3AgentBinding,
+                           l3agent.RouterL3AgentBinding.router_id ==
                            vpn_models.VPNService.router_id)
         query = query.filter(
-            l3_agent_db.RouterL3AgentBinding.l3_agent_id == agent.id)
+            l3agent.RouterL3AgentBinding.l3_agent_id == agent.id)
         return query
 
     def _build_local_subnet_cidr_map(self, context):

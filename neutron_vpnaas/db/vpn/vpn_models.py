@@ -18,7 +18,7 @@ from neutron_lib.db import model_base
 import sqlalchemy as sa
 from sqlalchemy import orm
 
-from neutron.db import l3_db
+from neutron.db.models import l3
 from neutron.db import models_v2
 
 from neutron_vpnaas.services.vpn.common import constants
@@ -149,7 +149,7 @@ class VPNService(model_base.BASEV2, model_base.HasId, model_base.HasProject):
     router_id = sa.Column(sa.String(36), sa.ForeignKey('routers.id'),
                           nullable=False)
     subnet = orm.relationship(models_v2.Subnet)
-    router = orm.relationship(l3_db.Router)
+    router = orm.relationship(l3.Router)
     ipsec_site_connections = orm.relationship(
         IPsecSiteConnection,
         backref='vpnservice',
