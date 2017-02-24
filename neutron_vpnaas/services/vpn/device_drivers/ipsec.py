@@ -32,6 +32,7 @@ from neutron import context
 from neutron.plugins.common import constants
 from neutron.plugins.common import utils as plugin_utils
 from neutron_lib.api import validators
+from neutron_lib.utils import file as file_utils
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -221,9 +222,9 @@ class BaseSwanProcess(object):
         config_str = self._gen_config_content(template, vpnservice)
         config_file_name = self._get_config_filename(kind)
         if file_mode is None:
-            n_utils.replace_file(config_file_name, config_str)
+            file_utils.replace_file(config_file_name, config_str)
         else:
-            n_utils.replace_file(config_file_name, config_str, file_mode)
+            file_utils.replace_file(config_file_name, config_str, file_mode)
 
     def remove_config(self):
         """Remove whole config file."""
