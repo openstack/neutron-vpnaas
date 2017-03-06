@@ -15,12 +15,12 @@
 import contextlib
 
 import mock
-from neutron import context
 from neutron.plugins.common import constants as p_constants
 from neutron.tests.unit.db import test_agentschedulers_db
 from neutron.tests.unit.extensions import test_agent as test_agent_ext_plugin
 
 from neutron_lib import constants as lib_constants
+from neutron_lib import context
 from neutron_lib.plugins import directory
 
 from neutron_vpnaas.db.vpn import vpn_validator

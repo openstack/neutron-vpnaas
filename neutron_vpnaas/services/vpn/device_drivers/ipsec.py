@@ -28,10 +28,10 @@ from neutron.agent.linux import ip_lib
 from neutron.agent.linux import utils as agent_utils
 from neutron.common import rpc as n_rpc
 from neutron.common import utils as n_utils
-from neutron import context
 from neutron.plugins.common import constants
 from neutron.plugins.common import utils as plugin_utils
 from neutron_lib.api import validators
+from neutron_lib import context
 from neutron_lib.utils import file as file_utils
 from oslo_concurrency import lockutils
 from oslo_config import cfg

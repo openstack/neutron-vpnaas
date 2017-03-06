@@ -20,7 +20,7 @@ from networking_brocade.vyatta.common import exceptions as v_exc
 from networking_brocade.vyatta.common import vrouter_config
 from networking_brocade.vyatta.vpn import config as vyatta_vpn_config
 from neutron.common import rpc as n_rpc
-from neutron import context as n_ctx
+from neutron_lib import context as n_ctx
 from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging as messaging

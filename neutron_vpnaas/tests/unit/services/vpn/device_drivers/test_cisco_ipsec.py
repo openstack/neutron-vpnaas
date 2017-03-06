@@ -16,8 +16,8 @@ import copy
 import operator
 
 import mock
-from neutron import context
 from neutron.plugins.common import constants
+from neutron_lib import context
 from oslo_utils import uuidutils
 
 from neutron_vpnaas.services.vpn.device_drivers import (
@@ -422,7 +422,7 @@ class TestCiscoCsrIPsecDeviceDriverSyncStatuses(base.BaseTestCase):
     def setUp(self):
         super(TestCiscoCsrIPsecDeviceDriverSyncStatuses, self).setUp()
         for klass in ['neutron.common.rpc.create_connection',
-                      'neutron.context.get_admin_context_without_session',
+                      'neutron_lib.context.get_admin_context_without_session',
                       'oslo_service.loopingcall.FixedIntervalLoopingCall']:
             mock.patch(klass).start()
         self.context = context.Context('some_user', 'some_tenant')

@@ -16,11 +16,11 @@
 import mock
 import socket
 
-from neutron import context as n_ctx
 from neutron.db import l3_db
 from neutron.db import servicetype_db as st_db
 from neutron.plugins.common import constants as nconstants
 from neutron_lib import constants as lconstants
+from neutron_lib import context as n_ctx
 from neutron_lib import exceptions as nexception
 from neutron_lib.plugins import directory
 from oslo_utils import uuidutils
