@@ -15,8 +15,8 @@
 
 import re
 
-from neutron.agent.common import config
 from neutron.agent.linux import utils
+from neutron.conf.agent import common as config
 from neutron.tests.common import net_helpers
 from neutron.tests.functional import base
 

@@ -15,7 +15,7 @@
 
 import mock
 
-from neutron.agent.common import config as agent_config
+from neutron.conf.agent import common as agent_config
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
