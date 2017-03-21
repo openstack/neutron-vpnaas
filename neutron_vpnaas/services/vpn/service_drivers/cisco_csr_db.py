@@ -19,7 +19,7 @@ from oslo_log import log as logging
 import sqlalchemy as sa
 from sqlalchemy.orm import exc as sql_exc
 
-from neutron_vpnaas._i18n import _, _LI
+from neutron_vpnaas._i18n import _
 from neutron_vpnaas.db.vpn import vpn_models
 
 LOG = logging.getLogger(__name__)
@@ -223,9 +223,9 @@ def create_tunnel_mapping(context, conn_info):
             msg = _("Attempt to create duplicate entry in Cisco CSR "
                     "mapping table for connection %s") % conn_id
             raise CsrInternalError(reason=msg)
-        LOG.info(_LI("Mapped connection %(conn_id)s to Tunnel%(tunnel_id)d "
-                     "using IKE policy ID %(ike_id)d and IPSec policy "
-                     "ID %(ipsec_id)d"),
+        LOG.info("Mapped connection %(conn_id)s to Tunnel%(tunnel_id)d "
+                 "using IKE policy ID %(ike_id)d and IPSec policy "
+                 "ID %(ipsec_id)d",
                  {'conn_id': conn_id, 'tunnel_id': csr_tunnel_id,
                   'ike_id': csr_ike_id, 'ipsec_id': csr_ipsec_id})
 
@@ -235,4 +235,4 @@ def delete_tunnel_mapping(context, conn_info):
     with context.session.begin():
         sess_qry = context.session.query(IdentifierMap)
         sess_qry.filter_by(ipsec_site_conn_id=conn_id).delete()
-    LOG.info(_LI("Removed mapping for connection %s"), conn_id)
+    LOG.info("Removed mapping for connection %s", conn_id)

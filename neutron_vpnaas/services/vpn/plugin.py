@@ -20,7 +20,7 @@ from neutron.services import provider_configuration as pconf
 from neutron.services import service_base
 from oslo_log import log as logging
 
-from neutron_vpnaas._i18n import _LI
+
 from neutron_vpnaas.db.vpn import vpn_db
 
 LOG = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ class VPNDriverPlugin(VPNPlugin, vpn_db.VPNPluginRpcDbMixin):
         # Load the service driver from neutron.conf.
         drivers, default_provider = service_base.load_drivers(
             constants.VPN, self)
-        LOG.info(_LI("VPN plugin using service driver: %s"), default_provider)
+        LOG.info("VPN plugin using service driver: %s", default_provider)
         self.ipsec_driver = drivers[default_provider]
         vpn_db.subscribe()
 

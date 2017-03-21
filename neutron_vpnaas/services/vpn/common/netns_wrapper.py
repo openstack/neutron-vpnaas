@@ -25,7 +25,7 @@ from oslo_log import log as logging
 from oslo_rootwrap import wrapper
 import six
 
-from neutron_vpnaas._i18n import _, _LE, _LI
+from neutron_vpnaas._i18n import _
 
 if six.PY3:
     import configparser as ConfigParser
@@ -88,11 +88,11 @@ def filter_command(command, rootwrap_config):
         rawconfig.read(rootwrap_config)
         rw_config = wrapper.RootwrapConfig(rawconfig)
     except ValueError as exc:
-        LOG.error(_LE('Incorrect value in %(config)s: %(exc)s'),
+        LOG.error('Incorrect value in %(config)s: %(exc)s',
                   {'config': rootwrap_config, 'exc': exc.message})
         sys.exit(errno.EINVAL)
     except ConfigParser.Error:
-        LOG.error(_LE('Incorrect configuration file: %(config)s'),
+        LOG.error('Incorrect configuration file: %(config)s',
                   {'config': rootwrap_config})
         sys.exit(errno.EINVAL)
 
@@ -101,14 +101,14 @@ def filter_command(command, rootwrap_config):
     try:
         wrapper.match_filter(filters, command, exec_dirs=rw_config.exec_dirs)
     except wrapper.FilterMatchNotExecutable as exc:
-        LOG.error(_LE('Command %(command)s is not executable: '
-                      '%(path)s (filter match = %(name)s)'),
+        LOG.error('Command %(command)s is not executable: '
+                  '%(path)s (filter match = %(name)s)',
                   {'command': command,
                    'path': exc.match.exec_path,
                    'name': exc.match.name})
         sys.exit(errno.EINVAL)
     except wrapper.NoFilterMatched:
-        LOG.error(_LE('Unauthorized command: %(cmd)s (no filter matched)'),
+        LOG.error('Unauthorized command: %(cmd)s (no filter matched)',
                   {'cmd': command})
         sys.exit(errno.EPERM)
 
@@ -118,11 +118,11 @@ def execute_with_mount():
     conf()
     config.setup_logging()
     if not conf.cmd:
-        LOG.error(_LE('No command provided, exiting'))
+        LOG.error('No command provided, exiting')
         return errno.EINVAL
 
     if not conf.mount_paths:
-        LOG.error(_LE('No mount path provided, exiting'))
+        LOG.error('No mount path provided, exiting')
         return errno.EINVAL
 
     # Both sudoers and rootwrap.conf will not exist in the directory /etc
@@ -138,7 +138,7 @@ def execute_with_mount():
     # http://man7.org/linux/man-pages/man7/namespaces.7.html
     if os.path.samefile(os.path.join('/proc/1/ns/net'),
                         os.path.join('/proc', str(os.getpid()), 'ns/net')):
-        LOG.error(_LE('Cannot run without netns, exiting'))
+        LOG.error('Cannot run without netns, exiting')
         return errno.EINVAL
 
     for path, new_path in conf.mount_paths.items():
@@ -149,12 +149,12 @@ def execute_with_mount():
         if os.path.isdir(path) and os.path.isabs(path):
             return_code = execute(['mount', '--bind', new_path, path])
             if return_code == 0:
-                LOG.info(_LI('%(new_path)s has been '
-                         'bind-mounted in %(path)s'),
+                LOG.info('%(new_path)s has been '
+                         'bind-mounted in %(path)s',
                          {'new_path': new_path, 'path': path})
             else:
-                LOG.error(_LE('Failed to bind-mount '
-                          '%(new_path)s in %(path)s'),
+                LOG.error('Failed to bind-mount '
+                          '%(new_path)s in %(path)s',
                           {'new_path': new_path, 'path': path})
     return execute(conf.cmd)
 

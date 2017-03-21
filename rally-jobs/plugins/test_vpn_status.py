@@ -12,7 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from neutron_vpnaas._i18n import _LI
+
 from rally.common import logging
 from rally.task import scenario
 from rally.task import types as types
@@ -63,7 +63,7 @@ class TestVpnStatusScenario(vpn_base.VpnBase):
             self.update_router(self.router_ids[0], admin_state_up=True)
             self.update_router(self.router_ids[1], admin_state_up=True)
             self.assert_statuses(final_status='ACTIVE', **kwargs)
-            LOG.info(_LI("VPN STATUS TEST PASSED!"))
+            LOG.info("VPN STATUS TEST PASSED!")
 
         finally:
             self.cleanup()
