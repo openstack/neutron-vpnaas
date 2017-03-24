@@ -14,9 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from tempest.lib.services.identity.v2 import tenants_client as tenants_cli
-from tempest import manager
-
+from neutron.tests.tempest.api import clients as manager
 from neutron.tests.tempest import config
 from neutron.tests.tempest.services.network.json import network_client
 
@@ -60,31 +58,8 @@ class NetworkClient(network_client.NetworkClientJSON):
 
 
 class Manager(manager.Manager):
-
-    """
-    Top level manager for OpenStack tempest clients
-    """
-
-    default_params = {
-        'disable_ssl_certificate_validation':
-            CONF.identity.disable_ssl_certificate_validation,
-        'ca_certs': CONF.identity.ca_certificates_file,
-        'trace_requests': CONF.debug.trace_requests
-    }
-
-    # NOTE: Tempest uses timeout values of compute API if project specific
-    # timeout values don't exist.
-    default_params_with_timeout_values = {
-        'build_interval': CONF.compute.build_interval,
-        'build_timeout': CONF.compute.build_timeout
-    }
-    default_params_with_timeout_values.update(default_params)
-
     def __init__(self, credentials=None, service=None):
         super(Manager, self).__init__(credentials=credentials)
-
-        self._set_identity_clients()
-
         self.network_client = NetworkClient(
             self.auth_provider,
             CONF.network.catalog_type,
@@ -93,17 +68,3 @@ class Manager(manager.Manager):
             build_interval=CONF.network.build_interval,
             build_timeout=CONF.network.build_timeout,
             **self.default_params)
-
-    def _set_identity_clients(self):
-        params = {
-            'service': CONF.identity.catalog_type,
-            'region': CONF.identity.region,
-            'endpoint_type': 'adminURL'
-        }
-        params.update(self.default_params_with_timeout_values)
-
-        params_v2_admin = params.copy()
-        params_v2_admin['endpoint_type'] = CONF.identity.v2_admin_endpoint_type
-        # Client uses admin endpoint type of Keystone API v2
-        self.tenants_client = tenants_cli.TenantsClient(self.auth_provider,
-                                                        **params_v2_admin)
