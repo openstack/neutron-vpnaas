@@ -15,7 +15,7 @@
 
 import mock
 from neutron.agent.l3 import legacy_router
-from neutron.callbacks import registry
+from neutron_lib.callbacks import registry
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
