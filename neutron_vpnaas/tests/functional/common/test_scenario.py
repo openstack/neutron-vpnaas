@@ -26,15 +26,14 @@ from neutron.agent.linux import external_process
 from neutron.agent.linux import interface
 from neutron.agent.linux import ip_lib
 from neutron.agent.linux import utils as linux_utils
-from neutron.common import constants as l3_constants
 from neutron.common import utils as common_utils
 from neutron.conf.agent import common as agent_config
 from neutron.conf import common as common_config
-from neutron.plugins.common import constants
 from neutron.services.provider_configuration import serviceprovider_opts
 from neutron.tests.common import l3_test_common
 from neutron.tests.common import net_helpers
 from neutron.tests.functional import base
+from neutron_lib import constants
 from neutron_lib.utils import net as n_utils
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -263,7 +262,7 @@ class SiteInfoWithHaRouter(SiteInfo):
         super(SiteInfoWithHaRouter, self).generate_router_info()
         self.info['ha'] = True
         self.info['ha_vr_id'] = 1
-        self.info[l3_constants.HA_INTERFACE_KEY] = (
+        self.info[constants.HA_INTERFACE_KEY] = (
             l3_test_common.get_ha_interface())
         # Mock router namespace name, for when router is created
         self.get_ns_name.return_value = "qrouter-{0}-{1}".format(
@@ -272,7 +271,7 @@ class SiteInfoWithHaRouter(SiteInfo):
     def generate_backup_router_info(self):
         # Clone router info, using different HA interface (using same ID)
         info = copy.deepcopy(self.info)
-        info[l3_constants.HA_INTERFACE_KEY] = (
+        info[constants.HA_INTERFACE_KEY] = (
             l3_test_common.get_ha_interface(ip='169.254.192.2',
                                             mac='22:22:22:22:22:22'))
         # Mock router namespace name, for when router is created

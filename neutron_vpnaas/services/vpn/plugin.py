@@ -15,9 +15,9 @@
 #    under the License.
 
 from neutron.db import servicetype_db as st_db
-from neutron.plugins.common import constants
 from neutron.services import provider_configuration as pconf
 from neutron.services import service_base
+from neutron_lib.plugins import constants
 from oslo_log import log as logging
 
 

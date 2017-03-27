@@ -18,8 +18,8 @@ import os
 
 from neutron.agent.l3 import legacy_router
 from neutron.conf.agent.l3 import config as l3_config
-from neutron.plugins.common import constants
 from neutron.tests.functional import base
+from neutron_lib import constants
 from oslo_config import cfg
 from oslo_utils import uuidutils
 

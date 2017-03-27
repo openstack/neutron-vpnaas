@@ -25,13 +25,13 @@ from neutron.db import agentschedulers_db
 from neutron.db import l3_agentschedulers_db
 from neutron.db import servicetype_db as sdb
 from neutron import extensions as nextensions
-from neutron.plugins.common import constants as nconstants
 from neutron.scheduler import l3_agent_scheduler
 from neutron.tests.unit.db import test_db_base_plugin_v2 as test_db_plugin
 from neutron.tests.unit.extensions import test_l3 as test_l3_plugin
 from neutron_lib import constants as lib_constants
 from neutron_lib import context
 from neutron_lib.exceptions import l3 as l3_exception
+from neutron_lib.plugins import constants as nconstants
 from neutron_lib.plugins import directory
 from oslo_db import exception as db_exc
 from oslo_utils import uuidutils
@@ -423,7 +423,7 @@ class VPNTestMixin(object):
                 adminContext,
                 model,
                 resource_id)
-            resource_db.status = nconstants.ACTIVE
+            resource_db.status = lib_constants.ACTIVE
 
 
 class VPNPluginDbTestCase(VPNTestMixin,

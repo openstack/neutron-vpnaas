@@ -16,7 +16,7 @@ import copy
 import operator
 
 import mock
-from neutron.plugins.common import constants
+from neutron_lib import constants
 from neutron_lib import context
 from oslo_utils import uuidutils
 

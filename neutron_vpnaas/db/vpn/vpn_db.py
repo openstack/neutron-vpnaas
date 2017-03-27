@@ -20,10 +20,10 @@ from neutron.callbacks import resources
 from neutron.db import common_db_mixin as base_db
 from neutron.db.models import l3agent
 from neutron.db import models_v2
-from neutron.plugins.common import constants as p_constants
 from neutron.plugins.common import utils
 from neutron_lib import constants as lib_constants
 from neutron_lib.exceptions import l3 as l3_exception
+from neutron_lib.plugins import constants as p_constants
 from neutron_lib.plugins import directory
 from oslo_log import log as logging
 from oslo_utils import excutils
@@ -184,7 +184,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                 dpd_interval=ipsec_sitecon['dpd_interval'],
                 dpd_timeout=ipsec_sitecon['dpd_timeout'],
                 admin_state_up=ipsec_sitecon['admin_state_up'],
-                status=p_constants.PENDING_CREATE,
+                status=lib_constants.PENDING_CREATE,
                 vpnservice_id=vpnservice_id,
                 ikepolicy_id=ipsec_sitecon['ikepolicy_id'],
                 ipsecpolicy_id=ipsec_sitecon['ipsecpolicy_id'],
@@ -483,7 +483,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                 subnet_id=vpns['subnet_id'],
                 router_id=vpns['router_id'],
                 admin_state_up=vpns['admin_state_up'],
-                status=p_constants.PENDING_CREATE)
+                status=lib_constants.PENDING_CREATE)
             context.session.add(vpnservice_db)
         return self._make_vpnservice_dict(vpnservice_db)
 

@@ -20,7 +20,7 @@ from oslo_log import log as logging
 
 from neutron.agent.linux import ip_lib
 from neutron.agent.linux import utils
-from neutron.plugins.common import constants
+from neutron_lib import constants
 
 from neutron_vpnaas._i18n import _
 from neutron_vpnaas.services.vpn.device_drivers import ipsec

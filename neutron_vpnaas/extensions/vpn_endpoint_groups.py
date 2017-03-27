@@ -17,11 +17,11 @@ import abc
 import six
 
 from neutron.api.v2 import resource_helper
-from neutron.plugins.common import constants as nconstants
 
 from neutron_lib.api import converters
 from neutron_lib.api import extensions
 from neutron_lib.db import constants as db_const
+from neutron_lib.plugins import constants as nconstants
 
 from neutron_vpnaas.services.vpn.common import constants
 

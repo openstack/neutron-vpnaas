@@ -16,10 +16,10 @@ import mock
 from six import moves
 
 from neutron.db import servicetype_db as st_db
-from neutron.plugins.common import constants
 from neutron.tests.unit import testlib_api
 from neutron_lib import constants as lib_const
 from neutron_lib import context as n_ctx
+from neutron_lib.plugins import constants
 from neutron_lib.plugins import directory
 from oslo_config import cfg
 from oslo_utils import uuidutils

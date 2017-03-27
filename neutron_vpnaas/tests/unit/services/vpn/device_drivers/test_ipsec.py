@@ -23,7 +23,7 @@ from neutron.agent.l3 import dvr_edge_router
 from neutron.agent.l3 import dvr_snat_ns
 from neutron.agent.l3 import legacy_router
 from neutron.agent.linux import iptables_manager
-from neutron.plugins.common import constants
+from neutron_lib import constants
 from oslo_config import cfg
 from oslo_utils import uuidutils
 

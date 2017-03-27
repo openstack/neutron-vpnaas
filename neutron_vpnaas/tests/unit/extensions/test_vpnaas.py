@@ -15,8 +15,8 @@
 
 import copy
 import mock
-from neutron.plugins.common import constants as nconstants
 from neutron.tests.unit.api.v2 import test_base as test_api_v2
+from neutron_lib.plugins import constants as nconstants
 from oslo_utils import uuidutils
 from webob import exc
 
