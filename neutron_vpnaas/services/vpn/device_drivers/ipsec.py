@@ -35,6 +35,7 @@ from neutron_lib import context
 from neutron_lib.utils import file as file_utils
 from oslo_concurrency import lockutils
 from oslo_config import cfg
+from oslo_log import helpers as log_helpers
 from oslo_log import log as logging
 import oslo_messaging
 from oslo_service import loopingcall
@@ -711,10 +712,12 @@ class OpenSwanProcess(BaseSwanProcess):
 class IPsecVpnDriverApi(object):
     """IPSecVpnDriver RPC api."""
 
+    @log_helpers.log_method_call
     def __init__(self, topic):
         target = oslo_messaging.Target(topic=topic, version='1.0')
         self.client = n_rpc.get_client(target)
 
+    @log_helpers.log_method_call
     def get_vpn_services_on_host(self, context, host):
         """Get list of vpnservices.
 
@@ -724,6 +727,7 @@ class IPsecVpnDriverApi(object):
         cctxt = self.client.prepare()
         return cctxt.call(context, 'get_vpn_services_on_host', host=host)
 
+    @log_helpers.log_method_call
     def update_status(self, context, status):
         """Update local status.
 
@@ -874,6 +878,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
                          top=True)
         self.iptables_apply(router_id)
 
+    @log_helpers.log_method_call
     def vpnservice_updated(self, context, **kwargs):
         """Vpnservice updated rpc handler
 
@@ -1000,6 +1005,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
             process.vpnservice["tenant_id"] == context.tenant_id):
             return True
 
+    @log_helpers.log_method_call
     def report_status(self, context):
         status_changed_vpn_services = []
         for process in self.processes.values():
@@ -1021,6 +1027,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
                 context,
                 status_changed_vpn_services)
 
+    @log_helpers.log_method_call
     @lockutils.synchronized('vpn-agent', 'neutron-')
     def sync(self, context, routers):
         """Sync status with server side.
