@@ -20,10 +20,10 @@ from neutron.callbacks import resources
 from neutron.db import common_db_mixin as base_db
 from neutron.db.models import l3agent
 from neutron.db import models_v2
-from neutron.extensions import l3 as l3_exception
 from neutron.plugins.common import constants as p_constants
 from neutron.plugins.common import utils
 from neutron_lib import constants as lib_constants
+from neutron_lib.exceptions import l3 as l3_exception
 from neutron_lib.plugins import directory
 from oslo_log import log as logging
 from oslo_utils import excutils
