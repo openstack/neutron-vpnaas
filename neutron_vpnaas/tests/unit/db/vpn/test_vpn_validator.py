@@ -17,7 +17,6 @@ import mock
 import socket
 
 from neutron.db import l3_db
-from neutron.db import servicetype_db as st_db
 from neutron_lib import context as n_ctx
 from neutron_lib import exceptions as nexception
 from neutron_lib.plugins import constants as nconstants
@@ -25,11 +24,9 @@ from neutron_lib.plugins import directory
 from oslo_utils import uuidutils
 from sqlalchemy.orm import query
 
+from neutron_vpnaas.db.vpn import vpn_validator
 from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.common import constants as v_constants
-from neutron_vpnaas.services.vpn import plugin as vpn_plugin
-from neutron_vpnaas.services.vpn.service_drivers \
-    import ipsec_validator as vpn_validator
 from neutron_vpnaas.tests import base
 
 _uuid = uuidutils.generate_uuid
@@ -40,47 +37,17 @@ FAKE_SUBNET_ID = _uuid()
 IPV4 = 4
 IPV6 = 6
 
-IPSEC_SERVICE_DRIVER = ('neutron_vpnaas.services.vpn.service_drivers.'
-                        'ipsec.IPsecVPNDriver')
 
-
-class TestValidatorSelection(base.BaseTestCase):
+class TestVpnValidation(base.BaseTestCase):
 
     def setUp(self):
-        super(TestValidatorSelection, self).setUp()
-        vpnaas_provider = [{
-            'service_type': nconstants.VPN,
-            'name': 'vpnaas',
-            'driver': IPSEC_SERVICE_DRIVER,
-            'default': True
-        }]
-        # override the default service provider
-        self.service_providers = (
-            mock.patch.object(st_db.ServiceTypeManager,
-                              'get_service_providers').start())
-        self.service_providers.return_value = vpnaas_provider
-        mock.patch('neutron.common.rpc.create_connection').start()
-        stm = st_db.ServiceTypeManager()
-        mock.patch('neutron.db.servicetype_db.ServiceTypeManager.get_instance',
-                   return_value=stm).start()
-        self.vpn_plugin = vpn_plugin.VPNDriverPlugin()
-
-    def test_reference_driver_used(self):
-        self.assertIsInstance(self.vpn_plugin._get_validator(),
-                              vpn_validator.IpsecVpnValidator)
-
-
-class TestIPsecDriverValidation(base.BaseTestCase):
-
-    def setUp(self):
-        super(TestIPsecDriverValidation, self).setUp()
+        super(TestVpnValidation, self).setUp()
         self.l3_plugin = mock.Mock()
         self.core_plugin = mock.Mock()
         directory.add_plugin(nconstants.CORE, self.core_plugin)
         directory.add_plugin(nconstants.L3, self.l3_plugin)
         self.context = n_ctx.Context('some_user', 'some_tenant')
-        self.service_plugin = mock.Mock()
-        self.validator = vpn_validator.IpsecVpnValidator(self.service_plugin)
+        self.validator = vpn_validator.VpnReferenceValidator()
         self.router = mock.Mock()
         self.router.gw_port = {'fixed_ips': [{'ip_address': '10.0.0.99'}]}
 
@@ -198,36 +165,6 @@ class TestIPsecDriverValidation(base.BaseTestCase):
         self.helper_validate_peer_address(fixed_ips, IPV6,
                                           expected_exception=True)
 
-    def test_validate_ipsec_policy(self):
-        # Validate IPsec Policy transform_protocol and auth_algorithm
-        ipsec_policy = {'transform_protocol': 'ah-esp'}
-        self.assertRaises(vpn_validator.IpsecValidationFailure,
-                          self.validator.validate_ipsec_policy,
-                          self.context, ipsec_policy)
-
-        auth_algorithm = {'auth_algorithm': 'sha384'}
-        self.assertRaises(vpn_validator.IpsecValidationFailure,
-                          self.validator.validate_ipsec_policy,
-                          self.context, auth_algorithm)
-
-        auth_algorithm = {'auth_algorithm': 'sha512'}
-        self.assertRaises(vpn_validator.IpsecValidationFailure,
-                          self.validator.validate_ipsec_policy,
-                          self.context, auth_algorithm)
-
-    def test_validate_ike_policy(self):
-        # Validate IKE Policy auth_algorithm
-
-        auth_algorithm = {'auth_algorithm': 'sha384'}
-        self.assertRaises(vpn_validator.IkeValidationFailure,
-                          self.validator.validate_ike_policy,
-                          self.context, auth_algorithm)
-
-        auth_algorithm = {'auth_algorithm': 'sha512'}
-        self.assertRaises(vpn_validator.IkeValidationFailure,
-                          self.validator.validate_ike_policy,
-                          self.context, auth_algorithm)
-
     def test_defaults_for_ipsec_site_connections_on_update(self):
         """Check that defaults are used for any values not specified."""
         ipsec_sitecon = {}
@@ -285,7 +222,7 @@ class TestIPsecDriverValidation(base.BaseTestCase):
 
     def test_bad_mtu_for_ipsec_connection(self):
         """Failure test of invalid MTU values for IPSec conn create/update."""
-        ip_version_limits = vpn_validator.IpsecVpnValidator.IP_MIN_MTU
+        ip_version_limits = self.validator.IP_MIN_MTU
         for version, limit in ip_version_limits.items():
             ipsec_sitecon = {'mtu': limit - 1}
             self.assertRaises(

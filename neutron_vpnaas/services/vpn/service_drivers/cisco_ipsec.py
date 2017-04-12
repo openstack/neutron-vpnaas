@@ -16,6 +16,8 @@ from neutron.common import rpc as n_rpc
 from oslo_log import log as logging
 import oslo_messaging
 
+from neutron.db.models import servicetype
+
 from neutron_vpnaas.db.vpn import vpn_models
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import service_drivers
@@ -56,11 +58,18 @@ class CiscoCsrIPsecVpnDriverCallBack(object):
 
     def get_vpn_services_using(self, context, router_id):
         query = context.session.query(vpn_models.VPNService)
+        query = query.join(
+            servicetype.ProviderResourceAssociation,
+            servicetype.ProviderResourceAssociation.resource_id ==
+            vpn_models.VPNService.id)
         query = query.join(vpn_models.IPsecSiteConnection)
         query = query.join(vpn_models.IKEPolicy)
         query = query.join(vpn_models.IPsecPolicy)
         query = query.join(vpn_models.IPsecPeerCidr)
         query = query.filter(vpn_models.VPNService.router_id == router_id)
+        query = query.filter(
+            servicetype.ProviderResourceAssociation.provider_name ==
+            self.driver.name)
         return query.all()
 
     def get_vpn_services_on_host(self, context, host=None):
@@ -122,7 +131,7 @@ class CiscoCsrIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
     def __init__(self, service_plugin):
         super(CiscoCsrIPsecVPNDriver, self).__init__(
             service_plugin,
-            cisco_validator.CiscoCsrVpnValidator(service_plugin))
+            cisco_validator.CiscoCsrVpnValidator(self))
 
     def create_rpc_conn(self):
         self.endpoints = [CiscoCsrIPsecVpnDriverCallBack(self)]

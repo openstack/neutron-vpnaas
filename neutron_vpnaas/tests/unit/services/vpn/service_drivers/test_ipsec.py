@@ -15,12 +15,15 @@
 
 import mock
 
+from neutron.db import servicetype_db as st_db
 from neutron_lib import context as n_ctx
 from neutron_lib.plugins import constants
 from neutron_lib.plugins import directory
 from oslo_utils import uuidutils
 
+from neutron_vpnaas.services.vpn import plugin as vpn_plugin
 from neutron_vpnaas.services.vpn.service_drivers import ipsec as ipsec_driver
+from neutron_vpnaas.services.vpn.service_drivers import ipsec_validator
 from neutron_vpnaas.tests import base
 
 
@@ -49,6 +52,38 @@ class FakeSqlQueryObject(dict):
         super(FakeSqlQueryObject, self).__init__(**entries)
 
 
+class TestValidatorSelection(base.BaseTestCase):
+
+    def setUp(self):
+        super(TestValidatorSelection, self).setUp()
+        vpnaas_provider = [{
+            'service_type': constants.VPN,
+            'name': 'vpnaas',
+            'driver': IPSEC_SERVICE_DRIVER,
+            'default': True
+        }]
+        # override the default service provider
+        self.service_providers = (
+            mock.patch.object(st_db.ServiceTypeManager,
+                              'get_service_providers').start())
+        self.service_providers.return_value = vpnaas_provider
+        mock.patch('neutron.common.rpc.create_connection').start()
+        stm = st_db.ServiceTypeManager()
+        stm.get_provider_names_by_resource_ids = mock.Mock(
+            return_value={})
+        mock.patch('neutron.db.servicetype_db.ServiceTypeManager.get_instance',
+                   return_value=stm).start()
+        mock.patch('neutron_vpnaas.db.vpn.vpn_db.VPNPluginDb.get_vpnservices',
+                   return_value=[]).start()
+        self.vpn_plugin = vpn_plugin.VPNDriverPlugin()
+
+    def test_reference_driver_used(self):
+        default_provider = self.vpn_plugin.default_provider
+        default_driver = self.vpn_plugin.drivers[default_provider]
+        self.assertIsInstance(default_driver.validator,
+                              ipsec_validator.IpsecVpnValidator)
+
+
 class TestIPsecDriver(base.BaseTestCase):
     def setUp(self):
         super(TestIPsecDriver, self).setUp()
@@ -67,6 +102,8 @@ class TestIPsecDriver(base.BaseTestCase):
             'router_id': self._fake_vpn_router_id
         }
         self.driver = ipsec_driver.IPsecVPNDriver(self.svc_plugin)
+        self.validator = ipsec_validator.IpsecVpnValidator(self.driver)
+        self.context = n_ctx.get_admin_context()
 
     def _test_update(self, func, args, additional_info=None):
         ctxt = n_ctx.Context('', 'somebody')
@@ -420,3 +457,33 @@ class TestIPsecDriver(base.BaseTestCase):
         self.driver.create_vpnservice(ctxt, vpnservice_dict)
         self.svc_plugin.set_external_tunnel_ips.assert_called_once_with(
             ctxt, FAKE_SERVICE_ID, v4_ip='10.0.0.99', v6_ip='2001::1')
+
+    def test_validate_ipsec_policy(self):
+        # Validate IPsec Policy transform_protocol and auth_algorithm
+        ipsec_policy = {'transform_protocol': 'ah-esp'}
+        self.assertRaises(ipsec_validator.IpsecValidationFailure,
+                          self.validator.validate_ipsec_policy,
+                          self.context, ipsec_policy)
+
+        auth_algorithm = {'auth_algorithm': 'sha384'}
+        self.assertRaises(ipsec_validator.IpsecValidationFailure,
+                          self.validator.validate_ipsec_policy,
+                          self.context, auth_algorithm)
+
+        auth_algorithm = {'auth_algorithm': 'sha512'}
+        self.assertRaises(ipsec_validator.IpsecValidationFailure,
+                          self.validator.validate_ipsec_policy,
+                          self.context, auth_algorithm)
+
+    def test_validate_ike_policy(self):
+        # Validate IKE Policy auth_algorithm
+
+        auth_algorithm = {'auth_algorithm': 'sha384'}
+        self.assertRaises(ipsec_validator.IkeValidationFailure,
+                          self.validator.validate_ike_policy,
+                          self.context, auth_algorithm)
+
+        auth_algorithm = {'auth_algorithm': 'sha512'}
+        self.assertRaises(ipsec_validator.IkeValidationFailure,
+                          self.validator.validate_ike_policy,
+                          self.context, auth_algorithm)

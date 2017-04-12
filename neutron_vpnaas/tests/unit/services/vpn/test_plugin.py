@@ -15,6 +15,9 @@
 import contextlib
 
 import mock
+from neutron.db import servicetype_db as st_db
+from neutron.extensions import flavors
+from neutron.services.flavors.flavors_plugin import FlavorsPlugin
 from neutron.tests.unit.db import test_agentschedulers_db
 from neutron.tests.unit.extensions import test_agent as test_agent_ext_plugin
 
@@ -22,13 +25,24 @@ from neutron_lib import constants as lib_constants
 from neutron_lib import context
 from neutron_lib.plugins import constants as p_constants
 from neutron_lib.plugins import directory
+from oslo_utils import uuidutils
 
-from neutron_vpnaas.db.vpn import vpn_validator
+from neutron_vpnaas.extensions import vpn_flavors
+from neutron_vpnaas.services.vpn import plugin as vpn_plugin
+from neutron_vpnaas.services.vpn.service_drivers import driver_validator
 from neutron_vpnaas.services.vpn.service_drivers import ipsec as ipsec_driver
+from neutron_vpnaas.tests import base
 from neutron_vpnaas.tests.unit.db.vpn import test_vpn_db as test_db_vpnaas
 
 FAKE_HOST = test_agent_ext_plugin.L3_HOSTA
 VPN_DRIVER_CLASS = 'neutron_vpnaas.services.vpn.plugin.VPNDriverPlugin'
+
+IPSEC_SERVICE_DRIVER = ('neutron_vpnaas.services.vpn.service_drivers.'
+                        'ipsec.IPsecVPNDriver')
+CISCO_IPSEC_SERVICE_DRIVER = ('neutron_vpnaas.services.vpn.service_drivers.'
+                              'cisco_ipsec.CiscoCsrIPsecVPNDriver')
+
+_uuid = uuidutils.generate_uuid
 
 
 class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
@@ -42,7 +56,8 @@ class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
         driver_cls = driver_cls_p.start()
         self.driver = mock.Mock()
         self.driver.service_type = ipsec_driver.IPSEC
-        self.driver.validator = vpn_validator.VpnReferenceValidator()
+        self.driver.validator = driver_validator.VpnDriverValidator(
+            self.driver)
         driver_cls.return_value = self.driver
         super(TestVPNDriverPlugin, self).setUp(
             vpnaas_plugin=VPN_DRIVER_CLASS)
@@ -58,14 +73,25 @@ class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
             mock.ANY, mock.ANY)
 
     def test_create_vpnservice(self):
+        mock.patch('neutron_vpnaas.services.vpn.plugin.'
+                   'VPNDriverPlugin._get_driver_for_vpnservice',
+                   return_value=self.driver).start()
+        stm = directory.get_plugin(p_constants.VPN).service_type_manager
+        stm.add_resource_association = mock.Mock()
         super(TestVPNDriverPlugin, self).test_create_vpnservice()
         self.driver.create_vpnservice.assert_called_once_with(
             mock.ANY, mock.ANY)
+        stm.add_resource_association.assert_called_once_with(
+            mock.ANY, p_constants.VPN, 'vpnaas', mock.ANY)
 
     def test_delete_vpnservice(self, **extras):
+        stm = directory.get_plugin(p_constants.VPN).service_type_manager
+        stm.del_resource_associations = mock.Mock()
         super(TestVPNDriverPlugin, self).test_delete_vpnservice()
         self.driver.delete_vpnservice.assert_called_once_with(
             mock.ANY, mock.ANY)
+        stm.del_resource_associations.assert_called_once_with(
+            mock.ANY, [mock.ANY])
 
     def test_update_vpnservice(self, **extras):
         super(TestVPNDriverPlugin, self).test_update_vpnservice()
@@ -136,21 +162,6 @@ class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
                             ):
                                 yield vpnservice1['vpnservice']
 
-    def test_get_agent_hosting_vpn_services(self):
-        with self.vpnservice_set():
-            service_plugin = directory.get_plugin(p_constants.VPN)
-            vpnservices = service_plugin._get_agent_hosting_vpn_services(
-                self.adminContext, FAKE_HOST)
-            vpnservices = vpnservices.all()
-            self.assertEqual(1, len(vpnservices))
-            vpnservice_db = vpnservices[0]
-            self.assertEqual(1, len(vpnservice_db.ipsec_site_connections))
-            ipsec_site_connection = vpnservice_db.ipsec_site_connections[0]
-            self.assertIsNotNone(
-                ipsec_site_connection['ikepolicy'])
-            self.assertIsNotNone(
-                ipsec_site_connection['ipsecpolicy'])
-
     def test_update_status(self):
         with self.vpnservice_set() as vpnservice:
             self._register_agent_states()
@@ -161,7 +172,181 @@ class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
                   'ipsec_site_connections': {},
                   'updated_pending_status': True,
                   'id': vpnservice['id']}])
-            vpnservices = service_plugin._get_agent_hosting_vpn_services(
-                self.adminContext, FAKE_HOST)
-            vpnservice_db = vpnservices[0]
-            self.assertEqual(lib_constants.ACTIVE, vpnservice_db['status'])
+            vpnservice = service_plugin.get_vpnservice(
+                self.adminContext, vpnservice['id'])
+            self.assertEqual(lib_constants.ACTIVE, vpnservice['status'])
+
+
+class TestVPNDriverPluginMultipleDrivers(base.BaseTestCase):
+
+    def setUp(self):
+        super(TestVPNDriverPluginMultipleDrivers, self).setUp()
+        vpnaas_providers = [
+            {'service_type': p_constants.VPN,
+             'name': 'ipsec',
+             'driver': IPSEC_SERVICE_DRIVER,
+             'default': True},
+            {'service_type': p_constants.VPN,
+             'name': 'cisco',
+             'driver': CISCO_IPSEC_SERVICE_DRIVER,
+             'default': False}]
+        self.service_providers = (
+            mock.patch.object(st_db.ServiceTypeManager,
+                              'get_service_providers').start())
+        self.service_providers.return_value = vpnaas_providers
+        self.adminContext = context.get_admin_context()
+
+    @contextlib.contextmanager
+    def vpnservices_providers_set(self, vpnservices=None, provider_names=None):
+        if not vpnservices:
+            vpnservices = []
+        if not provider_names:
+            provider_names = {}
+        stm = st_db.ServiceTypeManager()
+        stm.get_provider_names_by_resource_ids = mock.Mock(
+            return_value=provider_names)
+        mock.patch('neutron.db.servicetype_db.ServiceTypeManager.get_instance',
+                   return_value=stm).start()
+        mock.patch('neutron_vpnaas.db.vpn.vpn_db.VPNPluginDb.get_vpnservices',
+                   return_value=vpnservices).start()
+        yield stm
+
+    def test_multiple_drivers_loaded(self):
+        with self.vpnservices_providers_set():
+            driver_plugin = vpn_plugin.VPNDriverPlugin()
+            self.assertEqual(2, len(driver_plugin.drivers))
+            self.assertEqual('ipsec', driver_plugin.default_provider)
+            self.assertIn('ipsec', driver_plugin.drivers)
+            self.assertEqual('ipsec', driver_plugin.drivers['ipsec'].name)
+            self.assertIn('cisco', driver_plugin.drivers)
+            self.assertEqual('cisco', driver_plugin.drivers['cisco'].name)
+
+    def test_provider_lost(self):
+        LOST_SERVICE_ID = _uuid()
+        LOST_PROVIDER_SERVICE = {'id': LOST_SERVICE_ID}
+        with self.vpnservices_providers_set(
+                vpnservices=[LOST_PROVIDER_SERVICE],
+                provider_names={LOST_SERVICE_ID: 'LOST_PROVIDER'}
+        ):
+            self.assertRaises(SystemExit, vpn_plugin.VPNDriverPlugin)
+
+    def test_unasso_vpnservices(self):
+        UNASSO_SERVICE_ID = _uuid()
+        with self.vpnservices_providers_set(
+                vpnservices=[{'id': UNASSO_SERVICE_ID}]
+        ) as stm:
+            stm.add_resource_association = mock.Mock()
+            vpn_plugin.VPNDriverPlugin()
+            stm.add_resource_association.assert_called_once_with(
+                mock.ANY, p_constants.VPN, 'ipsec', UNASSO_SERVICE_ID)
+
+    def test_get_driver_for_vpnservice(self):
+        CISCO_VPNSERVICE_ID = _uuid()
+        CISCO_VPNSERVICE = {'id': CISCO_VPNSERVICE_ID}
+        provider_names = {CISCO_VPNSERVICE_ID: 'cisco'}
+        with self.vpnservices_providers_set(provider_names=provider_names):
+            driver_plugin = vpn_plugin.VPNDriverPlugin()
+            self.assertEqual(
+                driver_plugin.drivers['cisco'],
+                driver_plugin._get_driver_for_vpnservice(
+                    self.adminContext, CISCO_VPNSERVICE))
+
+    def test_get_driver_for_ipsec_site_connection(self):
+        IPSEC_VPNSERVICE_ID = _uuid()
+        IPSEC_SITE_CONNECTION = {'vpnservice_id': IPSEC_VPNSERVICE_ID}
+        provider_names = {IPSEC_VPNSERVICE_ID: 'ipsec'}
+        with self.vpnservices_providers_set(provider_names=provider_names):
+            driver_plugin = vpn_plugin.VPNDriverPlugin()
+            self.assertEqual(
+                driver_plugin.drivers['ipsec'],
+                driver_plugin._get_driver_for_ipsec_site_connection(
+                    self.adminContext, IPSEC_SITE_CONNECTION))
+
+    def test_get_provider_for_none_flavor_id(self):
+        with self.vpnservices_providers_set():
+            driver_plugin = vpn_plugin.VPNDriverPlugin()
+            provider = driver_plugin._get_provider_for_flavor(
+                self.adminContext, None)
+            self.assertEqual(
+                driver_plugin.default_provider, provider)
+
+    def test_get_provider_for_flavor_id_plugin_not_loaded(self):
+        with self.vpnservices_providers_set():
+            driver_plugin = vpn_plugin.VPNDriverPlugin()
+            self.assertRaises(
+                vpn_flavors.FlavorsPluginNotLoaded,
+                driver_plugin._get_provider_for_flavor,
+                self.adminContext,
+                _uuid())
+
+    def test_get_provider_for_flavor_id_invalid_type(self):
+        FAKE_FLAVOR = {'service_type': 'NOT_VPN'}
+        directory.add_plugin(p_constants.FLAVORS, FlavorsPlugin())
+        mock.patch(
+            'neutron.services.flavors.flavors_plugin.FlavorsPlugin.get_flavor',
+            return_value=FAKE_FLAVOR).start()
+        with self.vpnservices_providers_set():
+            driver_plugin = vpn_plugin.VPNDriverPlugin()
+            self.assertRaises(
+                flavors.InvalidFlavorServiceType,
+                driver_plugin._get_provider_for_flavor,
+                self.adminContext,
+                _uuid())
+
+    def test_get_provider_for_flavor_id_flavor_disabled(self):
+        FAKE_FLAVOR = {'service_type': p_constants.VPN,
+                       'enabled': False}
+        directory.add_plugin(p_constants.FLAVORS, FlavorsPlugin())
+        mock.patch(
+            'neutron.services.flavors.flavors_plugin.FlavorsPlugin.get_flavor',
+            return_value=FAKE_FLAVOR).start()
+        with self.vpnservices_providers_set():
+            driver_plugin = vpn_plugin.VPNDriverPlugin()
+            self.assertRaises(
+                flavors.FlavorDisabled,
+                driver_plugin._get_provider_for_flavor,
+                self.adminContext,
+                _uuid())
+
+    def test_get_provider_for_flavor_id_provider_not_found(self):
+        FLAVOR_ID = _uuid()
+        FAKE_FLAVOR = {'id': FLAVOR_ID,
+                       'service_type': p_constants.VPN,
+                       'enabled': True}
+        PROVIDERS = [{'provider': 'SOME_PROVIDER'}]
+        directory.add_plugin(p_constants.FLAVORS, FlavorsPlugin())
+        mock.patch(
+            'neutron.services.flavors.flavors_plugin.FlavorsPlugin.get_flavor',
+            return_value=FAKE_FLAVOR).start()
+        mock.patch(
+            'neutron.services.flavors.flavors_plugin.'
+            'FlavorsPlugin.get_flavor_next_provider',
+            return_value=PROVIDERS).start()
+        with self.vpnservices_providers_set():
+            driver_plugin = vpn_plugin.VPNDriverPlugin()
+            self.assertRaises(
+                vpn_flavors.NoProviderFoundForFlavor,
+                driver_plugin._get_provider_for_flavor,
+                self.adminContext,
+                FLAVOR_ID)
+
+    def test_get_provider_for_flavor_id(self):
+        FLAVOR_ID = _uuid()
+        FAKE_FLAVOR = {'id': FLAVOR_ID,
+                       'service_type': p_constants.VPN,
+                       'enabled': True}
+        PROVIDERS = [{'provider': 'cisco'}]
+        directory.add_plugin(p_constants.FLAVORS, FlavorsPlugin())
+        mock.patch(
+            'neutron.services.flavors.flavors_plugin.FlavorsPlugin.get_flavor',
+            return_value=FAKE_FLAVOR).start()
+        mock.patch(
+            'neutron.services.flavors.flavors_plugin.'
+            'FlavorsPlugin.get_flavor_next_provider',
+            return_value=PROVIDERS).start()
+        with self.vpnservices_providers_set():
+            driver_plugin = vpn_plugin.VPNDriverPlugin()
+            self.assertEqual(
+                'cisco',
+                driver_plugin._get_provider_for_flavor(
+                    self.adminContext, FLAVOR_ID))

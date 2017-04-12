@@ -22,7 +22,7 @@ from oslo_log import log as logging
 import oslo_messaging
 import six
 
-from neutron_vpnaas.db.vpn import vpn_validator
+from neutron_vpnaas.services.vpn.service_drivers import driver_validator
 
 LOG = logging.getLogger(__name__)
 
@@ -33,8 +33,9 @@ class VpnDriver(object):
     def __init__(self, service_plugin, validator=None):
         self.service_plugin = service_plugin
         if validator is None:
-            validator = vpn_validator.VpnReferenceValidator()
+            validator = driver_validator.VpnDriverValidator(self)
         self.validator = validator
+        self.name = ''
 
     @property
     def l3_plugin(self):

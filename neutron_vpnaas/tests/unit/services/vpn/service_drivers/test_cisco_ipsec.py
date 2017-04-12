@@ -24,6 +24,7 @@ from neutron_lib.plugins import directory
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
+from neutron_vpnaas.db.vpn import vpn_validator
 from neutron_vpnaas.services.vpn import plugin as vpn_plugin
 from neutron_vpnaas.services.vpn.service_drivers import cisco_csr_db as csr_db
 from neutron_vpnaas.services.vpn.service_drivers \
@@ -80,12 +81,20 @@ class TestCiscoValidatorSelection(base.BaseTestCase):
                 mock.patch.object(st_db.ServiceTypeManager,
                                   'get_service_providers').start())
             self.service_providers.return_value = vpnaas_provider
-        st_db.ServiceTypeManager._instance = None
         mock.patch('neutron.common.rpc.create_connection').start()
+        stm = st_db.ServiceTypeManager()
+        stm.get_provider_names_by_resource_ids = mock.Mock(
+            return_value={})
+        mock.patch('neutron.db.servicetype_db.ServiceTypeManager.get_instance',
+                   return_value=stm).start()
+        mock.patch('neutron_vpnaas.db.vpn.vpn_db.VPNPluginDb.get_vpnservices',
+                   return_value=[]).start()
         self.vpn_plugin = vpn_plugin.VPNDriverPlugin()
 
     def test_reference_driver_used(self):
-        self.assertIsInstance(self.vpn_plugin._get_validator(),
+        default_provider = self.vpn_plugin.default_provider
+        default_driver = self.vpn_plugin.drivers[default_provider]
+        self.assertIsInstance(default_driver.validator,
                               validator.CiscoCsrVpnValidator)
 
 
@@ -93,13 +102,13 @@ class TestCiscoIPsecDriverValidation(base.BaseTestCase):
 
     def setUp(self):
         super(TestCiscoIPsecDriverValidation, self).setUp()
-        self.l3_plugin = mock.Mock()
-        directory.add_plugin(lib_const.L3, self.l3_plugin)
         self.context = n_ctx.Context('some_user', 'some_tenant')
         self.vpn_service = {'router_id': '123'}
         self.router = mock.Mock()
+        driver = mock.Mock()
         self.service_plugin = mock.Mock()
-        self.validator = validator.CiscoCsrVpnValidator(self.service_plugin)
+        driver.service_plugin = self.service_plugin
+        self.validator = validator.CiscoCsrVpnValidator(driver)
 
     def test_ike_version_unsupported(self):
         """Failure test that Cisco CSR REST API does not support IKE v2."""
@@ -223,7 +232,8 @@ class TestCiscoIPsecDriverValidation(base.BaseTestCase):
                           'encapsulation_mode': 'tunnel'})
         self.service_plugin.get_vpnservice = mock.Mock(
             return_value=self.vpn_service)
-        self.l3_plugin._get_router = mock.Mock(return_value=self.router)
+        self.validator.driver.l3_plugin._get_router = mock.Mock(
+            return_value=self.router)
         # Provide the minimum needed items to validate
         ipsec_sitecon = {'id': '1',
                          'vpnservice_id': FAKE_SERVICE_ID,
@@ -236,9 +246,10 @@ class TestCiscoIPsecDriverValidation(base.BaseTestCase):
                     'dpd_interval': 30,
                     'dpd_timeout': 120}
         expected.update(ipsec_sitecon)
-        self.validator.assign_sensible_ipsec_sitecon_defaults(ipsec_sitecon)
+        plugin_validator = vpn_validator.VpnReferenceValidator()
+        plugin_validator.assign_sensible_ipsec_sitecon_defaults(ipsec_sitecon)
         self.validator.validate_ipsec_site_connection(self.context,
-                                                      ipsec_sitecon, IPV4)
+                                                      ipsec_sitecon)
         self.assertEqual(expected, ipsec_sitecon)
 
     def test_ipsec_encap_mode_unsupported(self):

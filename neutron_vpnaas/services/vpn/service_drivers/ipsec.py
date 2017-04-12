@@ -30,7 +30,7 @@ class IPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
     def __init__(self, service_plugin):
         super(IPsecVPNDriver, self).__init__(
             service_plugin,
-            ipsec_validator.IpsecVpnValidator(service_plugin))
+            ipsec_validator.IpsecVpnValidator(self))
 
     def create_rpc_conn(self):
         self.endpoints = [base_ipsec.IPsecVpnDriverCallBack(self)]

@@ -15,7 +15,6 @@
 #    under the License.
 
 from neutron.db import common_db_mixin as base_db
-from neutron.db.models import l3agent
 from neutron.db import models_v2
 from neutron.plugins.common import utils
 from neutron_lib.callbacks import events
@@ -464,6 +463,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                'tenant_id': vpnservice['tenant_id'],
                'subnet_id': vpnservice['subnet_id'],
                'router_id': vpnservice['router_id'],
+               'flavor_id': vpnservice['flavor_id'],
                'admin_state_up': vpnservice['admin_state_up'],
                'external_v4_ip': vpnservice['external_v4_ip'],
                'external_v6_ip': vpnservice['external_v6_ip'],
@@ -472,6 +472,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
 
     def create_vpnservice(self, context, vpnservice):
         vpns = vpnservice['vpnservice']
+        flavor_id = vpns.get('flavor_id', None)
         validator = self._get_validator()
         with context.session.begin(subtransactions=True):
             validator.validate_vpnservice(context, vpns)
@@ -482,6 +483,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                 description=vpns['description'],
                 subnet_id=vpns['subnet_id'],
                 router_id=vpns['router_id'],
+                flavor_id=flavor_id,
                 admin_state_up=vpns['admin_state_up'],
                 status=lib_constants.PENDING_CREATE)
             context.session.add(vpnservice_db)
@@ -638,28 +640,6 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
 
 
 class VPNPluginRpcDbMixin(object):
-    def _get_agent_hosting_vpn_services(self, context, host):
-
-        plugin = directory.get_plugin()
-        agent = plugin._get_agent_by_type_and_host(
-            context, lib_constants.AGENT_TYPE_L3, host)
-        agent_conf = plugin.get_configuration_dict(agent)
-        # Retrieve the agent_mode to check if this is the
-        # right agent to deploy the vpn service. In the
-        # case of distributed the vpn service should reside
-        # only on a dvr_snat node.
-        agent_mode = agent_conf.get('agent_mode', 'legacy')
-        if not agent.admin_state_up or agent_mode == 'dvr':
-            return []
-        query = context.session.query(vpn_models.VPNService)
-        query = query.join(vpn_models.IPsecSiteConnection)
-        query = query.join(l3agent.RouterL3AgentBinding,
-                           l3agent.RouterL3AgentBinding.router_id ==
-                           vpn_models.VPNService.router_id)
-        query = query.filter(
-            l3agent.RouterL3AgentBinding.l3_agent_id == agent.id)
-        return query
-
     def _build_local_subnet_cidr_map(self, context):
         """Build a dict of all local endpoint subnets, with list of CIDRs."""
         query = context.session.query(models_v2.Subnet.id,

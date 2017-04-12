@@ -29,7 +29,11 @@ from neutron_vpnaas.services.vpn.common import constants
 
 class VpnReferenceValidator(object):
 
-    """Baseline validation routines for VPN resources."""
+    """
+    Baseline validation routines for VPN resources.
+    The validations here should be common to all VPN service providers and
+    only raise exceptions from neutron_vpnaas.extensions.vpnaas.
+    """
 
     IP_MIN_MTU = {4: 68, 6: 1280}
 

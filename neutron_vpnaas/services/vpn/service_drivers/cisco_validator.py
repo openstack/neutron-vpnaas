@@ -18,7 +18,7 @@ from neutron_lib import exceptions as nexception
 from oslo_log import log as logging
 
 from neutron_vpnaas._i18n import _
-from neutron_vpnaas.db.vpn import vpn_validator
+from neutron_vpnaas.services.vpn.service_drivers import driver_validator
 
 
 LIFETIME_LIMITS = {'IKE Policy': {'min': 60, 'max': 86400},
@@ -34,13 +34,9 @@ class CsrValidationFailure(nexception.BadRequest):
                 "with value '%(value)s'")
 
 
-class CiscoCsrVpnValidator(vpn_validator.VpnReferenceValidator):
+class CiscoCsrVpnValidator(driver_validator.VpnDriverValidator):
 
-    """Validator methods for the Cisco CSR."""
-
-    def __init__(self, service_plugin):
-        self.service_plugin = service_plugin
-        super(CiscoCsrVpnValidator, self).__init__()
+    """Driver-specific validator methods for the Cisco CSR."""
 
     def validate_lifetime(self, for_policy, policy_info):
         """Ensure lifetime in secs and value is supported, based on policy."""
@@ -114,29 +110,38 @@ class CiscoCsrVpnValidator(vpn_validator.VpnReferenceValidator):
                                        key='auth_algorithm',
                                        value=auth_algorithm)
 
-    def validate_ipsec_site_connection(self, context, ipsec_sitecon,
-                                       ip_version):
+    def validate_ipsec_site_connection(self, context, ipsec_sitecon):
         """Validate IPSec site connection for Cisco CSR.
 
-        After doing reference validation, do additional checks that relate
-        to the Cisco CSR.
+        Do additional checks that relate to the Cisco CSR.
         """
-        super(CiscoCsrVpnValidator, self)._check_dpd(ipsec_sitecon)
+        service_plugin = self.driver.service_plugin
 
-        ike_policy = self.service_plugin.get_ikepolicy(
-            context, ipsec_sitecon['ikepolicy_id'])
-        ipsec_policy = self.service_plugin.get_ipsecpolicy(
-            context, ipsec_sitecon['ipsecpolicy_id'])
-        vpn_service = self.service_plugin.get_vpnservice(
-            context, ipsec_sitecon['vpnservice_id'])
-        router = self.l3_plugin._get_router(context, vpn_service['router_id'])
-        self.validate_lifetime('IKE Policy', ike_policy)
-        self.validate_lifetime('IPSec Policy', ipsec_policy)
-        self.validate_ike_version(ike_policy)
-        self.validate_ike_auth_algorithm(ike_policy)
-        self.validate_ipsec_auth_algorithm(ipsec_policy)
-        self.validate_mtu(ipsec_sitecon)
-        self.validate_public_ip_present(router)
-        self.validate_peer_id(ipsec_sitecon)
-        self.validate_ipsec_encap_mode(ipsec_policy)
+        if 'ikepolicy_id' in ipsec_sitecon:
+            ike_policy = service_plugin.get_ikepolicy(
+                context, ipsec_sitecon['ikepolicy_id'])
+            self.validate_lifetime('IKE Policy', ike_policy)
+            self.validate_ike_version(ike_policy)
+            self.validate_ike_auth_algorithm(ike_policy)
+
+        if 'ipsecpolicy_id' in ipsec_sitecon:
+            ipsec_policy = service_plugin.get_ipsecpolicy(
+                context, ipsec_sitecon['ipsecpolicy_id'])
+            self.validate_lifetime('IPSec Policy', ipsec_policy)
+            self.validate_ipsec_auth_algorithm(ipsec_policy)
+            self.validate_ipsec_encap_mode(ipsec_policy)
+
+        if 'vpnservice_id' in ipsec_sitecon:
+            vpn_service = service_plugin.get_vpnservice(
+                context, ipsec_sitecon['vpnservice_id'])
+            router = self.l3_plugin._get_router(
+                context, vpn_service['router_id'])
+            self.validate_public_ip_present(router)
+
+        if 'mtu' in ipsec_sitecon:
+            self.validate_mtu(ipsec_sitecon)
+
+        if 'peer_id' in ipsec_sitecon:
+            self.validate_peer_id(ipsec_sitecon)
+
         LOG.debug("IPSec connection validated for Cisco CSR")

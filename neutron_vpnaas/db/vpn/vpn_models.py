@@ -154,6 +154,8 @@ class VPNService(model_base.BASEV2, model_base.HasId, model_base.HasProject):
         IPsecSiteConnection,
         backref='vpnservice',
         cascade="all, delete-orphan")
+    flavor_id = sa.Column(sa.String(36), sa.ForeignKey(
+        'flavors.id', name='fk_vpnservices_flavors_id'))
 
 
 class VPNEndpoint(model_base.BASEV2):

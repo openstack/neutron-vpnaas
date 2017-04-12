@@ -15,7 +15,7 @@
 from neutron_lib import exceptions as nexception
 
 from neutron_vpnaas._i18n import _
-from neutron_vpnaas.db.vpn import vpn_validator
+from neutron_vpnaas.services.vpn.service_drivers import driver_validator
 
 
 class IpsecValidationFailure(nexception.BadRequest):
@@ -28,13 +28,11 @@ class IkeValidationFailure(nexception.BadRequest):
                 "with value '%(value)s'")
 
 
-class IpsecVpnValidator(vpn_validator.VpnReferenceValidator):
+class IpsecVpnValidator(driver_validator.VpnDriverValidator):
 
-    """Validator methods for the Openswan, Strongswan and Libreswan."""
-
-    def __init__(self, service_plugin):
-        self.service_plugin = service_plugin
-        super(IpsecVpnValidator, self).__init__()
+    """Driver-specific validator methods for the Openswan, Strongswan
+    and Libreswan.
+    """
 
     def _check_transform_protocol(self, context, transform_protocol):
         """Restrict selecting ah-esp as IPSec Policy transform protocol.
@@ -78,3 +76,14 @@ class IpsecVpnValidator(vpn_validator.VpnReferenceValidator):
                 resource='IKE Policy',
                 key='auth_algorithm',
                 value=auth_algorithm)
+
+    def validate_ipsec_site_connection(self, context, ipsec_sitecon):
+        if 'ikepolicy_id' in ipsec_sitecon:
+            ike_policy = self.driver.service_plugin.get_ikepolicy(
+                context, ipsec_sitecon['ikepolicy_id'])
+            self.validate_ike_policy(context, ike_policy)
+
+        if 'ipsecpolicy_id' in ipsec_sitecon:
+            ipsec_policy = self.driver.service_plugin.get_ipsecpolicy(
+                context, ipsec_sitecon['ipsecpolicy_id'])
+            self.validate_ipsec_policy(context, ipsec_policy)

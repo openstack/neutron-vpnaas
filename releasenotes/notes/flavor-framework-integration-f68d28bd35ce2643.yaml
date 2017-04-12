@@ -1,0 +1,8 @@
+---
+prelude: >
+    Flavor framework integration.
+features:
+  - Neutron VPNaaS is now integrated with Neutron flavor framework. Multiple
+    VPN service providers might be configured at the same time. A flavor of
+    service type VPN associated with a profile containing a driver is used
+    to find the provider for a newly created VPN service.

@@ -18,6 +18,12 @@ import netaddr
 import oslo_messaging
 import six
 
+from neutron.db.models import l3agent
+from neutron.db.models import servicetype
+from neutron_lib import constants as lib_constants
+from neutron_lib.plugins import directory
+
+from neutron_vpnaas.db.vpn import vpn_models
 from neutron_vpnaas.services.vpn import service_drivers
 
 
@@ -37,11 +43,39 @@ class IPsecVpnDriverCallBack(object):
         super(IPsecVpnDriverCallBack, self).__init__()
         self.driver = driver
 
+    def _get_agent_hosting_vpn_services(self, context, host):
+        plugin = directory.get_plugin()
+        agent = plugin._get_agent_by_type_and_host(
+            context, lib_constants.AGENT_TYPE_L3, host)
+        agent_conf = plugin.get_configuration_dict(agent)
+        # Retrieve the agent_mode to check if this is the
+        # right agent to deploy the vpn service. In the
+        # case of distributed the vpn service should reside
+        # only on a dvr_snat node.
+        agent_mode = agent_conf.get('agent_mode', 'legacy')
+        if not agent.admin_state_up or agent_mode == 'dvr':
+            return []
+        query = context.session.query(vpn_models.VPNService)
+        query = query.join(vpn_models.IPsecSiteConnection)
+        query = query.join(l3agent.RouterL3AgentBinding,
+                           l3agent.RouterL3AgentBinding.router_id ==
+                           vpn_models.VPNService.router_id)
+        query = query.join(
+            servicetype.ProviderResourceAssociation,
+            servicetype.ProviderResourceAssociation.resource_id ==
+            vpn_models.VPNService.id)
+        query = query.filter(
+            l3agent.RouterL3AgentBinding.l3_agent_id == agent.id)
+        query = query.filter(
+            servicetype.ProviderResourceAssociation.provider_name ==
+            self.driver.name)
+        return query
+
     def get_vpn_services_on_host(self, context, host=None):
         """Returns the vpnservices on the host."""
-        plugin = self.driver.service_plugin
-        vpnservices = plugin._get_agent_hosting_vpn_services(
+        vpnservices = self._get_agent_hosting_vpn_services(
             context, host)
+        plugin = self.driver.service_plugin
         local_cidr_map = plugin._build_local_subnet_cidr_map(context)
         return [self.driver.make_vpnservice_dict(vpnservice, local_cidr_map)
                 for vpnservice in vpnservices]

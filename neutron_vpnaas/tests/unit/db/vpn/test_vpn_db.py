@@ -48,6 +48,7 @@ from neutron_vpnaas.extensions import vpnaas
 
 DB_CORE_PLUGIN_KLASS = 'neutron.db.db_base_plugin_v2.NeutronDbPluginV2'
 DB_VPN_PLUGIN_KLASS = "neutron_vpnaas.services.vpn.plugin.VPNPlugin"
+FLAVOR_PLUGIN_KLASS = "neutron.services.flavors.flavors_plugin.FlavorsPlugin"
 ROOTDIR = os.path.normpath(os.path.join(
     os.path.dirname(__file__),
     '..', '..', '..', '..'))
@@ -208,6 +209,8 @@ class VPNTestMixin(object):
                                'tenant_id': tenant_id}}
         if kwargs.get('description') is not None:
             data['vpnservice']['description'] = kwargs['description']
+        if kwargs.get('flavor_id') is not None:
+            data['vpnservice']['flavor_id'] = kwargs['flavor_id']
         vpnservice_req = self.new_create_request('vpnservices', data, fmt)
         if (kwargs.get('set_context') and
                 'tenant_id' in kwargs):
@@ -451,7 +454,9 @@ class VPNPluginDbTestCase(VPNTestMixin,
         self.service_providers.return_value = [vpnaas_provider]
         # force service type manager to reload configuration:
         sdb.ServiceTypeManager._instance = None
-        service_plugins = {'vpnaas_plugin': vpnaas_plugin}
+        service_plugins = {
+            'vpnaas_plugin': vpnaas_plugin,
+            'flavors_plugin': FLAVOR_PLUGIN_KLASS}
         plugin_str = ('neutron_vpnaas.tests.unit.db.vpn.'
                       'test_vpn_db.TestVpnCorePlugin')
 
@@ -1777,6 +1782,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
                                'description': 'new service',
                                'subnet_id': subnet_id,
                                'router_id': router['id'],
+                               'flavor_id': None,
                                'admin_state_up': True}}
 
     def test_create_vpnservice(self):
