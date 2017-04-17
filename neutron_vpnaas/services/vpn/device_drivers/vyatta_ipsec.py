@@ -27,7 +27,7 @@ import oslo_messaging as messaging
 from oslo_service import loopingcall
 from oslo_service import periodic_task
 
-from neutron_vpnaas._i18n import _, _LE, _LW
+from neutron_vpnaas._i18n import _
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import device_drivers
 
@@ -75,8 +75,8 @@ class NeutronServerAPI(object):
                 for conn in svc[_KEY_CONNECTIONS]:
                     vyatta_vpn_config.validate_svc_connection(conn)
             except v_exc.InvalidVPNServiceError:
-                LOG.error(_LE('Invalid or incomplete VPN service data: '
-                              'id={id}').format(id=svc.get('id')))
+                LOG.error('Invalid or incomplete VPN service data: '
+                          'id={id}'.format(id=svc.get('id')))
                 continue
             vpn_services.append(svc)
 
@@ -280,8 +280,8 @@ class _VyattaPeriodicTasks(periodic_task.PeriodicTasks):
             try:
                 ipsec_sa = vrouter.get_vpn_ipsec_sa()
             except v_exc.VRouterOperationError as e:
-                LOG.warning(_LW('Failed to fetch tunnel stats from router '
-                                '{0}: {1}').format(router_id, unicode(e)))
+                LOG.warning('Failed to fetch tunnel stats from router '
+                            '{0}: {1}'.format(router_id, unicode(e)))
                 continue
 
             conn_ok = vyatta_vpn_config.parse_vpn_connections(

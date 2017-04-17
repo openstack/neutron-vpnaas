@@ -31,7 +31,7 @@ from oslo_utils import uuidutils
 import sqlalchemy as sa
 from sqlalchemy.orm import exc
 
-from neutron_vpnaas._i18n import _LW
+
 from neutron_vpnaas.db.vpn import vpn_models
 from neutron_vpnaas.db.vpn import vpn_validator
 from neutron_vpnaas.extensions import vpn_endpoint_groups
@@ -699,7 +699,7 @@ class VPNPluginRpcDbMixin(object):
                     vpnservice_db = self._get_vpnservice(
                         context, vpnservice['id'])
                 except vpnaas.VPNServiceNotFound:
-                    LOG.warning(_LW('vpnservice %s in db is already deleted'),
+                    LOG.warning('vpnservice %s in db is already deleted',
                                 vpnservice['id'])
                     continue
 

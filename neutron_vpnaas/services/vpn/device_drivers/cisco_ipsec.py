@@ -26,7 +26,7 @@ from oslo_log import log as logging
 import oslo_messaging
 from oslo_service import loopingcall
 
-from neutron_vpnaas._i18n import _, _LE, _LI, _LW
+from neutron_vpnaas._i18n import _
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import device_drivers
 from neutron_vpnaas.services.vpn.device_drivers import (
@@ -329,7 +329,7 @@ class CiscoCsrIPsecDriver(device_drivers.DeviceDriver):
             if report:
                 service_report.append(report)
         if service_report:
-            LOG.info(_LI("Sending status report update to plugin"))
+            LOG.info("Sending status report update to plugin")
             self.agent_rpc.update_status(context, service_report)
         LOG.debug("Report: Completed status report processing")
         return service_report
@@ -615,8 +615,8 @@ class CiscoCsrIPSecConnection(object):
             LOG.debug("%(resource)s %(which)s is configured",
                       {'resource': resource, 'which': which})
             return
-        LOG.error(_LE("Unable to create %(resource)s %(which)s: "
-                      "%(status)d"),
+        LOG.error("Unable to create %(resource)s %(which)s: "
+                  "%(status)d",
                   {'resource': resource, 'which': which,
                    'status': self.csr.status})
         # ToDO(pcm): Set state to error
@@ -628,7 +628,7 @@ class CiscoCsrIPSecConnection(object):
         try:
             getattr(self.csr, create_action)(info)
         except AttributeError:
-            LOG.exception(_LE("Internal error - '%s' is not defined"),
+            LOG.exception("Internal error - '%s' is not defined",
                           create_action)
             raise CsrResourceCreateFailure(resource=title,
                                            which=resource_id)
@@ -641,10 +641,10 @@ class CiscoCsrIPSecConnection(object):
             LOG.debug("%(resource)s configuration %(which)s was removed",
                       {'resource': resource, 'which': which})
         else:
-            LOG.warning(_LW("Unable to delete %(resource)s %(which)s: "
-                            "%(status)d"), {'resource': resource,
-                                            'which': which,
-                                            'status': status})
+            LOG.warning("Unable to delete %(resource)s %(which)s: "
+                        "%(status)d", {'resource': resource,
+                                       'which': which,
+                                       'status': status})
 
     def do_rollback(self):
         """Undo create steps that were completed successfully."""
@@ -656,7 +656,7 @@ class CiscoCsrIPSecConnection(object):
             try:
                 getattr(self.csr, delete_action)(step.resource_id)
             except AttributeError:
-                LOG.exception(_LE("Internal error - '%s' is not defined"),
+                LOG.exception("Internal error - '%s' is not defined",
                               delete_action)
                 raise CsrResourceCreateFailure(resource=step.title,
                                                which=step.resource_id)
@@ -709,10 +709,10 @@ class CiscoCsrIPSecConnection(object):
                                       route_id, 'Static Route')
         except CsrResourceCreateFailure:
             self.do_rollback()
-            LOG.info(_LI("FAILED: Create of IPSec site-to-site connection %s"),
+            LOG.info("FAILED: Create of IPSec site-to-site connection %s",
                      conn_id)
         else:
-            LOG.info(_LI("SUCCESS: Created IPSec site-to-site connection %s"),
+            LOG.info("SUCCESS: Created IPSec site-to-site connection %s",
                      conn_id)
 
     def delete_ipsec_site_connection(self, context, conn_id):
@@ -723,11 +723,11 @@ class CiscoCsrIPSecConnection(object):
         """
         LOG.debug('Deleting IPSec connection %s', conn_id)
         if not self.steps:
-            LOG.warning(_LW('Unable to find connection %s'), conn_id)
+            LOG.warning('Unable to find connection %s', conn_id)
         else:
             self.do_rollback()
 
-        LOG.info(_LI("SUCCESS: Deleted IPSec site-to-site connection %s"),
+        LOG.info("SUCCESS: Deleted IPSec site-to-site connection %s",
                  conn_id)
 
     def set_admin_state(self, is_up):
@@ -735,7 +735,7 @@ class CiscoCsrIPSecConnection(object):
         self.csr.set_ipsec_connection_state(self.tunnel, admin_up=is_up)
         if self.csr.status != requests.codes.NO_CONTENT:
             state = "UP" if is_up else "DOWN"
-            LOG.error(_LE("Unable to change %(tunnel)s admin state to "
-                          "%(state)s"), {'tunnel': self.tunnel,
-                                         'state': state})
+            LOG.error("Unable to change %(tunnel)s admin state to "
+                      "%(state)s", {'tunnel': self.tunnel,
+                                    'state': state})
             raise CsrAdminStateChangeFailure(tunnel=self.tunnel, state=state)

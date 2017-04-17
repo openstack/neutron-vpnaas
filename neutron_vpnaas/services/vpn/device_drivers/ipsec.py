@@ -40,7 +40,7 @@ from oslo_log import log as logging
 import oslo_messaging
 from oslo_service import loopingcall
 
-from neutron_vpnaas._i18n import _, _LE, _LI, _LW
+from neutron_vpnaas._i18n import _
 from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import device_drivers
@@ -310,7 +310,7 @@ class BaseSwanProcess(object):
                 self.start()
         except RuntimeError:
             LOG.exception(
-                _LE("Failed to enable vpn process on router %s"),
+                "Failed to enable vpn process on router %s",
                 self.id)
 
     def disable(self):
@@ -321,7 +321,7 @@ class BaseSwanProcess(object):
             self.remove_config()
         except RuntimeError:
             LOG.exception(
-                _LE("Failed to disable vpn process on router %s"),
+                "Failed to disable vpn process on router %s",
                 self.id)
 
     @abc.abstractmethod
@@ -464,16 +464,16 @@ class OpenSwanProcess(BaseSwanProcess):
                         # logging to error instead of debug because it
                         # indicates something bad has happened and this is
                         # valuable information for figuring it out.
-                        LOG.error(_LE('Process %(pid)s exists with command '
-                                  'line %(cmd_line)s.') %
+                        LOG.error('Process %(pid)s exists with command '
+                                  'line %(cmd_line)s.' %
                                   {'pid': pid, 'cmd_line': cmd_line})
                         return True
 
         except IOError as e:
             # This is logged as "info" instead of error because it simply
             # means that we couldn't find the files to check on them.
-            LOG.info(_LI('Unable to find control files on startup for '
-                         'router %(router)s: %(msg)s'),
+            LOG.info('Unable to find control files on startup for '
+                     'router %(router)s: %(msg)s',
                      {'router': self.id, 'msg': e})
         return False
 
@@ -491,8 +491,8 @@ class OpenSwanProcess(BaseSwanProcess):
                 os.remove(ctl_file)
 
         except OSError as e:
-            LOG.error(_LE('Unable to remove pluto control '
-                          'files for router %(router)s. %(msg)s'),
+            LOG.error('Unable to remove pluto control '
+                      'files for router %(router)s. %(msg)s',
                       {'router': self.id, 'msg': e})
 
     def get_status(self):
@@ -541,8 +541,8 @@ class OpenSwanProcess(BaseSwanProcess):
             eventlet.sleep(wait_interval)
             wait_interval *= cfg.CONF.pluto.shutdown_check_back_off
         else:
-            LOG.warning(_LW('Server appears to still be running, restart '
-                            'of router %s may fail'), self.id)
+            LOG.warning('Server appears to still be running, restart '
+                        'of router %s may fail', self.id)
         self.start()
         return
 
@@ -554,7 +554,7 @@ class OpenSwanProcess(BaseSwanProcess):
             addrinfo = socket.getaddrinfo(fqdn, None)[0]
             return addrinfo[-1][0]
         except socket.gaierror:
-            LOG.exception(_LE("Peer address %s cannot be resolved"), fqdn)
+            LOG.exception("Peer address %s cannot be resolved", fqdn)
 
     def _get_nexthop(self, address, connection_id):
         # check if address is an ip address or fqdn

@@ -20,8 +20,6 @@ from oslo_serialization import jsonutils
 import requests
 from requests import exceptions as r_exc
 
-from neutron_vpnaas._i18n import _LE, _LW
-
 
 TIMEOUT = 20.0
 
@@ -112,8 +110,8 @@ class CsrRestClient(object):
         except (r_exc.Timeout, r_exc.SSLError) as te:
             # Should never see SSLError, unless requests package is old (<2.0)
             timeout_val = 0.0 if self.timeout is None else self.timeout
-            LOG.warning(_LW("%(method)s: Request timeout%(ssl)s "
-                            "(%(timeout).3f sec) for CSR(%(host)s)"),
+            LOG.warning("%(method)s: Request timeout%(ssl)s "
+                        "(%(timeout).3f sec) for CSR(%(host)s)",
                         {'method': method,
                          'timeout': timeout_val,
                          'ssl': '(SSLError)'
@@ -121,13 +119,13 @@ class CsrRestClient(object):
                          'host': self.host})
             self.status = requests.codes.REQUEST_TIMEOUT
         except r_exc.ConnectionError:
-            LOG.exception(_LE("%(method)s: Unable to connect to "
-                              "CSR(%(host)s)"),
+            LOG.exception("%(method)s: Unable to connect to "
+                          "CSR(%(host)s)",
                           {'method': method, 'host': self.host})
             self.status = requests.codes.NOT_FOUND
         except Exception as e:
-            LOG.error(_LE("%(method)s: Unexpected error for CSR (%(host)s): "
-                          "%(error)s"),
+            LOG.error("%(method)s: Unexpected error for CSR (%(host)s): "
+                      "%(error)s",
                       {'method': method, 'host': self.host, 'error': e})
             self.status = requests.codes.INTERNAL_SERVER_ERROR
         else:
@@ -156,7 +154,7 @@ class CsrRestClient(object):
             self.token = response['token-id']
             LOG.debug("Successfully authenticated with CSR %s", self.host)
             return True
-        LOG.error(_LE("Failed authentication with CSR %(host)s [%(status)s]"),
+        LOG.error("Failed authentication with CSR %(host)s [%(status)s]",
                   {'host': self.host, 'status': self.status})
 
     def _do_request(self, method, resource, payload=None, more_headers=None,
@@ -191,7 +189,7 @@ class CsrRestClient(object):
                                      headers=headers)
         if self.status != requests.codes.REQUEST_TIMEOUT:
             return response
-        LOG.error(_LE("%(method)s: Request timeout for CSR(%(host)s)"),
+        LOG.error("%(method)s: Request timeout for CSR(%(host)s)",
                   {'method': method, 'host': self.host})
 
     def get_request(self, resource, full_url=False):
