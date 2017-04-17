@@ -35,6 +35,7 @@ from neutron.services.provider_configuration import serviceprovider_opts
 from neutron.tests.common import l3_test_common
 from neutron.tests.common import net_helpers
 from neutron.tests.functional import base
+from neutron_lib.utils import net as n_utils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import uuidutils
@@ -189,7 +190,7 @@ class SiteInfo(object):
             'id': _uuid(),
             'admin_state_up': True,
             'network_id': _uuid(),
-            'mac_address': common_utils.get_random_mac(MAC_BASE),
+            'mac_address': n_utils.get_random_mac(MAC_BASE),
             'subnets': [
                 {
                     'ipv6_ra_mode': None,
@@ -218,7 +219,7 @@ class SiteInfo(object):
         self.info['gw_port']['fixed_ips'][0]['ip_address'] = str(
             self.public_net)
         self.info['gw_port']['mac_address'] = (
-            common_utils.get_random_mac(MAC_BASE))
+            n_utils.get_random_mac(MAC_BASE))
         self.info['ha'] = False
 
     def _prepare_vpn_service_info(self):
