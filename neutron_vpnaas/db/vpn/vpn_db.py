@@ -543,10 +543,11 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                        "(%(services)s)" % {'plural': plural,
                                            'services': services})
 
-    def check_subnet_in_use(self, context, subnet_id):
+    def check_subnet_in_use(self, context, subnet_id, router_id):
         with context.session.begin(subtransactions=True):
             vpnservices = context.session.query(
-                vpn_models.VPNService).filter_by(subnet_id=subnet_id).first()
+                vpn_models.VPNService).filter_by(
+                    subnet_id=subnet_id, router_id=router_id).first()
             if vpnservices:
                 raise vpnaas.SubnetInUseByVPNService(
                     subnet_id=subnet_id,
@@ -716,13 +717,12 @@ def vpn_callback(resource, event, trigger, **kwargs):
     vpn_plugin = directory.get_plugin(p_constants.VPN)
     if vpn_plugin:
         context = kwargs.get('context')
+        router_id = kwargs.get('router_id')
         if resource == resources.ROUTER_GATEWAY:
-            check_func = vpn_plugin.check_router_in_use
-            resource_id = kwargs.get('router_id')
+            vpn_plugin.check_router_in_use(context, router_id)
         elif resource == resources.ROUTER_INTERFACE:
-            check_func = vpn_plugin.check_subnet_in_use
-            resource_id = kwargs.get('subnet_id')
-        check_func(context, resource_id)
+            subnet_id = kwargs.get('subnet_id')
+            vpn_plugin.check_subnet_in_use(context, subnet_id, router_id)
 
 
 def migration_callback(resource, event, trigger, **kwargs):
