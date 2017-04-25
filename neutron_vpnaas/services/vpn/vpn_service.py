@@ -59,7 +59,7 @@ class VPNService(object):
         return drivers
 
 
-def router_added_actions(resource, event, l3_agent, **kwargs):
+def router_added_actions(l3_agent, **kwargs):
     """Create the router and sync for each loaded device driver."""
     router = kwargs['router']
     for device_driver in l3_agent.device_drivers:
@@ -67,14 +67,15 @@ def router_added_actions(resource, event, l3_agent, **kwargs):
         device_driver.sync(l3_agent.context, [router.router])
 
 
-def router_removed_actions(resource, event, l3_agent, **kwargs):
+def router_removed_actions(l3_agent, **kwargs):
     """Remove the router from each loaded device driver."""
     router = kwargs['router']
     for device_driver in l3_agent.device_drivers:
         device_driver.destroy_router(router.router_id)
+        device_driver.sync(l3_agent.context, [router.router])
 
 
-def router_updated_actions(resource, event, l3_agent, **kwargs):
+def router_updated_actions(l3_agent, **kwargs):
     """Perform a sync on each loaded device driver."""
     router = kwargs['router']
     for device_driver in l3_agent.device_drivers:
