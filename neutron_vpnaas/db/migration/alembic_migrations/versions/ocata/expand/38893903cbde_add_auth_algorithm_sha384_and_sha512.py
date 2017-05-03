@@ -21,12 +21,16 @@ Create Date: 2016-11-04 18:00:49.219140
 
 """
 
+from neutron.db import migration
+import sqlalchemy as sa
+
+
 # revision identifiers, used by Alembic.
 revision = '38893903cbde'
 down_revision = '52783a36bd67'
 
-from neutron.db import migration
-import sqlalchemy as sa
+# milestone identifier, used by neutron-db-manage
+neutron_milestone = [migration.OCATA]
 
 new_auth = sa.Enum('sha1', 'sha256', 'sha384', 'sha512',
                    name='vpn_auth_algorithms')
