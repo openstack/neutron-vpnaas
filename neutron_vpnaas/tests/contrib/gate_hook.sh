@@ -27,5 +27,7 @@ case $VENV in
 
         configure_host_for_vpn_func_testing
         ;;
-    api) $BASE/new/devstack-gate/devstack-vm-gate.sh ;;
+    api|tempest)
+        $BASE/new/devstack-gate/devstack-vm-gate.sh
+        ;;
 esac
