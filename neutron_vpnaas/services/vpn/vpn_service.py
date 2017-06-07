@@ -38,7 +38,7 @@ class VPNService(object):
         registry.subscribe(
             router_added_actions, resources.ROUTER, events.AFTER_CREATE)
         registry.subscribe(
-            router_removed_actions, resources.ROUTER, events.AFTER_DELETE)
+            router_removed_actions, resources.ROUTER, events.BEFORE_DELETE)
         registry.subscribe(
             router_updated_actions, resources.ROUTER, events.AFTER_UPDATE)
 
