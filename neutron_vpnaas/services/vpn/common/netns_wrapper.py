@@ -89,7 +89,7 @@ def filter_command(command, rootwrap_config):
         rw_config = wrapper.RootwrapConfig(rawconfig)
     except ValueError as exc:
         LOG.error('Incorrect value in %(config)s: %(exc)s',
-                  {'config': rootwrap_config, 'exc': exc.message})
+                  {'config': rootwrap_config, 'exc': exc})
         sys.exit(errno.EINVAL)
     except ConfigParser.Error:
         LOG.error('Incorrect configuration file: %(config)s',
