@@ -464,7 +464,7 @@ class VPNPluginDbTestCase(VPNTestMixin,
         self.plugin = vpn_plugin.VPNPlugin()
         ext_mgr = api_extensions.PluginAwareExtensionManager(
             extensions_path,
-            {lib_constants.CORE: self.core_plugin,
+            {nconstants.CORE: self.core_plugin,
              nconstants.VPN: self.plugin}
         )
         app = config.load_paste_app('extensions_test_app')
@@ -1763,7 +1763,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         super(TestVpnDatabase, self).setUp(self.plugin_str)
         # Get the plugins
         self.core_plugin = directory.get_plugin()
-        self.l3_plugin = directory.get_plugin(lib_constants.L3)
+        self.l3_plugin = directory.get_plugin(nconstants.L3)
 
         # Create VPN database instance
         self.plugin = vpn_db.VPNPluginDb()

@@ -15,8 +15,8 @@
 
 import mock
 
-from neutron_lib import constants
 from neutron_lib import context as n_ctx
+from neutron_lib.plugins import constants
 from neutron_lib.plugins import directory
 from oslo_utils import uuidutils
 

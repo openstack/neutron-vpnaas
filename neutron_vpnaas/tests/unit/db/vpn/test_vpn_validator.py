@@ -18,7 +18,6 @@ import socket
 
 from neutron.db import l3_db
 from neutron.db import servicetype_db as st_db
-from neutron_lib import constants as lconstants
 from neutron_lib import context as n_ctx
 from neutron_lib import exceptions as nexception
 from neutron_lib.plugins import constants as nconstants
@@ -77,8 +76,8 @@ class TestIPsecDriverValidation(base.BaseTestCase):
         super(TestIPsecDriverValidation, self).setUp()
         self.l3_plugin = mock.Mock()
         self.core_plugin = mock.Mock()
-        directory.add_plugin(lconstants.CORE, self.core_plugin)
-        directory.add_plugin(lconstants.L3, self.l3_plugin)
+        directory.add_plugin(nconstants.CORE, self.core_plugin)
+        directory.add_plugin(nconstants.L3, self.l3_plugin)
         self.context = n_ctx.Context('some_user', 'some_tenant')
         self.service_plugin = mock.Mock()
         self.validator = vpn_validator.IpsecVpnValidator(self.service_plugin)
