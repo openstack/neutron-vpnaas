@@ -10,8 +10,8 @@ mock>=2.0 # BSD
 pylint==1.4.5 # GPLv2
 python-subunit>=0.0.18 # Apache-2.0/BSD
 requests-mock>=1.1 # Apache-2.0
-sphinx!=1.6.1,>=1.5.1 # BSD
-oslosphinx>=4.7.0 # Apache-2.0
+sphinx>=1.6.2 # BSD
+openstackdocstheme>=1.11.0 # Apache-2.0
 testrepository>=0.0.18 # Apache-2.0/BSD
 tempest>=14.0.0 # Apache-2.0
 testtools>=1.4.0 # MIT
