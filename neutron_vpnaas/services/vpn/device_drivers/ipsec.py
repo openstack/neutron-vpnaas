@@ -465,7 +465,7 @@ class OpenSwanProcess(BaseSwanProcess):
                         # indicates something bad has happened and this is
                         # valuable information for figuring it out.
                         LOG.error('Process %(pid)s exists with command '
-                                  'line %(cmd_line)s.' %
+                                  'line %(cmd_line)s.',
                                   {'pid': pid, 'cmd_line': cmd_line})
                         return True
 

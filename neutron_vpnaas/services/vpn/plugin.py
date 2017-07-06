@@ -137,7 +137,7 @@ class VPNDriverPlugin(VPNPlugin, vpn_db.VPNPluginRpcDbMixin):
             # Use default provider
             provider = self.default_provider
 
-        LOG.debug("Selected provider %s" % provider)
+        LOG.debug("Selected provider %s", provider)
         return provider
 
     def _get_driver_for_vpnservice(self, context, vpnservice):
