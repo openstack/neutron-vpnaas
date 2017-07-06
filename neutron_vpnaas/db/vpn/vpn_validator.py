@@ -12,9 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import netaddr
 import socket
 
+import netaddr
 from neutron.db import l3_db
 from neutron.db import models_v2
 from neutron_lib.api import validators

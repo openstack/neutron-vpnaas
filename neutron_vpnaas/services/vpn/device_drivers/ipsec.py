@@ -18,7 +18,6 @@ import filecmp
 import os
 import re
 import shutil
-import six
 import socket
 
 import eventlet
@@ -39,6 +38,7 @@ from oslo_log import helpers as log_helpers
 from oslo_log import log as logging
 import oslo_messaging
 from oslo_service import loopingcall
+import six
 
 from neutron_vpnaas._i18n import _
 from neutron_vpnaas.extensions import vpnaas

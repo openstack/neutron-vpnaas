@@ -13,11 +13,10 @@
 import collections
 import copy
 import functools
+import os
+
 import mock
 import netaddr
-import os
-import testtools
-
 from neutron.agent.common import ovs_lib
 from neutron.agent.l3 import namespaces as n_namespaces
 from neutron.agent.l3 import router_info
@@ -38,6 +37,7 @@ from neutron_lib.utils import net as n_utils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import uuidutils
+import testtools
 
 from neutron_vpnaas.services.vpn import agent as vpn_agent
 from neutron_vpnaas.services.vpn.agent import vpn_agent_opts
