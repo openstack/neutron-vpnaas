@@ -65,4 +65,4 @@ The actual raw command in gate running under the tempest code directory is:
 External Resources:
 ===================
 
-For more information on the tempest, see: <https://docs.openstack.org/developer/tempest/>
+For more information on the tempest, see: <https://docs.openstack.org/tempest/latest/>
