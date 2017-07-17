@@ -26,7 +26,8 @@ It includes both of in-tree and out-of-tree drivers.
 +----------------------------+---------------------------+------------------+
 | OpenSwanDriver             | Lingxian Kong             | kong             |
 +----------------------------+---------------------------+------------------+
-| StrongSwanDriver           | Lingxian Kong             | kong             |
+|                            | Lingxian Kong             | kong             |
+| StrongSwanDriver           +---------------------------+------------------+
 |                            | Cao Xuan Hoang            | hoangcx          |
 +----------------------------+---------------------------+------------------+
 | VyattaIPsecDriver          | ???                       | ???              |
