@@ -15,6 +15,7 @@
 
 from neutron_lib.db import constants as db_const
 from tempest.lib.common.utils import data_utils
+from tempest.lib import decorators
 from tempest.lib import exceptions as lib_exc
 from tempest import test
 
@@ -144,7 +145,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         body = self.client.show_network(self.network['id'])
         return body['network']['tenant_id']
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_admin_create_ipsec_policy_for_tenant(self):
         tenant_id = self._get_tenant_id()
         # Create IPSec policy for the newly created tenant
@@ -161,7 +162,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         ipsecpolicies = [policy['id'] for policy in body['ipsecpolicies']]
         self.assertIn(ipsecpolicy['id'], ipsecpolicies)
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_admin_create_vpn_service_for_tenant(self):
         tenant_id = self._get_tenant_id()
 
@@ -186,7 +187,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         vpn_services = [vs['id'] for vs in body['vpnservices']]
         self.assertIn(vpnservice['id'], vpn_services)
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_admin_create_ike_policy_for_tenant(self):
         tenant_id = self._get_tenant_id()
 
@@ -206,14 +207,14 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         ikepolicies = [ikp['id'] for ikp in body['ikepolicies']]
         self.assertIn(ikepolicy['id'], ikepolicies)
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_list_vpn_services(self):
         # Verify the VPN service exists in the list of all VPN services
         body = self.client.list_vpnservices()
         vpnservices = body['vpnservices']
         self.assertIn(self.vpnservice['id'], [v['id'] for v in vpnservices])
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_create_update_delete_vpn_service(self):
         # Creates a VPN service and sets up deletion
         network1 = self.create_network()
@@ -239,7 +240,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         # But precondition is that current state of vpnservice
         # should be "ACTIVE" not "PENDING*"
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_show_vpn_service(self):
         # Verifies the details of a vpn service
         body = self.client.show_vpnservice(self.vpnservice['id'])
@@ -255,14 +256,14 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
                         "PENDING_UPDATE", "PENDING_DELETE"]
         self.assertIn(vpnservice['status'], valid_status)
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_list_ike_policies(self):
         # Verify the ike policy exists in the list of all IKE policies
         body = self.client.list_ikepolicies()
         ikepolicies = body['ikepolicies']
         self.assertIn(self.ikepolicy['id'], [i['id'] for i in ikepolicies])
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_create_update_delete_ike_policy(self):
         # Creates a IKE policy
         name = data_utils.rand_name('ike-policy')
@@ -296,7 +297,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         ikepolicies = [ikp['id'] for ikp in body['ikepolicies']]
         self.assertNotIn(ike_policy['id'], ikepolicies)
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_show_ike_policy(self):
         # Verifies the details of a ike policy
         body = self.client.show_ikepolicy(self.ikepolicy['id'])
@@ -318,14 +319,14 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         self.assertEqual(self.ikepolicy['ike_version'],
                          ikepolicy['ike_version'])
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_list_ipsec_policies(self):
         # Verify the ipsec policy exists in the list of all ipsec policies
         body = self.client.list_ipsecpolicies()
         ipsecpolicies = body['ipsecpolicies']
         self.assertIn(self.ipsecpolicy['id'], [i['id'] for i in ipsecpolicies])
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_create_update_delete_ipsec_policy(self):
         # Creates an ipsec policy
         ipsec_policy_body = {'name': data_utils.rand_name('ipsec-policy'),
@@ -351,14 +352,14 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         self.assertRaises(lib_exc.NotFound,
                           self.client.delete_ipsecpolicy, ipsecpolicy['id'])
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_show_ipsec_policy(self):
         # Verifies the details of an ipsec policy
         body = self.client.show_ipsecpolicy(self.ipsecpolicy['id'])
         ipsecpolicy = body['ipsecpolicy']
         self._assertExpected(self.ipsecpolicy, ipsecpolicy)
 
-    @test.attr(type=['negative', 'smoke'])
+    @decorators.attr(type=['negative', 'smoke'])
     def test_create_vpnservice_long_name(self):
         """
         Test excessively long name.
@@ -372,7 +373,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             subnet_id=self.subnet['id'], router_id=self.router['id'],
             name=name, admin_state_up=True)
 
-    @test.attr(type=['negative', 'smoke'])
+    @decorators.attr(type=['negative', 'smoke'])
     def test_create_vpnservice_long_description(self):
         name = data_utils.rand_name('vpn-service1')
         description = _LONG_DESCRIPTION
@@ -381,7 +382,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             subnet_id=self.subnet['id'], router_id=self.router['id'],
             name=name, description=description, admin_state_up=True)
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_list_vpn_connections(self):
         # Verify the VPN service exists in the list of all VPN services
         body = self.client.list_ipsec_site_connections()
@@ -389,7 +390,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         self.assertIn(self.ipsec_site_connection['id'],
                       [v['id'] for v in ipsec_site_connections])
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_create_delete_vpn_connection_with_legacy_mode(self):
         # Verify create VPN connection
         name = data_utils.rand_name("ipsec_site_connection-")
@@ -418,7 +419,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         self.assertNotIn(ipsec_site_connection['id'],
                       [v['id'] for v in ipsec_site_connections])
 
-    @test.attr(type=['negative', 'smoke'])
+    @decorators.attr(type=['negative', 'smoke'])
     def test_create_vpn_connection_missing_peer_cidr(self):
         # Verify create VPN connection with JSON missing peer cidr
         # in legacy mode
@@ -437,7 +438,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             initiator="bi-directional",
             psk="secret")
 
-    @test.attr(type=['negative', 'smoke'])
+    @decorators.attr(type=['negative', 'smoke'])
     def test_create_vpn_service_subnet_not_on_router(self):
         # Verify create VPN service with a subnet not on router
         tenant_id = self._get_tenant_id()
@@ -459,7 +460,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             admin_state_up=True,
             tenant_id=tenant_id)
 
-    @test.attr(type=['negative', 'smoke'])
+    @decorators.attr(type=['negative', 'smoke'])
     def test_create_vpn_connection_small_MTU(self):
         # Verify create VPN connection with small MTU
         name = data_utils.rand_name("ipsec_site_connection-")
@@ -478,7 +479,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             initiator="bi-directional",
             psk="secret")
 
-    @test.attr(type=['negative', 'smoke'])
+    @decorators.attr(type=['negative', 'smoke'])
     def test_create_vpn_connection_small_dpd(self):
         # Verify create VPN connection with small dpd
         name = data_utils.rand_name("ipsec_site_connection-")
@@ -497,7 +498,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             initiator="bi-directional",
             psk="secret")
 
-    @test.attr(type=['negative', 'smoke'])
+    @decorators.attr(type=['negative', 'smoke'])
     def test_create_vpn_connection_wrong_peer_cidr(self):
         # Verify create VPN connection with wrong peer cidr
         name = data_utils.rand_name("ipsec_site_connection-")
@@ -516,7 +517,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             initiator="bi-directional",
             psk="secret")
 
-    @test.attr(type=['negative', 'smoke'])
+    @decorators.attr(type=['negative', 'smoke'])
     def test_create_connection_with_cidr_and_endpoint_group(self):
         tenant_id = self._get_tenant_id()
         # Create endpoint group for the newly created tenant
@@ -557,7 +558,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             initiator="bi-directional",
             psk="secret")
 
-    @test.attr(type=['negative', 'smoke'])
+    @decorators.attr(type=['negative', 'smoke'])
     def test_create_vpn_connection_with_missing_remote_endpoint_group(self):
         # Verify create VPN connection without subnet in vpnservice
         # and has only local endpoint group
@@ -589,7 +590,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             initiator="bi-directional",
             psk="secret")
 
-    @test.attr(type=['negative', 'smoke'])
+    @decorators.attr(type=['negative', 'smoke'])
     def test_create_vpn_connection_with_missing_local_endpoint_group(self):
         # Verify create VPN connection without subnet in vpnservice
         # and only have only local endpoint group
@@ -620,7 +621,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             initiator="bi-directional",
             psk="secret")
 
-    @test.attr(type=['negative', 'smoke'])
+    @decorators.attr(type=['negative', 'smoke'])
     def test_create_connection_with_mix_ip_endpoint_group(self):
         tenant_id = self._get_tenant_id()
         # Create endpoint group for the newly created tenant
@@ -662,7 +663,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             initiator="bi-directional",
             psk="secret")
 
-    @test.attr(type=['negative', 'smoke'])
+    @decorators.attr(type=['negative', 'smoke'])
     def test_create_connection_with_subnet_and_remote_endpoint_group(self):
         tenant_id = self._get_tenant_id()
         # Create endpoint group for the newly created tenant
@@ -689,7 +690,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             initiator="bi-directional",
             psk="secret")
 
-    @test.attr(type=['negative', 'smoke'])
+    @decorators.attr(type=['negative', 'smoke'])
     def test_create_connection_with_subnet_and_local_endpoint_group(self):
         tenant_id = self._get_tenant_id()
         # Create endpoint group for the newly created tenant
@@ -717,7 +718,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             initiator="bi-directional",
             psk="secret")
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_create_update_delete_endpoint_group(self):
         # Creates a endpoint-group
         name = data_utils.rand_name('endpoint_group')
@@ -743,7 +744,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         endpoint_group = [enp['id'] for enp in body['endpoint_groups']]
         self.assertNotIn(endpoint_group_id, endpoint_group)
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_admin_create_endpoint_group_for_tenant(self):
         # Create endpoint group for the newly created tenant
         tenant_id = self._get_tenant_id()
@@ -764,7 +765,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         endpoint_group = [enp['id'] for enp in body['endpoint_groups']]
         self.assertNotIn(endpoint_group_id, endpoint_group)
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_show_endpoint_group(self):
         # Verifies the details of an endpoint group
         body = self.client.show_endpoint_group(self.endpoint_group_local['id'])
@@ -798,7 +799,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         self.assertEqual(self.endpoint_group_remote['endpoints'],
                          endpoint_group['endpoints'])
 
-    @test.attr(type='smoke')
+    @decorators.attr(type='smoke')
     def test_create_delete_vpn_connection_with_ep_group(self):
         # Creates a endpoint-group with type cidr
         name = data_utils.rand_name('endpoint_group')
@@ -847,7 +848,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         self.assertNotIn(ipsec_site_connection['id'],
                       [v['id'] for v in ipsec_site_connections])
 
-    @test.attr(type=['negative', 'smoke'])
+    @decorators.attr(type=['negative', 'smoke'])
     def test_fail_create_endpoint_group_when_wrong_type(self):
         # Creates a endpoint-group with wrong type
         name = data_utils.rand_name('endpoint_group')
@@ -858,7 +859,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             type='subnet',
             endpoints=["10.2.0.0/24", "10.3.0.0/24"])
 
-    @test.attr(type=['negative', 'smoke'])
+    @decorators.attr(type=['negative', 'smoke'])
     def test_fail_create_endpoint_group_when_provide_subnet_id_with_cidr(self):
         # Creates a endpoint-group when provide subnet id with type cidr
         name = data_utils.rand_name('endpoint_group')
@@ -870,7 +871,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
             type='cidr',
             endpoints=subnet_id)
 
-    @test.attr(type=['negative', 'smoke'])
+    @decorators.attr(type=['negative', 'smoke'])
     def test_fail_create_endpoint_group_with_mixed_IP_version(self):
         # Creates a endpoint-group with mixed IP version
         name = data_utils.rand_name('endpoint_group')
