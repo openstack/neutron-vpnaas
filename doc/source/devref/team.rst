@@ -32,4 +32,4 @@ It includes both of in-tree and out-of-tree drivers.
 | VyattaIPsecDriver          | ???                       | ???              |
 +----------------------------+---------------------------+------------------+
 
-.. [#] networking-midonet: https://docs.openstack.org/developer/networking-midonet/installation.html#vpnaas
+.. [#] networking-midonet: https://docs.openstack.org/networking-midonet/latest/install/installation.html#vpnaas
