@@ -15,10 +15,10 @@
 import copy
 import difflib
 import io
-import mock
 import os
 import socket
 
+import mock
 from neutron.agent.l3 import dvr_edge_router
 from neutron.agent.l3 import dvr_snat_ns
 from neutron.agent.l3 import legacy_router

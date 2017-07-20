@@ -12,13 +12,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import exceptions
 import os
-import paramiko
 import socket
 import stat
 import time
 
+import paramiko
 from rally.common import logging
 from rally.plugins.openstack.wrappers import network as network_wrapper
 from rally.task import utils as task_utils
@@ -48,25 +47,21 @@ def execute_cmd_over_ssh(host, cmd, private_key):
 
         client.connect(host["ip"], username=host["username"], pkey=k)
     except paramiko.BadHostKeyException as e:
-        raise exceptions.Exception(
-                "BADHOSTKEY EXCEPTION WHEN CONNECTING TO %s", host["ip"], e)
+        raise Exception(
+            "BADHOSTKEY EXCEPTION WHEN CONNECTING TO %s", host["ip"], e)
     except paramiko.AuthenticationException as e:
-        raise exceptions.Exception(
-                "AUTHENTICATION EXCEPTION WHEN CONNECTING TO %s",
-                host["ip"], e)
+        raise Exception(
+            "AUTHENTICATION EXCEPTION WHEN CONNECTING TO %s", host["ip"], e)
     except paramiko.SSHException as e:
-        raise exceptions.Exception(
-                "SSH EXCEPTION WHEN CONNECTING TO %s", host["ip"], e)
+        raise Exception("SSH EXCEPTION WHEN CONNECTING TO %s", host["ip"], e)
     except socket.error as e:
-        raise exceptions.Exception(
-                "SOCKET ERROR WHEN CONNECTING TO %s", host["ip"], e)
+        raise Exception("SOCKET ERROR WHEN CONNECTING TO %s", host["ip"], e)
     LOG.debug("CONNECTED TO HOST <%s>", host["ip"])
     try:
         stdin, stdout, stderr = client.exec_command(cmd)
         return stdout.read().splitlines()
     except paramiko.SSHException as e:
-        raise exceptions.Exception(
-                "SSHEXCEPTION WHEN CONNECTING TO %s", host["ip"], e)
+        raise Exception("SSHEXCEPTION WHEN CONNECTING TO %s", host["ip"], e)
     finally:
         client.close()
 
@@ -237,7 +232,7 @@ def write_key_to_compute_node(keypair, local_path, remote_path, host,
     try:
         transport = paramiko.Transport(host['ip'], host['port'])
     except paramiko.SSHException as e:
-        raise exceptions.Exception(
+        raise Exception(
             "PARAMIKO TRANSPORT FAILED. CHECK IF THE HOST IP %s AND PORT %s "
             "ARE CORRECT %s", host['ip'], host['port'], e)
     try:
@@ -245,24 +240,22 @@ def write_key_to_compute_node(keypair, local_path, remote_path, host,
                 username=host['username'], pkey=k)
     except paramiko.BadHostKeyException as e:
         transport.close()
-        raise exceptions.Exception(
-                "BADHOSTKEY EXCEPTION WHEN CONNECTING TO %s", host["ip"], e)
+        raise Exception(
+            "BADHOSTKEY EXCEPTION WHEN CONNECTING TO %s", host["ip"], e)
     except paramiko.AuthenticationException as e:
         transport.close()
-        raise exceptions.Exception(
-                "AUTHENTICATION EXCEPTION WHEN CONNECTING TO %s",
-                host["ip"], e)
+        raise Exception("AUTHENTICATION EXCEPTION WHEN CONNECTING TO %s",
+                        host["ip"], e)
     except paramiko.SSHException as e:
         transport.close()
-        raise exceptions.Exception(
-                "SSH EXCEPTION WHEN CONNECTING TO %s", host["ip"], e)
+        raise Exception("SSH EXCEPTION WHEN CONNECTING TO %s", host["ip"], e)
     LOG.debug("CONNECTED TO HOST <%s>", host["ip"])
 
     try:
         sftp_client = paramiko.SFTPClient.from_transport(transport)
         sftp_client.put(local_path, remote_path)
     except IOError as e:
-        raise exceptions.Exception("FILE PATH DOESN'T EXIST", e)
+        raise Exception("FILE PATH DOESN'T EXIST", e)
     finally:
         transport.close()
 
@@ -391,8 +384,8 @@ def wait_for_namespace_creation(namespace_tag, router_id, hosts, private_key,
                     return namespace_tag, host
         time.sleep(1)
         if time.time() - start_time > timeout:
-            raise exceptions.Exception("TIMEOUT WHILE WAITING FOR"
-                                       " NAMESPACES TO BE CREATED")
+            raise Exception("TIMEOUT WHILE WAITING FOR"
+                            " NAMESPACES TO BE CREATED")
 
 
 def ping(host, cmd, private_key):

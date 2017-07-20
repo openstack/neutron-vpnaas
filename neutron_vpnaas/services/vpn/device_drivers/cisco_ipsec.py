@@ -13,7 +13,6 @@
 #    under the License.
 
 import collections
-import requests
 
 from neutron.common import rpc as n_rpc
 from neutron.plugins.common import utils as plugin_utils
@@ -25,6 +24,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging
 from oslo_service import loopingcall
+import requests
 
 from neutron_vpnaas._i18n import _
 from neutron_vpnaas.services.vpn.common import topics

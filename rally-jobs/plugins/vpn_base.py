@@ -13,7 +13,6 @@
 # under the License.
 
 import concurrent.futures
-import exceptions
 import re
 import threading
 import time
@@ -330,7 +329,7 @@ class VpnBase(rally_base.OpenStackScenario):
                 return resource
             time.sleep(check_interval)
             if time.time() - start_time > wait_timeout:
-                raise exceptions.Exception(
+                raise Exception(
                     "Timeout waiting for resource {} to change to {} status".
                     format(resource[resource_tag]['name'], final_status))
 

@@ -13,9 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
 import os
 
+import mock
 from neutron.agent.l3 import legacy_router
 from neutron.conf.agent.l3 import config as l3_config
 from neutron.tests.functional import base

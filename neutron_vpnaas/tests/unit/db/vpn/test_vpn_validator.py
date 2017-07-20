@@ -13,9 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
 import socket
 
+import mock
 from neutron.db import l3_db
 from neutron_lib import context as n_ctx
 from neutron_lib import exceptions as nexception
