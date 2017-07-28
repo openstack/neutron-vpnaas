@@ -55,4 +55,5 @@ fi
 cp -p ${src_conf} ${dst_conf}
 sed -i "s:^filters_path=.*$:filters_path=${dst_rootwrap_path}:" ${dst_conf}
 sed -i "s:^\(exec_dirs=.*\)$:\1,${venv_path}/bin:" ${dst_conf}
+sudo mkdir -p /etc/neutron/
 sudo cp ${dst_conf} /etc/neutron/

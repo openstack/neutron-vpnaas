@@ -40,17 +40,6 @@ function _install_vpn_package {
     neutron_agent_vpnaas_install_agent_packages
 }
 
-
-function _configure_vpn_ini_file {
-    echo_summary "Configuring VPN ini file"
-    local temp_ini=$(mktemp)
-    neutron_vpnaas_generate_config_files
-    neutron_vpnaas_configure_agent $temp_ini
-    sudo install -d -o $STACK_USER /etc/neutron/
-    sudo install -m 644 -o $STACK_USER $temp_ini $Q_VPN_CONF_FILE
-}
-
-
 function configure_host_for_vpn_func_testing {
     echo_summary "Configuring for VPN functional testing"
     if [ "$IS_GATE" == "True" ]; then
@@ -60,7 +49,6 @@ function configure_host_for_vpn_func_testing {
     # oslo-config-generator present (as this script runs before tox.ini).
     sudo pip install --force oslo.config
     _install_vpn_package
-    _configure_vpn_ini_file
 }
 
 

@@ -1,9 +1,5 @@
 # Settings for the VPNaaS devstack plugin
 
-enable_service neutron-vpnaas
-
-AGENT_VPN_BINARY="$NEUTRON_BIN_DIR/neutron-vpn-agent"
-
 # Plugin
 VPN_PLUGIN=${VPN_PLUGIN:-"vpnaas"}
 
@@ -17,9 +13,6 @@ NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.ser
 # Config files
 NEUTRON_CONF_DIR=${NEUTRON_CONF_DIR:-"/etc/neutron"}
 NEUTRON_VPNAAS_DIR=$DEST/neutron-vpnaas
-Q_VPN_CONF_FILE=$NEUTRON_CONF_DIR/vpn_agent.ini
 
 NEUTRON_VPNAAS_CONF_FILE=neutron_vpnaas.conf
 NEUTRON_VPNAAS_CONF=$NEUTRON_CONF_DIR/$NEUTRON_VPNAAS_CONF_FILE
-
-declare -a Q_VPN_EXTRA_CONF_FILES

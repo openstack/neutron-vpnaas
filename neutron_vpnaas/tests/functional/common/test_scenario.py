@@ -13,11 +13,12 @@
 import collections
 import copy
 import functools
-import os
 
 import mock
 import netaddr
 from neutron.agent.common import ovs_lib
+from neutron.agent.l3 import agent as neutron_l3_agent
+from neutron.agent.l3 import l3_agent_extensions_manager as ext_manager
 from neutron.agent.l3 import namespaces as n_namespaces
 from neutron.agent.l3 import router_info
 from neutron.agent import l3_agent as l3_agent_main
@@ -189,6 +190,7 @@ class SiteInfo(object):
             'id': _uuid(),
             'admin_state_up': True,
             'network_id': _uuid(),
+            'mtu': 1500,
             'mac_address': n_utils.get_random_mac(MAC_BASE),
             'subnets': [
                 {
@@ -211,6 +213,7 @@ class SiteInfo(object):
     def generate_router_info(self):
         self.info = copy.deepcopy(FAKE_ROUTER)
         self.info['id'] = _uuid()
+        self.info['project_id'] = _uuid()
         self.info['_interfaces'] = [
             self._generate_private_interface_for_router(subnet)
             for subnet in self.private_nets]
@@ -281,13 +284,13 @@ class SiteInfoWithHaRouter(SiteInfo):
 
 
 class TestIPSecBase(base.BaseSudoTestCase):
-    vpn_agent_ini = os.environ.get('VPN_AGENT_INI',
-                                   '/etc/neutron/vpn_agent.ini')
     NESTED_NAMESPACE_SEPARATOR = '@'
 
     def setUp(self):
         super(TestIPSecBase, self).setUp()
         mock.patch('neutron.agent.l3.agent.L3PluginApi').start()
+        mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.'
+            'IPsecVpnDriverApi').start()
         # avoid report_status running periodically
         mock.patch('oslo_service.loopingcall.FixedIntervalLoopingCall').start()
         # Both the vpn agents try to use execute_rootwrap_daemon's socket
@@ -306,7 +309,10 @@ class TestIPSecBase(base.BaseSudoTestCase):
         # Can reproduce the exception in the test only
         ip_lib.send_ip_addr_adv_notif = mock.Mock()
 
-        self.vpn_agent = self._configure_agent('agent1')
+        self.conf = self._configure_agent('agent1')
+        self.agent = neutron_l3_agent.L3NATAgentWithStateReport('agent1',
+                                                                self.conf)
+        self.vpn_agent = vpn_agent.L3WithVPNaaS(self.conf)
         self.driver = self.vpn_agent.device_drivers[0]
         self.driver.agent_rpc.get_vpn_services_on_host = mock.Mock(
             return_value=[])
@@ -340,6 +346,7 @@ class TestIPSecBase(base.BaseSudoTestCase):
 
         logging.register_options(config)
         agent_config.register_process_monitor_opts(config)
+        ext_manager.register_opts(config)
         return config
 
     def _configure_agent(self, host):
@@ -348,6 +355,7 @@ class TestIPSecBase(base.BaseSudoTestCase):
         l3_agent_main.register_opts(config)
         cfg.CONF.set_override('debug', True)
         agent_config.setup_logging()
+        config.set_override('extensions', ['vpnaas'], 'agent')
         config.set_override(
             'interface_driver',
             'neutron.agent.linux.interface.OVSInterfaceDriver')
@@ -372,13 +380,11 @@ class TestIPSecBase(base.BaseSudoTestCase):
         config.set_override('config_base_dir',
                           ipsec_config_base_dir, group='ipsec')
 
-        config(['--config-file', self.vpn_agent_ini])
-
         # Assign ip address to br-ex port because it is a gateway
         ex_port = ip_lib.IPDevice(br_ex.br_name)
         ex_port.addr.add(str(PUBLIC_NET[1]))
 
-        return vpn_agent.VPNAgent(host, config)
+        return config
 
     def _setup_failover_agent(self):
         self.failover_agent = self._configure_agent('agent2')
@@ -456,12 +462,12 @@ class TestIPSecBase(base.BaseSudoTestCase):
         """
         if l3ha:
             site = SiteInfoWithHaRouter(public_net, private_nets,
-                                        self.vpn_agent.host,
+                                        self.agent.host,
                                         self.failover_agent.host)
         else:
             site = SiteInfo(public_net, private_nets)
 
-        site.router = self.create_router(self.vpn_agent, site.info)
+        site.router = self.create_router(self.agent, site.info)
         if l3ha:
             backup_info = site.generate_backup_router_info()
             site.backup_router = self.create_router(self.failover_agent,
@@ -503,6 +509,8 @@ class TestIPSecBase(base.BaseSudoTestCase):
         peer_router_id = site2.router.router_id
         self.driver.sync(mock.Mock(), [{'id': local_router_id},
                                        {'id': peer_router_id}])
+        self.agent._process_updated_router(site1.router.router)
+        self.agent._process_updated_router(site2.router.router)
         self.addCleanup(self.driver._delete_vpn_processes,
                         [local_router_id, peer_router_id], [])
 

@@ -3,6 +3,10 @@
 VPNAAS_XTRACE=$(set +o | grep xtrace)
 set -o xtrace
 
+# Source L3 agent extension management
+LIBDIR=$DEST/neutron-vpnaas/devstack/lib
+source $LIBDIR/l3_agent
+
 function neutron_vpnaas_install {
     setup_develop $NEUTRON_VPNAAS_DIR
     if is_service_enabled q-l3; then
@@ -31,45 +35,24 @@ function neutron_vpnaas_configure_common {
     iniadd $NEUTRON_VPNAAS_CONF service_providers service_provider $NEUTRON_VPNAAS_SERVICE_PROVIDER
 }
 
-function neutron_vpnaas_configure_db {
-    $NEUTRON_BIN_DIR/neutron-db-manage --subproject neutron-vpnaas --config-file $NEUTRON_CONF --config-file /$Q_PLUGIN_CONF_FILE upgrade head
-}
-
 function neutron_vpnaas_configure_agent {
-    local conf_file=${1:-$Q_VPN_CONF_FILE}
-    cp $NEUTRON_VPNAAS_DIR/etc/vpn_agent.ini.sample $conf_file
+    plugin_agent_add_l3_agent_extension vpnaas
+    configure_l3_agent
     if [[ "$IPSEC_PACKAGE" == "strongswan" ]]; then
         if is_fedora; then
-            iniset_multiline $conf_file vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.fedora_strongswan_ipsec.FedoraStrongSwanDriver
+            iniset_multiline $Q_L3_CONF_FILE vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.fedora_strongswan_ipsec.FedoraStrongSwanDriver
         else
-            iniset_multiline $conf_file vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.StrongSwanDriver
+            iniset_multiline $Q_L3_CONF_FILE vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.StrongSwanDriver
         fi
     elif [[ "$IPSEC_PACKAGE" == "libreswan" ]]; then
-        iniset_multiline $Q_VPN_CONF_FILE vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.libreswan_ipsec.LibreSwanDriver
+        iniset_multiline $Q_L3_CONF_FILE vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.libreswan_ipsec.LibreSwanDriver
     else
-        iniset_multiline $conf_file vpnagent vpn_device_driver $NEUTRON_VPNAAS_DEVICE_DRIVER
+        iniset_multiline $Q_L3_CONF_FILE vpnagent vpn_device_driver $NEUTRON_VPNAAS_DEVICE_DRIVER
     fi
 }
 
-function neutron_vpnaas_start {
-    local cfg_file
-    local opts="--config-file $NEUTRON_CONF --config-file=$Q_L3_CONF_FILE --config-file=$Q_VPN_CONF_FILE"
-    for cfg_file in ${Q_VPN_EXTRA_CONF_FILES[@]}; do
-        opts+=" --config-file $cfg_file"
-    done
-    run_process neutron-vpnaas "$AGENT_VPN_BINARY $opts"
-}
-
-function neutron_vpnaas_stop {
-    local ipsec_data_dir=$DATA_DIR/neutron/ipsec
-    local pids
-    if [ -d $ipsec_data_dir ]; then
-        pids=$(find $ipsec_data_dir -name 'pluto.pid' -exec cat {} \;)
-    fi
-    if [ -n "$pids" ]; then
-        sudo kill $pids
-    fi
-    stop_process neutron-vpnaas
+function neutron_vpnaas_configure_db {
+    $NEUTRON_BIN_DIR/neutron-db-manage --subproject neutron-vpnaas --config-file $NEUTRON_CONF --config-file /$Q_PLUGIN_CONF_FILE upgrade head
 }
 
 function neutron_vpnaas_generate_config_files {
@@ -95,17 +78,6 @@ elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
     if is_service_enabled q-l3; then
         echo_summary "Configuring neutron-vpnaas agent"
         neutron_vpnaas_configure_agent
-    fi
-
-elif [[ "$1" == "stack" && "$2" == "extra" ]]; then
-    if is_service_enabled q-l3; then
-        echo_summary "Initializing neutron-vpnaas"
-        neutron_vpnaas_start
-    fi
-
-elif [[ "$1" == "unstack" ]]; then
-    if is_service_enabled q-l3; then
-        neutron_vpnaas_stop
     fi
 
 # NOP for clean step

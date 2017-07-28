@@ -14,9 +14,6 @@
 #    under the License.
 
 from neutron.services import provider_configuration as provconfig
-from neutron_lib.callbacks import events
-from neutron_lib.callbacks import registry
-from neutron_lib.callbacks import resources
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -31,16 +28,7 @@ class VPNService(object):
     """VPN Service observer."""
 
     def __init__(self, l3_agent):
-        """Creates a VPN Service instance with context."""
-        # TODO(pc_m): Replace l3_agent argument with config, once none of the
-        # device driver implementations need the L3 agent.
         self.conf = l3_agent.conf
-        registry.subscribe(
-            router_added_actions, resources.ROUTER, events.AFTER_CREATE)
-        registry.subscribe(
-            router_removed_actions, resources.ROUTER, events.BEFORE_DELETE)
-        registry.subscribe(
-            router_updated_actions, resources.ROUTER, events.AFTER_UPDATE)
 
     def load_device_drivers(self, host):
         """Loads one or more device drivers for VPNaaS."""
@@ -57,25 +45,3 @@ class VPNService(object):
                 raise vpnaas.DeviceDriverImportError(
                     device_driver=device_driver)
         return drivers
-
-
-def router_added_actions(resource, event, l3_agent, **kwargs):
-    """Create the router and sync for each loaded device driver."""
-    router = kwargs['router']
-    for device_driver in l3_agent.device_drivers:
-        device_driver.create_router(router)
-        device_driver.sync(l3_agent.context, [router.router])
-
-
-def router_removed_actions(resource, event, l3_agent, **kwargs):
-    """Remove the router from each loaded device driver."""
-    router = kwargs['router']
-    for device_driver in l3_agent.device_drivers:
-        device_driver.destroy_router(router.router_id)
-
-
-def router_updated_actions(resource, event, l3_agent, **kwargs):
-    """Perform a sync on each loaded device driver."""
-    router = kwargs['router']
-    for device_driver in l3_agent.device_drivers:
-        device_driver.sync(l3_agent.context, [router.router])

@@ -16,6 +16,7 @@
 import os
 
 import mock
+from neutron.agent.l3 import agent as neutron_l3_agent
 from neutron.agent.l3 import legacy_router
 from neutron.conf.agent.l3 import config as l3_config
 from neutron.tests.functional import base
@@ -23,6 +24,7 @@ from neutron_lib import constants
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
+from neutron_vpnaas.services.vpn import agent as vpn_agent
 from neutron_vpnaas.services.vpn.device_drivers import ipsec
 from neutron_vpnaas.services.vpn.device_drivers import strongswan_ipsec
 from neutron_vpnaas.tests.functional.common import test_scenario
@@ -166,6 +168,24 @@ class TestStrongSwanDeviceDriver(base.BaseSudoTestCase):
 
 
 class TestStrongSwanScenario(test_scenario.TestIPSecBase):
+
+    def setUp(self):
+        super(TestStrongSwanScenario, self).setUp()
+        self.conf.register_opts(strongswan_ipsec.strongswan_opts,
+                                'strongswan')
+        VPNAAS_STRONGSWAN_DEVICE = ('neutron_vpnaas.services.vpn.'
+                                    'device_drivers.strongswan_ipsec.'
+                                    'StrongSwanDriver')
+        cfg.CONF.set_override('vpn_device_driver',
+                              [VPNAAS_STRONGSWAN_DEVICE],
+                              'vpnagent')
+        self.agent = neutron_l3_agent.L3NATAgentWithStateReport('agent1',
+                                                                self.conf)
+        self.vpn_agent = vpn_agent.L3WithVPNaaS(self.conf)
+        vpn_service = mock.Mock()
+        vpn_service.conf = self.conf
+        self.driver = strongswan_ipsec.StrongSwanDriver(
+            vpn_service, host=mock.sentinel.host)
 
     def _override_ikepolicy_for_site(self, site, ikepolicy):
         ipsec_connection = site.vpn_service['ipsec_site_connections'][0]
