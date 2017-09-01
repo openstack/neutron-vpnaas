@@ -5,7 +5,7 @@ enable_service neutron-vpnaas
 AGENT_VPN_BINARY="$NEUTRON_BIN_DIR/neutron-vpn-agent"
 
 # Plugin
-VPN_PLUGIN=${VPN_PLUGIN:-"neutron_vpnaas.services.vpn.plugin.VPNDriverPlugin"}
+VPN_PLUGIN=${VPN_PLUGIN:-"vpnaas"}
 
 # Service Driver
 NEUTRON_VPNAAS_SERVICE_PROVIDER=${NEUTRON_VPNAAS_SERVICE_PROVIDER:-"VPN:strongswan:neutron_vpnaas.services.vpn.service_drivers.ipsec.IPsecVPNDriver:default"}
