@@ -28,6 +28,12 @@ down_revision = '38893903cbde'
 from alembic import op
 import sqlalchemy as sa
 
+from neutron.db import migration
+
+
+# milestone identifier, used by neutron-db-manage
+neutron_milestone = [migration.PIKE]
+
 
 def upgrade():
     op.add_column('vpnservices',
