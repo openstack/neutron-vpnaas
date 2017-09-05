@@ -25,11 +25,10 @@ function neutron_agent_vpnaas_install_agent_packages {
 function neutron_vpnaas_configure_common {
     cp $NEUTRON_VPNAAS_DIR/etc/neutron_vpnaas.conf.sample $NEUTRON_VPNAAS_CONF
     neutron_server_config_add $NEUTRON_VPNAAS_CONF
-    _neutron_service_plugin_class_add $VPN_PLUGIN
-    _neutron_deploy_rootwrap_filters $NEUTRON_VPNAAS_DIR
+    neutron_service_plugin_class_add $VPN_PLUGIN
+    neutron_deploy_rootwrap_filters $NEUTRON_VPNAAS_DIR
     inicomment $NEUTRON_VPNAAS_CONF service_providers service_provider
     iniadd $NEUTRON_VPNAAS_CONF service_providers service_provider $NEUTRON_VPNAAS_SERVICE_PROVIDER
-    iniset $NEUTRON_CONF DEFAULT service_plugins $Q_SERVICE_PLUGIN_CLASSES
 }
 
 function neutron_vpnaas_configure_db {
