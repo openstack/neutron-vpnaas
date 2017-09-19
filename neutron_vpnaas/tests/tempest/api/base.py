@@ -149,6 +149,7 @@ class BaseNetworkTest(test.BaseTestCase):
             for network in cls.shared_networks:
                 cls._try_delete_resource(cls.admin_client.delete_network,
                                          network['id'])
+        super(BaseNetworkTest, cls).resource_cleanup()
 
     @classmethod
     def _try_delete_resource(cls, delete_callable, *args, **kwargs):
