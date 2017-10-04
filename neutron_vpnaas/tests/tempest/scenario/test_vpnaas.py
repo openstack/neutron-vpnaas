@@ -63,7 +63,7 @@ class Vpnaas(base.BaseTempestTestCase):
 
         # common
         cls.keypair = cls.create_keypair()
-        cls.secgroup = cls.manager.network_client.create_security_group(
+        cls.secgroup = cls.os_primary.network_client.create_security_group(
             name=data_utils.rand_name('secgroup-'))['security_group']
         cls.security_groups.append(cls.secgroup)
         cls.create_loginable_secgroup_rule(secgroup_id=cls.secgroup['id'])
@@ -113,7 +113,7 @@ class Vpnaas(base.BaseTempestTestCase):
             image_ref=CONF.compute.image_ref,
             key_name=self.keypair['name'],
             networks=[{'port': port['id']}])['server']
-        waiters.wait_for_server_status(self.manager.servers_client,
+        waiters.wait_for_server_status(self.os_primary.servers_client,
                                        server['id'],
                                        constants.SERVER_STATUS_ACTIVE)
         return {'port': port, 'fip': fip, 'server': server}
