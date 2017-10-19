@@ -14,7 +14,7 @@
 
 from rally.common import logging
 from rally.task import scenario
-from rally.task import types as types
+from rally.task import types
 
 import vpn_base
 LOG = logging.getLogger(__name__)
