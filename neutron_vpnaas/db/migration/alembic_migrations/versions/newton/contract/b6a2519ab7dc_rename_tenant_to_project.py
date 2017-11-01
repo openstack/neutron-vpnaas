@@ -32,7 +32,7 @@ revision = 'b6a2519ab7dc'
 down_revision = '2cb4ee992b41'
 
 # milestone identifier, used by neutron-db-manage
-neutron_milestone = [migration.NEWTON, migration.OCATA]
+neutron_milestone = [migration.NEWTON, migration.OCATA, migration.PIKE]
 
 
 _INSPECTOR = None
