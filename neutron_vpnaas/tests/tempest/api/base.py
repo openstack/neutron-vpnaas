@@ -157,5 +157,5 @@ class BaseAdminNetworkTest(BaseNetworkTest):
     @classmethod
     def setup_clients(cls):
         super(BaseAdminNetworkTest, cls).setup_clients()
-        cls.admin_client = cls.os_adm.network_client
-        cls.identity_admin_client = cls.os_adm.tenants_client
+        cls.admin_client = cls.os_admin.network_client
+        cls.identity_admin_client = cls.os_admin.tenants_client
