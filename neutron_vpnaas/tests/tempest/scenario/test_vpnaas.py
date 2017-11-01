@@ -15,12 +15,11 @@
 
 import netaddr
 
+from tempest.common import utils
 from tempest.common import waiters
-
 from tempest.lib.common import ssh
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
-from tempest import test
 
 from neutron.tests.tempest import config
 from neutron.tests.tempest.scenario import constants
@@ -57,7 +56,7 @@ class Vpnaas(base.BaseTempestTestCase):
     credentials = ['primary', 'admin']
 
     @classmethod
-    @test.requires_ext(extension="vpnaas", service="network")
+    @utils.requires_ext(extension="vpnaas", service="network")
     def resource_setup(cls):
         super(Vpnaas, cls).resource_setup()
 
