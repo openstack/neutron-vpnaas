@@ -17,7 +17,7 @@ import abc
 
 from neutron_lib.api import converters
 from neutron_lib.api import extensions
-from neutron_lib.api import validators as validators
+from neutron_lib.api import validators
 from neutron_lib.db import constants as db_const
 from neutron_lib import exceptions as nexception
 from neutron_lib.plugins import constants as nconstants
