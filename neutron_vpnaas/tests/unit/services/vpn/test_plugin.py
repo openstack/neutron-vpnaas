@@ -16,13 +16,14 @@ import contextlib
 
 import mock
 from neutron.db import servicetype_db as st_db
-from neutron.extensions import flavors
 from neutron.services.flavors.flavors_plugin import FlavorsPlugin
 from neutron.tests.unit.db import test_agentschedulers_db
 from neutron.tests.unit.extensions import test_agent as test_agent_ext_plugin
 
 from neutron_lib import constants as lib_constants
 from neutron_lib import context
+from neutron_lib import exceptions as lib_exc
+from neutron_lib.exceptions import flavors as flav_exc
 from neutron_lib.plugins import constants as p_constants
 from neutron_lib.plugins import directory
 from oslo_utils import uuidutils
@@ -288,7 +289,7 @@ class TestVPNDriverPluginMultipleDrivers(base.BaseTestCase):
         with self.vpnservices_providers_set():
             driver_plugin = vpn_plugin.VPNDriverPlugin()
             self.assertRaises(
-                flavors.InvalidFlavorServiceType,
+                lib_exc.InvalidServiceType,
                 driver_plugin._get_provider_for_flavor,
                 self.adminContext,
                 _uuid())
@@ -303,7 +304,7 @@ class TestVPNDriverPluginMultipleDrivers(base.BaseTestCase):
         with self.vpnservices_providers_set():
             driver_plugin = vpn_plugin.VPNDriverPlugin()
             self.assertRaises(
-                flavors.FlavorDisabled,
+                flav_exc.FlavorDisabled,
                 driver_plugin._get_provider_for_flavor,
                 self.adminContext,
                 _uuid())

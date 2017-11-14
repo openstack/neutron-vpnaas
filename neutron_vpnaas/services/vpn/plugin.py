@@ -15,11 +15,12 @@
 #    under the License.
 
 from neutron.db import servicetype_db as st_db
-from neutron.extensions import flavors
 from neutron.services.flavors import flavors_plugin
 from neutron.services import provider_configuration as pconf
 from neutron.services import service_base
 from neutron_lib import context as ncontext
+from neutron_lib import exceptions as lib_exc
+from neutron_lib.exceptions import flavors as flav_exc
 from neutron_lib.plugins import constants
 from neutron_lib.plugins import directory
 from oslo_log import log as logging
@@ -124,10 +125,10 @@ class VPNDriverPlugin(VPNPlugin, vpn_db.VPNPluginRpcDbMixin):
             fl_db = flavors_plugin.FlavorsPlugin.get_flavor(
                 self._flavors_plugin, context, flavor_id)
             if fl_db['service_type'] != constants.VPN:
-                raise flavors.InvalidFlavorServiceType(
+                raise lib_exc.InvalidServiceType(
                     service_type=fl_db['service_type'])
             if not fl_db['enabled']:
-                raise flavors.FlavorDisabled()
+                raise flav_exc.FlavorDisabled()
             providers = flavors_plugin.FlavorsPlugin.get_flavor_next_provider(
                 self._flavors_plugin, context, fl_db['id'])
             provider = providers[0].get('provider')
