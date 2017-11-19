@@ -16,8 +16,8 @@
 
 from tempest.lib.common.utils import data_utils
 
-from neutron.tests.tempest.api import base
-from neutron.tests.tempest import config
+from neutron_tempest_plugin.api import base
+from neutron_tempest_plugin import config
 
 from neutron_vpnaas.tests.tempest.api import clients
 

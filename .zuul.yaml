@@ -22,6 +22,7 @@
       - openstack-infra/devstack-gate
       - openstack/neutron
       - openstack/tempest
+      - openstack/neutron-tempest-plugin
 
 - job:
     name: neutron-vpnaas-dsvm-functional-sswan

@@ -33,7 +33,7 @@ As a tempest plugin, the steps to run tests by hands are:
     +----------------------+--------------------------------------------------------+
     |         Name         |                       EntryPoint                       |
     +----------------------+--------------------------------------------------------+
-    | neutron_tests        |   neutron.tests.tempest.plugin:NeutronTempestPlugin    |
+    | neutron_tests        |   neutron_tempest_plugin.plugin:NeutronTempestPlugin    |
     | neutron_vpnaas_tests |   neutron_vpnaas.tests.tempest.plugin:VPNTempestPlugin |
     +----------------------+--------------------------------------------------------+
 

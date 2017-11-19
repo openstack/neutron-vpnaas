@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from neutron.tests.tempest.scenario import base
+from neutron_tempest_plugin.scenario import base
 
 from neutron_vpnaas.tests.tempest.api import base as base_api
 

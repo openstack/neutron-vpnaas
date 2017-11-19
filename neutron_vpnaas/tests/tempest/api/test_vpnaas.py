@@ -19,7 +19,7 @@ from tempest.lib import decorators
 from tempest.lib import exceptions as lib_exc
 from tempest import test
 
-from neutron.tests.tempest import config
+from neutron_tempest_plugin import config
 
 from neutron_vpnaas.tests.tempest.api import base
 

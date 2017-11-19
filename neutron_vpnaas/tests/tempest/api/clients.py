@@ -14,9 +14,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from neutron.tests.tempest.api import clients as manager
-from neutron.tests.tempest import config
-from neutron.tests.tempest.services.network.json import network_client
+from neutron_tempest_plugin.api import clients as manager
+from neutron_tempest_plugin import config
+from neutron_tempest_plugin.services.network.json import network_client
 
 
 CONF = config.CONF
