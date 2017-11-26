@@ -26,7 +26,6 @@ import netaddr
 from neutron.agent.linux import ip_lib
 from neutron.agent.linux import utils as agent_utils
 from neutron.common import rpc as n_rpc
-from neutron.common import utils as n_utils
 from neutron.plugins.common import utils as plugin_utils
 from neutron_lib.api import validators
 from neutron_lib import constants
@@ -38,6 +37,7 @@ from oslo_log import helpers as log_helpers
 from oslo_log import log as logging
 import oslo_messaging
 from oslo_service import loopingcall
+from oslo_utils import fileutils
 import six
 
 from neutron_vpnaas._i18n import _
@@ -238,10 +238,10 @@ class BaseSwanProcess(object):
 
     def ensure_config_dir(self, vpnservice):
         """Create config directory if it does not exist."""
-        n_utils.ensure_dir(self.config_dir)
+        fileutils.ensure_tree(self.config_dir, 0o755)
         for subdir in self.CONFIG_DIRS:
             dir_path = os.path.join(self.config_dir, subdir)
-            n_utils.ensure_dir(dir_path)
+            fileutils.ensure_tree(dir_path, 0o755)
 
     def _gen_config_content(self, template_file, vpnservice):
         template = _get_template(template_file)
