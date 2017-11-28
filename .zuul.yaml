@@ -1,0 +1,56 @@
+- project:
+    name: openstack/neutron-vpnaas
+    check:
+      jobs:
+        - neutron-vpnaas-dsvm-functional-sswan
+        - neutron-vpnaas-dsvm-tempest
+    gate:
+      jobs:
+        - neutron-vpnaas-dsvm-functional-sswan
+        - neutron-vpnaas-dsvm-tempest
+    experimental:
+      jobs:
+        - neutron-vpnaas-dsvm-rally
+
+- job:
+    name: neutron-vpnaas-dsvm-tempest
+    parent: legacy-dsvm-base
+    run: playbooks/legacy/neutron-vpnaas-dsvm-tempest/run.yaml
+    post-run: playbooks/legacy/neutron-vpnaas-dsvm-tempest/post.yaml
+    timeout: 3900
+    required-projects:
+      - openstack-infra/devstack-gate
+      - openstack/neutron
+      - openstack/tempest
+
+- job:
+    name: neutron-vpnaas-dsvm-functional-sswan
+    parent: legacy-dsvm-base
+    run: playbooks/legacy/neutron-vpnaas-dsvm-functional-sswan/run.yaml
+    post-run: playbooks/legacy/neutron-vpnaas-dsvm-functional-sswan/post.yaml
+    timeout: 7800
+    required-projects:
+      - openstack-infra/devstack-gate
+      - openstack/neutron
+      - openstack/neutron-vpnaas
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^doc/.*$
+      - ^neutron-vpnaas/tests/unit/.*$
+
+- job:
+    name: neutron-vpnaas-dsvm-rally
+    parent: legacy-dsvm-base
+    run: playbooks/legacy/neutron-vpnaas-dsvm-rally/run.yaml
+    post-run: playbooks/legacy/neutron-vpnaas-dsvm-rally/post.yaml
+    timeout: 7800
+    required-projects:
+      - openstack-infra/devstack-gate
+      - openstack/neutron
+      - openstack/neutron-vpnaas
+      - openstack/rally
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^doc/.*$
+      - ^neutron-vpnaas/tests/unit/.*$
+
