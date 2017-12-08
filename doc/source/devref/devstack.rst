@@ -13,8 +13,8 @@ deploy to a multinode setup requires the following things to happen:
 
 #. Each controller node requires database migrations in support of running
    VPNaaS.
-#. Each network node that would run the L3 agent needs to run the Neutron
-   VPNaaS agent in its place.
+
+#. Each network node that would run VPNaaS L3 agent extension.
 
 Therefore, the devstack plugin script needs some extra logic.
 
@@ -49,6 +49,3 @@ This VPNaaS devstack plugin code will then
 
 #. Apply database migrations on nodes that are running the controller (as
    determined by enabling the q-svc service),
-
-#. Run the VPNaaS agent on nodes that would normally be running the L3 agent
-   (as determined by enabling the q-l3 service).
