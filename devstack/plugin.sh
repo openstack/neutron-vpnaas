@@ -7,9 +7,11 @@ set -o xtrace
 LIBDIR=$DEST/neutron-vpnaas/devstack/lib
 source $LIBDIR/l3_agent
 
+NEUTRON_L3_CONF=${NEUTRON_L3_CONF:-$Q_L3_CONF_FILE}
+
 function neutron_vpnaas_install {
     setup_develop $NEUTRON_VPNAAS_DIR
-    if is_service_enabled q-l3; then
+    if is_service_enabled q-l3 neutron-l3; then
         neutron_agent_vpnaas_install_agent_packages
     fi
 }
@@ -40,19 +42,19 @@ function neutron_vpnaas_configure_agent {
     configure_l3_agent
     if [[ "$IPSEC_PACKAGE" == "strongswan" ]]; then
         if is_fedora; then
-            iniset_multiline $Q_L3_CONF_FILE vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.fedora_strongswan_ipsec.FedoraStrongSwanDriver
+            iniset_multiline $NEUTRON_L3_CONF vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.fedora_strongswan_ipsec.FedoraStrongSwanDriver
         else
-            iniset_multiline $Q_L3_CONF_FILE vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.StrongSwanDriver
+            iniset_multiline $NEUTRON_L3_CONF vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.StrongSwanDriver
         fi
     elif [[ "$IPSEC_PACKAGE" == "libreswan" ]]; then
-        iniset_multiline $Q_L3_CONF_FILE vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.libreswan_ipsec.LibreSwanDriver
+        iniset_multiline $NEUTRON_L3_CONF vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.libreswan_ipsec.LibreSwanDriver
     else
-        iniset_multiline $Q_L3_CONF_FILE vpnagent vpn_device_driver $NEUTRON_VPNAAS_DEVICE_DRIVER
+        iniset_multiline $NEUTRON_L3_CONF vpnagent vpn_device_driver $NEUTRON_VPNAAS_DEVICE_DRIVER
     fi
 }
 
 function neutron_vpnaas_configure_db {
-    $NEUTRON_BIN_DIR/neutron-db-manage --subproject neutron-vpnaas --config-file $NEUTRON_CONF --config-file /$Q_PLUGIN_CONF_FILE upgrade head
+    $NEUTRON_BIN_DIR/neutron-db-manage --subproject neutron-vpnaas --config-file $NEUTRON_CONF upgrade head
 }
 
 function neutron_vpnaas_generate_config_files {
@@ -71,11 +73,11 @@ if [[ "$1" == "stack" && "$2" == "install" ]]; then
 elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
     neutron_vpnaas_generate_config_files
     neutron_vpnaas_configure_common
-    if is_service_enabled q-svc; then
+    if is_service_enabled q-svc neutron-api; then
         echo_summary "Configuring neutron-vpnaas on controller"
         neutron_vpnaas_configure_db
     fi
-    if is_service_enabled q-l3; then
+    if is_service_enabled q-l3 neutron-l3; then
         echo_summary "Configuring neutron-vpnaas agent"
         neutron_vpnaas_configure_agent
     fi

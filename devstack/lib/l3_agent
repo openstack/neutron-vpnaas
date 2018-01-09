@@ -1,6 +1,8 @@
 # This file is completely based on one in the neutron repository here:
 # http://git.openstack.org/cgit/openstack/neutron/tree/devstack/lib/l2_agent
 
+NEUTRON_L3_CONF=${NEUTRON_L3_CONF:-$Q_L3_CONF_FILE}
+
 function plugin_agent_add_l3_agent_extension {
     local l3_agent_extension=$1
     if [[ -z "$L3_AGENT_EXTENSIONS" ]]; then
@@ -12,5 +14,5 @@ function plugin_agent_add_l3_agent_extension {
 
 
 function configure_l3_agent {
-    iniset $Q_L3_CONF_FILE AGENT extensions "$L3_AGENT_EXTENSIONS"
+    iniset $NEUTRON_L3_CONF AGENT extensions "$L3_AGENT_EXTENSIONS"
 }
