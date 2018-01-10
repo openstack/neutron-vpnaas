@@ -252,3 +252,55 @@ class TestStrongSwanScenario(test_scenario.TestIPSecBase):
 
     def test_strongswan_connection_with_sha512(self):
         self._test_strongswan_connection_with_auth_algo('sha512')
+
+    def test_strongswan_connection_with_non_ascii_vpnservice_name(self):
+        site1 = self.create_site(test_scenario.PUBLIC_NET[4],
+                                 [self.private_nets[1]])
+        site2 = self.create_site(test_scenario.PUBLIC_NET[5],
+                                 [self.private_nets[2]])
+        site1.vpn_service.update(
+            {'name': test_scenario.NON_ASCII_VPNSERVICE_NAME})
+
+        self.check_ping(site1, site2, success=False)
+        self.check_ping(site2, site1, success=False)
+
+        self.prepare_ipsec_site_connections(site1, site2)
+        self.sync_to_create_ipsec_connections(site1, site2)
+
+        self.check_ping(site1, site2)
+        self.check_ping(site2, site1)
+
+    def test_strongswan_connection_with_non_ascii_psk(self):
+        site1 = self.create_site(test_scenario.PUBLIC_NET[4],
+                [self.private_nets[1]])
+        site2 = self.create_site(test_scenario.PUBLIC_NET[5],
+                [self.private_nets[2]])
+
+        self.check_ping(site1, site2, success=False)
+        self.check_ping(site2, site1, success=False)
+
+        self.prepare_ipsec_site_connections(site1, site2)
+        self._update_ipsec_connection(site1, psk=test_scenario.NON_ASCII_PSK)
+        self._update_ipsec_connection(site2, psk=test_scenario.NON_ASCII_PSK)
+        self.sync_to_create_ipsec_connections(site1, site2)
+
+        self.check_ping(site1, site2)
+        self.check_ping(site2, site1)
+
+    def test_strongswan_connection_with_wrong_non_ascii_psk(self):
+        site1 = self.create_site(test_scenario.PUBLIC_NET[4],
+                [self.private_nets[1]])
+        site2 = self.create_site(test_scenario.PUBLIC_NET[5],
+                [self.private_nets[2]])
+
+        self.check_ping(site1, site2, success=False)
+        self.check_ping(site2, site1, success=False)
+
+        self.prepare_ipsec_site_connections(site1, site2)
+        self._update_ipsec_connection(site1, psk=test_scenario.NON_ASCII_PSK)
+        self._update_ipsec_connection(site2,
+                                      psk=test_scenario.NON_ASCII_PSK[:-1])
+        self.sync_to_create_ipsec_connections(site1, site2)
+
+        self.check_ping(site1, site2, success=False)
+        self.check_ping(site2, site1, success=False)

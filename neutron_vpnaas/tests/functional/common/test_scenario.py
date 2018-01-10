@@ -166,6 +166,11 @@ FAKE_ROUTER = {
     'routes': []
 }
 
+# It's a long name.
+NON_ASCII_VPNSERVICE_NAME = u'\u9577\u3044\u540d\u524d\u3067\u3059'
+# I'm doing very well.
+NON_ASCII_PSK = u'\u00e7a va tr\u00e9s bien'
+
 
 def get_ovs_bridge(br_name):
     return ovs_lib.OVSBridge(br_name)

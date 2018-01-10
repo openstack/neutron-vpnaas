@@ -40,6 +40,7 @@ FAKE_HOST = 'fake_host'
 FAKE_ROUTER_ID = _uuid()
 FAKE_IPSEC_SITE_CONNECTION1_ID = _uuid()
 FAKE_IPSEC_SITE_CONNECTION2_ID = _uuid()
+FAKE_VPNSERVICE_ID = _uuid()
 FAKE_IKE_POLICY = {
     'ike_version': 'v1',
     'encryption_algorithm': 'aes-128',
@@ -58,7 +59,7 @@ FAKE_IPSEC_POLICY = {
 }
 
 FAKE_VPN_SERVICE = {
-    'id': _uuid(),
+    'id': FAKE_VPNSERVICE_ID,
     'router_id': FAKE_ROUTER_ID,
     'name': 'myvpn',
     'admin_state_up': True,
@@ -159,7 +160,7 @@ IPV6_NEXT_HOP = '''# To recognize the given IP addresses in this config
     # rightnexthop is not mandatory for ipsec, so no need in ipv6.'''
 
 EXPECTED_OPENSWAN_CONF = """
-# Configuration for myvpn
+# Configuration for %(vpnservice_id)s
 config setup
     nat_traversal=yes
 conn %%default
@@ -217,12 +218,12 @@ STRONGSWAN_AUTH_ESP = 'esp=aes128-sha1-modp1536'
 STRONGSWAN_AUTH_AH = 'ah=sha1-modp1536'
 
 EXPECTED_IPSEC_OPENSWAN_SECRET_CONF = '''
-# Configuration for myvpn
-60.0.0.4 60.0.0.5 : PSK "password"
-60.0.0.4 60.0.0.6 : PSK "password"'''
+# Configuration for %s
+60.0.0.4 60.0.0.5 : PSK 0scGFzc3dvcmQ=
+60.0.0.4 60.0.0.6 : PSK 0scGFzc3dvcmQ=''' % FAKE_VPNSERVICE_ID
 
 EXPECTED_IPSEC_STRONGSWAN_CONF = '''
-# Configuration for myvpn
+# Configuration for %(vpnservice_id)s
 config setup
 
 conn %%default
@@ -283,11 +284,11 @@ include strongswan.d/*.conf
 '''
 
 EXPECTED_IPSEC_STRONGSWAN_SECRET_CONF = '''
-# Configuration for myvpn
-60.0.0.4 60.0.0.5 : PSK "password"
+# Configuration for %s
+60.0.0.4 60.0.0.5 : PSK 0scGFzc3dvcmQ=
 
-60.0.0.4 60.0.0.6 : PSK "password"
-'''
+60.0.0.4 60.0.0.6 : PSK 0scGFzc3dvcmQ=
+''' % FAKE_VPNSERVICE_ID
 
 PLUTO_ACTIVE_STATUS = """000 "%(conn_id)s/0x1": erouted;\n
 000 #4: "%(conn_id)s/0x1":500 STATE_QUICK_R2 (IPsec SA established);""" % {
@@ -977,6 +978,7 @@ class TestOpenSwanConfigGeneration(BaseIPsecDeviceDriver):
         next_hop = IPV4_NEXT_HOP if version == 4 else IPV6_NEXT_HOP % local_ip
         peer_ips = info.get('peers', ['60.0.0.5', '60.0.0.6'])
         return EXPECTED_OPENSWAN_CONF % {
+            'vpnservice_id': FAKE_VPNSERVICE_ID,
             'next_hop': next_hop,
             'local_cidrs1': local_cidrs[0], 'local_cidrs2': local_cidrs[1],
             'local_ver': version,
@@ -1057,6 +1059,7 @@ class IPsecStrongswanConfigGeneration(BaseIPsecDeviceDriver):
         peer_ips = info.get('peers', ['60.0.0.5', '60.0.0.6'])
         auth_mode = info.get('ipsec_auth', STRONGSWAN_AUTH_ESP)
         return EXPECTED_IPSEC_STRONGSWAN_CONF % {
+            'vpnservice_id': FAKE_VPNSERVICE_ID,
             'local_cidrs1': local_cidrs[0], 'local_cidrs2': local_cidrs[1],
             'peer_cidrs1': peer_cidrs[0], 'peer_cidrs2': peer_cidrs[1],
             'left': local_ip,
