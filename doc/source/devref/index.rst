@@ -23,6 +23,38 @@ This include things like, information on the reference implementation
 flavors, design details on VPNaaS internals, and testing. Developers
 will extend this, as needed, in the future to contain more information.
 
+If you would like to contribute to the development of OpenStack, you must
+follow the steps documented at:
+https://docs.openstack.org/infra/manual/developers.html
+
+Once those steps have been completed, changes to OpenStack should be submitted
+for review via the Gerrit tool, following the workflow documented at:
+https://docs.openstack.org/infra/manual/developers.html#development-workflow
+
+Pull requests submitted through GitHub will be ignored.
+
+Bugs should be filed on Launchpad in the `neutron`__ project with ``vpnaas`` tag added.
+
+New features should be filed on Launchpad in the `neutron`__ project with ``rfe`` tag
+added in order to get decision from `neutron drivers`_ team. Before doing that, it is
+recommended to check `Request for Feature Enhancements`_ (RFE) process.
+
+.. __: https://bugs.launchpad.net/neutron/+bugs?field.tag=vpnaas
+.. __: https://bugs.launchpad.net/neutron/+bugs?field.tag=rfe
+.. _`neutron drivers`: https://review.openstack.org/#/admin/groups/464,members
+.. _`Request for Feature Enhancements`: https://docs.openstack.org/neutron/latest/contributor/policies/blueprints.html#neutron-request-for-feature-enhancements
+
+To get in touch with the neutron-vpnaas community,
+look at the following resource:
+
+- Join the ``#openstack-vpnaas`` IRC channel on Freenode. This is where the
+  VPNaaS team is available for discussion.
+- We will hold for `VPN-as-a-Service (bi-)weekly IRC meeting`
+  when needed in the near further.
+
+These are great places to get recommendations on where to start contributing
+to neutron-vpnaas.
+
 
 VPNaaS Team
 -----------
