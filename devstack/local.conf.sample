@@ -1,0 +1,15 @@
+[[local|localrc]]
+
+enable_plugin neutron-vpnaas https://git.openstack.org/openstack/neutron-vpnaas
+
+disable_service n-net
+enable_service q-svc
+enable_service q-agt
+enable_service q-dhcp
+enable_service q-l3
+enable_service q-meta
+# Optional, to enable tempest configuration as part of devstack
+enable_service tempest
+
+# IPsec driver to use. Optional, defaults to strongswan.
+IPSEC_PACKAGE="strongswan"

@@ -1,0 +1,18 @@
+[[local|localrc]]
+disable_service n-net
+enable_service q-svc
+enable_service q-agent
+enable_service q-dhcp
+enable_service q-l3
+enable_service q-meta
+enable_plugin neutron-vpnaas https://git.openstack.org/openstack/neutron-vpnaas
+
+FIXED_RANGE=10.1.0.0/24
+FIXED_NETWORK_SIZE=256
+NETWORK_GATEWAY=10.1.0.1
+PRIVATE_SUBNET_NAME=privateA
+
+PUBLIC_SUBNET_NAME=public-subnet
+FLOATING_RANGE=172.24.4.0/24
+PUBLIC_NETWORK_GATEWAY=172.24.4.10
+Q_FLOATING_ALLOCATION_POOL="start=172.24.4.11,end=172.24.4.29"

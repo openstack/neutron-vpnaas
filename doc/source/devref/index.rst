@@ -94,6 +94,7 @@ Testing
    :maxdepth: 3
 
    devstack
+   testing-with-devstack
 
 .. todo::
 
