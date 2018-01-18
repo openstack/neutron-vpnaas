@@ -1408,13 +1408,15 @@ class TestLibreSwanProcess(base.BaseTestCase):
                                                        self.vpnservice,
                                                        mock.ANY)
 
-    @mock.patch('os.remove')
     @mock.patch('os.path.exists', return_value=True)
-    def test_ensure_configs_on_restart(self, exists_mock, remove_mock):
+    def test_ensure_configs_on_restart(self, exists_mock):
         openswan_ipsec.OpenSwanProcess.ensure_configs = mock.Mock()
         with mock.patch.object(self.ipsec_process, '_execute') as fake_execute:
             self.ipsec_process.ensure_configs()
-            expected = [mock.call(['chown', '--from=%s' % os.getuid(),
+            expected = [mock.call(['rm', '-f',
+                                   self.ipsec_process._get_config_filename(
+                                       'ipsec.secrets')]),
+                        mock.call(['chown', '--from=%s' % os.getuid(),
                                    'root:root',
                                    self.ipsec_process._get_config_filename(
                                        'ipsec.secrets')]),
@@ -1422,13 +1424,11 @@ class TestLibreSwanProcess(base.BaseTestCase):
                         mock.call(['ipsec', 'checknss',
                                    self.ipsec_process.etc_dir])]
             fake_execute.assert_has_calls(expected)
-            self.assertEqual(3, fake_execute.call_count)
+            self.assertEqual(4, fake_execute.call_count)
             self.assertTrue(exists_mock.called)
-            self.assertTrue(remove_mock.called)
 
-    @mock.patch('os.remove')
     @mock.patch('os.path.exists', return_value=False)
-    def test_ensure_configs(self, exists_mock, remove_mock):
+    def test_ensure_configs(self, exists_mock):
         openswan_ipsec.OpenSwanProcess.ensure_configs = mock.Mock()
         with mock.patch.object(self.ipsec_process, '_execute') as fake_execute:
             self.ipsec_process.ensure_configs()
@@ -1442,10 +1442,8 @@ class TestLibreSwanProcess(base.BaseTestCase):
             fake_execute.assert_has_calls(expected)
             self.assertEqual(3, fake_execute.call_count)
             self.assertTrue(exists_mock.called)
-            self.assertFalse(remove_mock.called)
 
         exists_mock.reset_mock()
-        remove_mock.reset_mock()
 
         with mock.patch.object(self.ipsec_process, '_execute') as fake_execute:
             fake_execute.side_effect = [None, None, RuntimeError, None]
@@ -1462,7 +1460,6 @@ class TestLibreSwanProcess(base.BaseTestCase):
             fake_execute.assert_has_calls(expected)
             self.assertEqual(4, fake_execute.call_count)
             self.assertTrue(exists_mock.called)
-            self.assertFalse(remove_mock.called)
 
 
 class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
