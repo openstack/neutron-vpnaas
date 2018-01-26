@@ -78,6 +78,11 @@ class SubnetInUseByEndpointGroup(nexception.InUse):
     message = _("Subnet %(subnet_id)s is used by endpoint group %(group_id)s")
 
 
+class SubnetInUseByIPsecSiteConnection(nexception.InUse):
+    message = _("Subnet %(subnet_id)s is used by ipsec site connection "
+                "%(ipsec_site_connection_id)s")
+
+
 class VPNStateInvalidToUpdate(nexception.BadRequest):
     message = _("Invalid state %(state)s of vpnaas resource %(id)s"
                 " for updating")

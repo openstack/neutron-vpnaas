@@ -555,6 +555,29 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                     subnet_id=subnet_id,
                     vpnservice_id=vpnservices['id'])
 
+            query = context.session.query(vpn_models.IPsecSiteConnection)
+            query = query.join(
+                vpn_models.VPNEndpointGroup,
+                vpn_models.VPNEndpointGroup.id ==
+                vpn_models.IPsecSiteConnection.local_ep_group_id).filter(
+                vpn_models.VPNEndpointGroup.endpoint_type ==
+                v_constants.SUBNET_ENDPOINT)
+            query = query.join(
+                vpn_models.VPNEndpoint,
+                vpn_models.VPNEndpoint.endpoint_group_id ==
+                vpn_models.IPsecSiteConnection.local_ep_group_id).filter(
+                vpn_models.VPNEndpoint.endpoint == subnet_id)
+            query = query.join(
+                vpn_models.VPNService,
+                vpn_models.VPNService.id ==
+                vpn_models.IPsecSiteConnection.vpnservice_id).filter(
+                vpn_models.VPNService.router_id == router_id)
+            connection = query.first()
+            if connection:
+                raise vpnaas.SubnetInUseByIPsecSiteConnection(
+                    subnet_id=subnet_id,
+                    ipsec_site_connection_id=connection['id'])
+
     def check_subnet_in_use_by_endpoint_group(self, context, subnet_id):
         with context.session.begin(subtransactions=True):
             query = context.session.query(vpn_models.VPNEndpointGroup)
