@@ -459,31 +459,8 @@ class TestIPsecDriver(base.BaseTestCase):
             ctxt, FAKE_SERVICE_ID, v4_ip='10.0.0.99', v6_ip='2001::1')
 
     def test_validate_ipsec_policy(self):
-        # Validate IPsec Policy transform_protocol and auth_algorithm
+        # Validate IPsec Policy transform_protocol
         ipsec_policy = {'transform_protocol': 'ah-esp'}
         self.assertRaises(ipsec_validator.IpsecValidationFailure,
                           self.validator.validate_ipsec_policy,
                           self.context, ipsec_policy)
-
-        auth_algorithm = {'auth_algorithm': 'sha384'}
-        self.assertRaises(ipsec_validator.IpsecValidationFailure,
-                          self.validator.validate_ipsec_policy,
-                          self.context, auth_algorithm)
-
-        auth_algorithm = {'auth_algorithm': 'sha512'}
-        self.assertRaises(ipsec_validator.IpsecValidationFailure,
-                          self.validator.validate_ipsec_policy,
-                          self.context, auth_algorithm)
-
-    def test_validate_ike_policy(self):
-        # Validate IKE Policy auth_algorithm
-
-        auth_algorithm = {'auth_algorithm': 'sha384'}
-        self.assertRaises(ipsec_validator.IkeValidationFailure,
-                          self.validator.validate_ike_policy,
-                          self.context, auth_algorithm)
-
-        auth_algorithm = {'auth_algorithm': 'sha512'}
-        self.assertRaises(ipsec_validator.IkeValidationFailure,
-                          self.validator.validate_ike_policy,
-                          self.context, auth_algorithm)
