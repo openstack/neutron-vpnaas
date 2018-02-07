@@ -162,7 +162,6 @@ EXPECTED_OPENSWAN_CONF = """
 config setup
     nat_traversal=yes
 conn %%default
-    ikelifetime=480m
     keylife=60m
     keyingtries=%%forever
 conn %(conn1_id)s
@@ -226,7 +225,6 @@ EXPECTED_IPSEC_STRONGSWAN_CONF = '''
 config setup
 
 conn %%default
-        ikelifetime=60m
         keylife=20m
         rekeymargin=3m
         keyingtries=1
