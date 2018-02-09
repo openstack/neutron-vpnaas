@@ -139,11 +139,7 @@ class VPNaaSTestJSON(base.BaseAdminNetworkTest):
         """
         Returns the tenant_id of the client current user
         """
-        # TODO(jroovers) This is a temporary workaround to get the tenant_id
-        # of the current client. Replace this once tenant_isolation for
-        # neutron is fixed.
-        body = self.client.show_network(self.network['id'])
-        return body['network']['tenant_id']
+        return self.client.tenant_id
 
     @decorators.attr(type='smoke')
     def test_admin_create_ipsec_policy_for_tenant(self):
