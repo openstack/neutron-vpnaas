@@ -39,7 +39,7 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
         # remove it first.
         secrets_file = self._get_config_filename('ipsec.secrets')
         if os.path.exists(secrets_file):
-            os.remove(secrets_file)
+            self._execute(['rm', '-f', secrets_file])
 
         super(LibreSwanProcess, self).ensure_configs()
 
