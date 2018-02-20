@@ -1,0 +1,6 @@
+---
+prelude: >
+    Enable sha384 and sha512 auth algorithms for \*Swan drivers
+features:
+  - Users can now specify sha384 and sha512 as the auth algorithm for both IKE
+    policy and IPsec policy, when using \*Swan IPsec drivers.

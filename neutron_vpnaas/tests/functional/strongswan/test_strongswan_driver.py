@@ -227,7 +227,7 @@ class TestStrongSwanScenario(test_scenario.TestIPSecBase):
         self.check_ping(site1, site2)
         self.check_ping(site2, site1)
 
-    def test_strongswan_connection_with_sha256(self):
+    def _test_strongswan_connection_with_auth_algo(self, auth_algo):
         site1 = self.create_site(test_scenario.PUBLIC_NET[4],
                 [self.private_nets[1]])
         site2 = self.create_site(test_scenario.PUBLIC_NET[5],
@@ -237,9 +237,18 @@ class TestStrongSwanScenario(test_scenario.TestIPSecBase):
         self.check_ping(site2, site1, success=False)
 
         self.prepare_ipsec_site_connections(site1, site2)
-        self._override_auth_algorithm_for_site(site1, 'sha256')
-        self._override_auth_algorithm_for_site(site2, 'sha256')
+        self._override_auth_algorithm_for_site(site1, auth_algo)
+        self._override_auth_algorithm_for_site(site2, auth_algo)
         self.sync_to_create_ipsec_connections(site1, site2)
 
         self.check_ping(site1, site2)
         self.check_ping(site2, site1)
+
+    def test_strongswan_connection_with_sha256(self):
+        self._test_strongswan_connection_with_auth_algo('sha256')
+
+    def test_strongswan_connection_with_sha384(self):
+        self._test_strongswan_connection_with_auth_algo('sha384')
+
+    def test_strongswan_connection_with_sha512(self):
+        self._test_strongswan_connection_with_auth_algo('sha512')

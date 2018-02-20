@@ -151,6 +151,8 @@ class BaseSwanProcess(object):
         "aes-256": "aes256",
         "aes-192": "aes192",
         "sha256": "sha2_256",
+        "sha384": "sha2_384",
+        "sha512": "sha2_512",
         "group2": "modp1024",
         "group5": "modp1536",
         "group14": "modp2048",
