@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    VPNaaS support in neutron L3 agent is now implemented as L3 agent extension.
+    We no longer have a separate binary ``neutron-vpn-agent``. To enable VPNaaS
+    support in L3 agent, ensure to specify ``vpnaas`` to the configuration
+    ``extensions`` in ``[AGENT]`` section of the L3 agent config file.
+upgrade:
+  - |
+    The separate L3 agent binary ``neutron-vpn-agent`` for VPNaaS support is
+    dropped and VPNaaS support is now implemented as L3 agent extension.
+    When upgrading your deployment to Queens, ensure to specify ``vpnaas`` to
+    ``[AGENT] extensions`` configuration of the L3 agent config file and
+    run ``neutron-l3-agent`` instead of ``neutron-vpn-agent``.
