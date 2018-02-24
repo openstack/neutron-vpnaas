@@ -23,25 +23,25 @@ How to Configure
 ----------------
 
 To configure VPNaaS, it is only necessary to enable the neutron-vpnaas
-devstack plugin by adding the following line to the [[local|localrc]]
+devstack plugin by adding the following line to the ``[[local|localrc]]``
 section of devstack's local.conf file::
 
    enable_plugin neutron-vpnaas <GITURL> [BRANCH]
 
-   <GITURL> is the URL of a neutron-vpnaas repository
-   [BRANCH] is an optional git ref (branch/ref/tag).  The default is master.
+``<GITURL>`` is the URL of a neutron-vpnaas repository
+``[BRANCH]`` is an optional git ref (branch/ref/tag). The default is master.
 
-   For example::
+For example::
 
-       enable_plugin neutron-vpnaas https://git.openstack.org/openstack/neutron-vpnaas stable/kilo
+   enable_plugin neutron-vpnaas https://git.openstack.org/openstack/neutron-vpnaas stable/kilo
 
 The default implementation for IPSEC package under DevStack is 'strongswan'.
 However, depending upon the Linux distribution, you may need to override
-this value. Select 'libreswan' for Fedora/RHEL/CentOS::
+this value. Select 'libreswan' for Fedora/RHEL/CentOS.
 
-    For example, install libreswan for CentOS/RHEL 7::
+For example, install libreswan for CentOS/RHEL 7::
 
-        IPSEC_PACKAGE=libreswan
+    IPSEC_PACKAGE=libreswan
 
 This VPNaaS devstack plugin code will then
 
