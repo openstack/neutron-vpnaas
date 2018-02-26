@@ -16,7 +16,7 @@ import contextlib
 
 import mock
 from neutron.db import servicetype_db as st_db
-from neutron.services.flavors.flavors_plugin import FlavorsPlugin
+from neutron.services.flavors import flavors_plugin
 from neutron.tests.unit.db import test_agentschedulers_db
 from neutron.tests.unit.extensions import test_agent as test_agent_ext_plugin
 
@@ -282,7 +282,8 @@ class TestVPNDriverPluginMultipleDrivers(base.BaseTestCase):
 
     def test_get_provider_for_flavor_id_invalid_type(self):
         FAKE_FLAVOR = {'service_type': 'NOT_VPN'}
-        directory.add_plugin(p_constants.FLAVORS, FlavorsPlugin())
+        directory.add_plugin(p_constants.FLAVORS,
+                             flavors_plugin.FlavorsPlugin())
         mock.patch(
             'neutron.services.flavors.flavors_plugin.FlavorsPlugin.get_flavor',
             return_value=FAKE_FLAVOR).start()
@@ -297,7 +298,8 @@ class TestVPNDriverPluginMultipleDrivers(base.BaseTestCase):
     def test_get_provider_for_flavor_id_flavor_disabled(self):
         FAKE_FLAVOR = {'service_type': p_constants.VPN,
                        'enabled': False}
-        directory.add_plugin(p_constants.FLAVORS, FlavorsPlugin())
+        directory.add_plugin(p_constants.FLAVORS,
+                             flavors_plugin.FlavorsPlugin())
         mock.patch(
             'neutron.services.flavors.flavors_plugin.FlavorsPlugin.get_flavor',
             return_value=FAKE_FLAVOR).start()
@@ -315,7 +317,8 @@ class TestVPNDriverPluginMultipleDrivers(base.BaseTestCase):
                        'service_type': p_constants.VPN,
                        'enabled': True}
         PROVIDERS = [{'provider': 'SOME_PROVIDER'}]
-        directory.add_plugin(p_constants.FLAVORS, FlavorsPlugin())
+        directory.add_plugin(p_constants.FLAVORS,
+                             flavors_plugin.FlavorsPlugin())
         mock.patch(
             'neutron.services.flavors.flavors_plugin.FlavorsPlugin.get_flavor',
             return_value=FAKE_FLAVOR).start()
@@ -337,7 +340,8 @@ class TestVPNDriverPluginMultipleDrivers(base.BaseTestCase):
                        'service_type': p_constants.VPN,
                        'enabled': True}
         PROVIDERS = [{'provider': 'cisco'}]
-        directory.add_plugin(p_constants.FLAVORS, FlavorsPlugin())
+        directory.add_plugin(p_constants.FLAVORS,
+                             flavors_plugin.FlavorsPlugin())
         mock.patch(
             'neutron.services.flavors.flavors_plugin.FlavorsPlugin.get_flavor',
             return_value=FAKE_FLAVOR).start()
