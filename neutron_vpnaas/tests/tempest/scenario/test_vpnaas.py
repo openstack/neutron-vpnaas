@@ -14,6 +14,7 @@
 #    under the License.
 
 import netaddr
+import testtools
 
 from tempest.common import utils
 from tempest.common import waiters
@@ -54,6 +55,8 @@ class Vpnaas(base.BaseTempestTestCase):
     """
 
     credentials = ['primary', 'admin']
+    inner_ipv6 = False
+    outer_ipv6 = False
 
     @classmethod
     @utils.requires_ext(extension="vpnaas", service="network")
@@ -72,19 +75,52 @@ class Vpnaas(base.BaseTempestTestCase):
         cls.ipsecpolicy = cls.create_ipsecpolicy(
             data_utils.rand_name("ipsec-policy-"))
 
+        cls.extra_subnet_attributes = {}
+        if cls.inner_ipv6:
+            cls.create_v6_pingable_secgroup_rule(
+                secgroup_id=cls.secgroup['id'])
+            cls.extra_subnet_attributes['ipv6_address_mode'] = 'slaac'
+            cls.extra_subnet_attributes['ipv6_ra_mode'] = 'slaac'
+
         # LEFT
         cls.router = cls.create_router(
             data_utils.rand_name('left-router'),
             admin_state_up=True,
             external_network_id=CONF.network.public_network_id)
         cls.network = cls.create_network(network_name='left-network')
-        cls.subnet = cls.create_subnet(cls.network,
-                                       name='left-subnet')
+        ip_version = 6 if cls.inner_ipv6 else 4
+        cls.subnet = cls.create_subnet(
+            cls.network, ip_version=ip_version, name='left-subnet',
+            **cls.extra_subnet_attributes)
         cls.create_router_interface(cls.router['id'], cls.subnet['id'])
+
+        # Gives an internal IPv4 subnet for floating IP to the left server,
+        # we use it to ssh into the left server.
+        if cls.inner_ipv6:
+            v4_subnet = cls.create_subnet(
+                cls.network, ip_version=4, name='left-v4-subnet')
+            cls.create_router_interface(cls.router['id'], v4_subnet['id'])
 
         # RIGHT
         cls._right_network, cls._right_subnet, cls._right_router = \
             cls._create_right_network()
+
+    @classmethod
+    def create_v6_pingable_secgroup_rule(cls, secgroup_id=None, client=None):
+        # NOTE(huntxu): This method should be moved into the base class, along
+        # with the v4 version.
+        """This rule is intended to permit inbound ping6
+        """
+
+        rule_list = [{'protocol': 'ipv6-icmp',
+                      'direction': 'ingress',
+                      'port_range_min': 128,  # type
+                      'port_range_max': 0,  # code
+                      'ethertype': 'IPv6',
+                      'remote_ip_prefix': '::/0'}]
+        client = client or cls.os_primary.network_client
+        cls.create_secgroup_rules(rule_list, client=client,
+                                  secgroup_id=secgroup_id)
 
     @classmethod
     def _create_right_network(cls):
@@ -93,10 +129,15 @@ class Vpnaas(base.BaseTempestTestCase):
             admin_state_up=True,
             external_network_id=CONF.network.public_network_id)
         network = cls.create_network(network_name='right-network')
-        subnet = cls.create_subnet(network,
-            cidr=netaddr.IPNetwork('10.10.0.0/24'),
-            name='right-subnet')
+        v4_cidr = netaddr.IPNetwork('10.10.0.0/24')
+        v6_cidr = netaddr.IPNetwork('2003:1::/64')
+        cidr = v6_cidr if cls.inner_ipv6 else v4_cidr
+        ip_version = 6 if cls.inner_ipv6 else 4
+        subnet = cls.create_subnet(
+            network, ip_version=ip_version, cidr=cidr, name='right-subnet',
+            **cls.extra_subnet_attributes)
         cls.create_router_interface(router['id'], subnet['id'])
+
         return network, subnet, router
 
     def _create_server(self, create_floating_ip=True, network=None):
@@ -134,7 +175,13 @@ class Vpnaas(base.BaseTempestTestCase):
             site = sites[i]
             vpnservice = site['vpnservice']
             peer = sites[1 - i]
-            peer_address = peer['vpnservice']['external_v4_ip']
+            if self.outer_ipv6:
+                peer_address = peer['vpnservice']['external_v6_ip']
+                if not peer_address:
+                    msg = "Public network must have an IPv6 subnet."
+                    raise self.skipException(msg)
+            else:
+                peer_address = peer['vpnservice']['external_v4_ip']
             self.create_ipsec_site_connection(
                 self.ikepolicy['id'],
                 self.ipsecpolicy['id'],
@@ -146,11 +193,20 @@ class Vpnaas(base.BaseTempestTestCase):
                 name=data_utils.rand_name(
                     '%s-ipsec-site-connection' % site['name']))
 
-    @decorators.idempotent_id('aa932ab2-63aa-49cf-a2a0-8ae71ac2bc24')
-    def test_vpnaas(self):
+    def _get_ip_on_subnet_for_port(self, port, subnet_id):
+        for fixed_ip in port['fixed_ips']:
+            if fixed_ip['subnet_id'] == subnet_id:
+                return fixed_ip['ip_address']
+        msg = "Cannot get IP address on specified subnet %s for port %r." % (
+            subnet_id, port)
+        raise self.fail(msg)
+
+    def _test_vpnaas(self):
         # RIGHT
         right_server = self._create_server(network=self._right_network,
             create_floating_ip=False)
+        right_ip = self._get_ip_on_subnet_for_port(
+            right_server['port'], self._right_subnet['id'])
 
         # LEFT
         left_server = self._create_server()
@@ -159,19 +215,58 @@ class Vpnaas(base.BaseTempestTestCase):
                                 pkey=self.keypair['private_key'])
 
         # check LEFT -> RIGHT connectivity via VPN
-        self.check_remote_connectivity(ssh_client,
-            right_server['port']['fixed_ips'][0]['ip_address'],
-            should_succeed=False)
+        self.check_remote_connectivity(ssh_client, right_ip,
+                                       should_succeed=False)
         self._setup_vpn()
-        self.check_remote_connectivity(ssh_client,
-            right_server['port']['fixed_ips'][0]['ip_address'])
+        self.check_remote_connectivity(ssh_client, right_ip)
 
-        # Assign a floating-ip and check connectivity.
-        # This is NOT via VPN.
-        fip = self.create_and_associate_floatingip(right_server['port']['id'])
-        self.check_remote_connectivity(ssh_client, fip['floating_ip_address'])
+        # Test VPN traffic and floating IP traffic don't interfere each other.
+        if not self.inner_ipv6:
+            # Assign a floating-ip and check connectivity.
+            # This is NOT via VPN.
+            fip = self.create_and_associate_floatingip(
+                right_server['port']['id'])
+            self.check_remote_connectivity(ssh_client,
+                                           fip['floating_ip_address'])
 
-        # check LEFT -> RIGHT connectivity via VPN again, to ensure
-        # the above floating-ip doesn't interfere the traffic.
-        self.check_remote_connectivity(ssh_client,
-            right_server['port']['fixed_ips'][0]['ip_address'])
+            # check LEFT -> RIGHT connectivity via VPN again, to ensure
+            # the above floating-ip doesn't interfere the traffic.
+            self.check_remote_connectivity(ssh_client, right_ip)
+
+
+class Vpnaas4in4(Vpnaas):
+
+    @decorators.idempotent_id('aa932ab2-63aa-49cf-a2a0-8ae71ac2bc24')
+    def test_vpnaas(self):
+        self._test_vpnaas()
+
+
+class Vpnaas4in6(Vpnaas):
+    outer_ipv6 = True
+
+    @decorators.idempotent_id('2d5f18dc-6186-4deb-842b-051325bd0466')
+    @testtools.skipUnless(CONF.network_feature_enabled.ipv6,
+                          'IPv6 tests are disabled.')
+    def test_vpnaas_4in6(self):
+        self._test_vpnaas()
+
+
+class Vpnaas6in4(Vpnaas):
+    inner_ipv6 = True
+
+    @decorators.idempotent_id('10febf33-c5b7-48af-aa13-94b4fb585a55')
+    @testtools.skipUnless(CONF.network_feature_enabled.ipv6,
+                          'IPv6 tests are disabled.')
+    def test_vpnaas_6in4(self):
+        self._test_vpnaas()
+
+
+class Vpnaas6in6(Vpnaas):
+    inner_ipv6 = True
+    outer_ipv6 = True
+
+    @decorators.idempotent_id('8b503ffc-aeb0-4938-8dba-73c7323e276d')
+    @testtools.skipUnless(CONF.network_feature_enabled.ipv6,
+                          'IPv6 tests are disabled.')
+    def test_vpnaas_6in6(self):
+        self._test_vpnaas()
