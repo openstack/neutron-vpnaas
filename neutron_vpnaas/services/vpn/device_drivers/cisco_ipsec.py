@@ -15,10 +15,10 @@
 import collections
 
 from neutron.common import rpc as n_rpc
-from neutron.plugins.common import utils as plugin_utils
 from neutron_lib import constants
 from neutron_lib import context as ctx
 from neutron_lib import exceptions as nexception
+from neutron_lib.plugins import utils as plugin_utils
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log as logging

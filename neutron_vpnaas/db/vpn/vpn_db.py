@@ -16,7 +16,6 @@
 
 from neutron.db import common_db_mixin as base_db
 from neutron.db import models_v2
-from neutron.plugins.common import utils
 from neutron_lib.callbacks import events
 from neutron_lib.callbacks import registry
 from neutron_lib.callbacks import resources
@@ -24,6 +23,7 @@ from neutron_lib import constants as lib_constants
 from neutron_lib.exceptions import l3 as l3_exception
 from neutron_lib.plugins import constants as p_constants
 from neutron_lib.plugins import directory
+from neutron_lib.plugins import utils
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import uuidutils
