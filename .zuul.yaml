@@ -22,6 +22,11 @@
       - openstack/neutron
       - openstack/tempest
       - openstack/neutron-tempest-plugin
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^doc/.*$
+      - ^neutron-vpnaas/tests/unit/.*$
+      - ^releasenotes/.*$
 
 - job:
     name: neutron-vpnaas-dsvm-functional-sswan
@@ -37,6 +42,7 @@
       - ^.*\.rst$
       - ^doc/.*$
       - ^neutron-vpnaas/tests/unit/.*$
+      - ^releasenotes/.*$
 
 - job:
     name: neutron-vpnaas-dsvm-rally
@@ -53,4 +59,5 @@
       - ^.*\.rst$
       - ^doc/.*$
       - ^neutron-vpnaas/tests/unit/.*$
+      - ^releasenotes/.*$
 
