@@ -26,10 +26,6 @@ It includes both of in-tree and out-of-tree drivers.
 +----------------------------+---------------------------+------------------+
 | Driver                     | Contact person            | IRC nick         |
 +============================+===========================+==================+
-| CiscoCsrIPsecDriver        | ???                       | ???              |
-+----------------------------+---------------------------+------------------+
-| FedoraStrongSwanDriver     | ???                       | ???              |
-+----------------------------+---------------------------+------------------+
 | LibreSwanDriver            | Hunt Xu                   | huntxu           |
 +----------------------------+---------------------------+------------------+
 | MidonetIPsecVPNDriver [#]_ | YAMAMOTO Takashi          | yamamoto         |
@@ -41,8 +37,6 @@ It includes both of in-tree and out-of-tree drivers.
 |                            | Lingxian Kong             | kong             |
 | StrongSwanDriver           +---------------------------+------------------+
 |                            | Cao Xuan Hoang            | hoangcx          |
-+----------------------------+---------------------------+------------------+
-| VyattaIPsecDriver          | ???                       | ???              |
 +----------------------------+---------------------------+------------------+
 
 .. [#] networking-midonet: https://docs.openstack.org/networking-midonet/latest/install/installation.html#vpnaas

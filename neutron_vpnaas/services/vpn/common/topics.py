@@ -16,7 +16,3 @@
 
 IPSEC_DRIVER_TOPIC = 'ipsec_driver'
 IPSEC_AGENT_TOPIC = 'ipsec_agent'
-CISCO_IPSEC_DRIVER_TOPIC = 'cisco_csr_ipsec_driver'
-CISCO_IPSEC_AGENT_TOPIC = 'cisco_csr_ipsec_agent'
-BROCADE_IPSEC_DRIVER_TOPIC = 'brocade_vyatta_ipsec_driver'
-BROCADE_IPSEC_AGENT_TOPIC = 'brocade_vyatta_ipsec_agent'

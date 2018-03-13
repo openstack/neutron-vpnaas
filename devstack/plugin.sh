@@ -41,11 +41,7 @@ function neutron_vpnaas_configure_agent {
     plugin_agent_add_l3_agent_extension vpnaas
     configure_l3_agent
     if [[ "$IPSEC_PACKAGE" == "strongswan" ]]; then
-        if is_fedora; then
-            iniset_multiline $NEUTRON_L3_CONF vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.fedora_strongswan_ipsec.FedoraStrongSwanDriver
-        else
-            iniset_multiline $NEUTRON_L3_CONF vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.StrongSwanDriver
-        fi
+        iniset_multiline $NEUTRON_L3_CONF vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.StrongSwanDriver
     elif [[ "$IPSEC_PACKAGE" == "libreswan" ]]; then
         iniset_multiline $NEUTRON_L3_CONF vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.libreswan_ipsec.LibreSwanDriver
     else

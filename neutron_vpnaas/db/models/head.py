@@ -24,7 +24,6 @@ Based on this comparison database can be healed with healing migration.
 from neutron.db.migration.models import head
 
 from neutron_vpnaas.db.vpn import vpn_db  # noqa
-from neutron_vpnaas.services.vpn.service_drivers import cisco_csr_db  # noqa
 
 
 def get_metadata():

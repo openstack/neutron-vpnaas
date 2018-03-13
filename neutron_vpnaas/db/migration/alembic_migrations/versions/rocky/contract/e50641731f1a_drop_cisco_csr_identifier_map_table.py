@@ -1,3 +1,5 @@
+# Copyright 2018, Fujitsu Vietnam Limited
+#
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -9,18 +11,22 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+#
 
-import logging as sys_logging
+"""drop cisco_csr_identifier_map table
 
-from oslo_reports import guru_meditation_report as gmr
+Revision ID: e50641731f1a
+Revises: b6a2519ab7dc
+Create Date: 2018-02-28 10:28:59.846652
 
-from neutron_vpnaas import version
+"""
 
-# During the call to gmr.TextGuruMeditation.setup_autorun(), Guru Meditation
-# Report tries to start logging. Set a handler here to accommodate this.
-logger = sys_logging.getLogger(None)
-if not logger.handlers:
-    logger.addHandler(sys_logging.StreamHandler())
+from alembic import op
 
-_version_string = version.version_info.release_string()
-gmr.TextGuruMeditation.setup_autorun(version=_version_string)
+# revision identifiers, used by Alembic.
+revision = 'e50641731f1a'
+down_revision = 'b6a2519ab7dc'
+
+
+def upgrade():
+    op.drop_table('cisco_csr_identifier_map')
