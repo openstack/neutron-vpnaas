@@ -572,7 +572,7 @@ class OpenSwanProcess(BaseSwanProcess):
             return routes.split(' ')[2]
         return address
 
-    def _virtual_privates(self):
+    def _virtual_privates(self, vpnservice):
         """Returns line of virtual_privates.
 
         virtual_private contains the networks
@@ -580,13 +580,76 @@ class OpenSwanProcess(BaseSwanProcess):
         """
         virtual_privates = []
         nets = []
-        for ipsec_site_conn in self.vpnservice['ipsec_site_connections']:
+        for ipsec_site_conn in vpnservice['ipsec_site_connections']:
             nets += ipsec_site_conn['local_cidrs']
             nets += ipsec_site_conn['peer_cidrs']
         for net in nets:
             version = netaddr.IPNetwork(net).version
             virtual_privates.append('%%v%s:%s' % (version, net))
+        virtual_privates.sort()
         return ','.join(virtual_privates)
+
+    def _gen_config_content(self, template_file, vpnservice):
+        template = _get_template(template_file)
+        virtual_privates = self._virtual_privates(vpnservice)
+        return template.render(
+            {'vpnservice': vpnservice,
+             'virtual_privates': virtual_privates})
+
+    def start_pluto(self):
+        cmd = [self.binary,
+               'pluto',
+               '--ctlbase', self.pid_path,
+               '--ipsecdir', self.etc_dir,
+               '--use-netkey',
+               '--uniqueids',
+               '--nat_traversal',
+               '--secretsfile', self.secrets_file]
+
+        if self.conf.ipsec.enable_detailed_logging:
+            cmd += ['--perpeerlog', '--perpeerlogbase', self.log_dir]
+        self._execute(cmd)
+
+    def add_ipsec_connection(self, nexthop, conn_id):
+        self._execute([self.binary,
+                       'addconn',
+                       '--ctlbase', '%s.ctl' % self.pid_path,
+                       '--defaultroutenexthop', nexthop,
+                       '--config', self.config_file, conn_id
+                       ])
+
+    def start_whack_listening(self):
+        #TODO(nati) fix this when openswan is fixed
+        #Due to openswan bug, this command always exit with 3
+        self._execute([self.binary,
+                       'whack',
+                       '--ctlbase', self.pid_path,
+                       '--listen'
+                       ], check_exit_code=False)
+
+    def shutdown_whack(self):
+        self._execute([self.binary,
+                       'whack',
+                       '--ctlbase', self.pid_path,
+                       '--shutdown'
+                       ])
+
+    def initiate_connection(self, conn_name):
+        self._execute([self.binary,
+                       'whack',
+                       '--ctlbase', self.pid_path,
+                       '--name', conn_name,
+                       '--asynchronous',
+                       '--initiate'
+                       ])
+
+    def terminate_connection(self, conn_name):
+        self._execute([self.binary,
+                       'whack',
+                       '--ctlbase', self.pid_path,
+                       '--name', conn_name,
+                       '--terminate'
+                       ])
 
     def start(self):
         """Start the process.
@@ -612,21 +675,9 @@ class OpenSwanProcess(BaseSwanProcess):
         if not self._process_running():
             self._cleanup_control_files()
 
-        virtual_private = self._virtual_privates()
         #start pluto IKE keying daemon
-        cmd = [self.binary,
-               'pluto',
-               '--ctlbase', self.pid_path,
-               '--ipsecdir', self.etc_dir,
-               '--use-netkey',
-               '--uniqueids',
-               '--nat_traversal',
-               '--secretsfile', self.secrets_file,
-               '--virtual_private', virtual_private]
+        self.start_pluto()
 
-        if self.conf.ipsec.enable_detailed_logging:
-            cmd += ['--perpeerlog', '--perpeerlogbase', self.log_dir]
-        self._execute(cmd)
         #add connections
         for ipsec_site_conn in self.vpnservice['ipsec_site_connections']:
             # Don't add a connection if its admin state is down
@@ -634,34 +685,17 @@ class OpenSwanProcess(BaseSwanProcess):
                 continue
             nexthop = self._get_nexthop(ipsec_site_conn['peer_address'],
                                         ipsec_site_conn['id'])
-            self._execute([self.binary,
-                           'addconn',
-                           '--ctlbase', '%s.ctl' % self.pid_path,
-                           '--defaultroutenexthop', nexthop,
-                           '--config', self.config_file,
-                           ipsec_site_conn['id']
-                           ])
-        #TODO(nati) fix this when openswan is fixed
-        #Due to openswan bug, this command always exit with 3
+            self.add_ipsec_connection(nexthop, ipsec_site_conn['id'])
+
         #start whack ipsec keying daemon
-        self._execute([self.binary,
-                       'whack',
-                       '--ctlbase', self.pid_path,
-                       '--listen',
-                       ], check_exit_code=False)
+        self.start_whack_listening()
 
         for ipsec_site_conn in self.vpnservice['ipsec_site_connections']:
             if (not ipsec_site_conn['initiator'] == 'start' or
                     not ipsec_site_conn['admin_state_up']):
                 continue
             #initiate ipsec connection
-            self._execute([self.binary,
-                           'whack',
-                           '--ctlbase', self.pid_path,
-                           '--name', ipsec_site_conn['id'],
-                           '--asynchronous',
-                           '--initiate'
-                           ])
+            self.initiate_connection(ipsec_site_conn['id'])
         self._copy_configs()
 
     def get_established_connections(self):
@@ -690,22 +724,13 @@ class OpenSwanProcess(BaseSwanProcess):
 
         connections = self.get_established_connections()
         for conn_name in connections:
-            self._execute([self.binary,
-                           'whack',
-                           '--ctlbase', self.pid_path,
-                           '--name', '%s' % conn_name,
-                           '--terminate'
-                           ])
+            self.terminate_connection(conn_name)
 
     def stop(self):
         #Stop process using whack
         #Note this will also stop pluto
         self.disconnect()
-        self._execute([self.binary,
-                       'whack',
-                       '--ctlbase', self.pid_path,
-                       '--shutdown',
-                       ])
+        self.shutdown_whack()
         self.connection_status = {}
 
 

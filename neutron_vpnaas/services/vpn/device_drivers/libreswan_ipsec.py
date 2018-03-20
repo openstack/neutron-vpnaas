@@ -15,7 +15,11 @@
 import os
 import os.path
 
+from neutron.agent.linux import ip_lib
+
 from neutron_vpnaas.services.vpn.device_drivers import ipsec
+
+NS_WRAPPER = 'neutron-vpn-netns-wrapper'
 
 
 class LibreSwanProcess(ipsec.OpenSwanProcess):
@@ -26,6 +30,33 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
     def __init__(self, conf, process_id, vpnservice, namespace):
         super(LibreSwanProcess, self).__init__(conf, process_id,
                                               vpnservice, namespace)
+
+    def _ipsec_execute(self, cmd, check_exit_code=True, extra_ok_codes=None):
+        """Execute ipsec command on namespace.
+
+        This execute is wrapped by namespace wrapper.
+        The namespace wrapper will bind /etc and /var/run
+        """
+        ip_wrapper = ip_lib.IPWrapper(namespace=self.namespace)
+        mount_paths = {'/etc': '%s/etc' % self.config_dir,
+                       '/var/run': '%s/var/run' % self.config_dir}
+        mount_paths_str = ','.join(
+            "%s:%s" % (source, target)
+            for source, target in mount_paths.items())
+        return ip_wrapper.netns.execute(
+            [NS_WRAPPER,
+             '--mount_paths=%s' % mount_paths_str,
+             '--cmd=%s,%s' % (self.binary, ','.join(cmd))],
+            check_exit_code=check_exit_code,
+            extra_ok_codes=extra_ok_codes)
+
+    def _ensure_needed_files(self):
+        # addconn reads from /etc/hosts and /etc/resolv.conf. As /etc would be
+        # bind-mounted, create these two empty files in the target directory.
+        with open('%s/etc/hosts' % self.config_dir, 'a'):
+            pass
+        with open('%s/etc/resolv.conf' % self.config_dir, 'a'):
+            pass
 
     def ensure_configs(self):
         """Generate config files which are needed for Libreswan.
@@ -50,15 +81,54 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
         self._execute(['chown', '--from=%s' % os.getuid(), 'root:root',
                        secrets_file])
 
+        # Libreswan needs to write logs to this directory.
+        self._execute(['chown', '--from=%s' % os.getuid(), 'root:root',
+                       self.log_dir])
+
+        self._ensure_needed_files()
+
         # Load the ipsec kernel module if not loaded
-        self._execute([self.binary, '_stackmanager', 'start'])
+        self._ipsec_execute(['_stackmanager', 'start'])
         # checknss creates nssdb only if it is missing
         # It is added in Libreswan version v3.10
         # For prior versions use initnss
         try:
-            self._execute([self.binary, 'checknss', self.etc_dir])
+            self._ipsec_execute(['checknss'])
         except RuntimeError:
-            self._execute([self.binary, 'initnss', self.etc_dir])
+            self._ipsec_execute(['initnss'])
+
+    def get_status(self):
+        return self._ipsec_execute(['whack', '--status'],
+                                   extra_ok_codes=[1, 3])
+
+    def start_pluto(self):
+        cmd = ['pluto',
+               '--use-netkey',
+               '--uniqueids']
+
+        if self.conf.ipsec.enable_detailed_logging:
+            cmd += ['--perpeerlog', '--perpeerlogbase', self.log_dir]
+        self._ipsec_execute(cmd)
+
+    def add_ipsec_connection(self, nexthop, conn_id):
+        # Connections will be automatically added as auto=start/add for
+        # initiator=bi-directional/response-only specified in the config.
+        pass
+
+    def start_whack_listening(self):
+        # NOTE(huntxu): This is a workaround for with a weak (len<8) secret,
+        # "ipsec whack --listen" will exit with 3.
+        self._ipsec_execute(['whack', '--listen'], extra_ok_codes=[3])
+
+    def shutdown_whack(self):
+        self._ipsec_execute(['whack', '--shutdown'])
+
+    def initiate_connection(self, conn_name):
+        self._ipsec_execute(
+            ['whack', '--name', conn_name, '--asynchronous', '--initiate'])
+
+    def terminate_connection(self, conn_name):
+        self._ipsec_execute(['whack', '--name', conn_name, '--terminate'])
 
 
 class LibreSwanDriver(ipsec.IPsecDriver):

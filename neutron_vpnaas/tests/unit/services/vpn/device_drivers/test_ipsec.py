@@ -19,6 +19,7 @@ import os
 import socket
 
 import mock
+import netaddr
 from neutron.agent.l3 import dvr_edge_router
 from neutron.agent.l3 import dvr_snat_ns
 from neutron.agent.l3 import legacy_router
@@ -137,7 +138,7 @@ OPENSWAN_CONNECTION_DETAILS = '''# rightsubnet=networkA/netmaskA, networkB/netma
     # IPsecPolicys params
     ##########################
     # [transform_protocol]
-    auth=%(auth_mode)s
+    phase2=%(auth_mode)s
     # [encapsulation_mode]
     type=%(encapsulation_mode)s
     # [lifetime_value]
@@ -161,6 +162,7 @@ EXPECTED_OPENSWAN_CONF = """
 # Configuration for myvpn
 config setup
     nat_traversal=yes
+    virtual_private=%(virtual_privates)s
 conn %%default
     ikelifetime=480m
     keylife=60m
@@ -959,6 +961,7 @@ class TestOpenSwanConfigGeneration(BaseIPsecDeviceDriver):
                 'ike_lifetime': 3600,
                 'life_time': 3600,
                 'encapsulation_mode': 'tunnel'}
+        virtual_privates = []
         # Convert local CIDRs into assignment strings. IF more than one,
         # pluralize the attribute name and enclose in brackets.
         cidrs = info.get('local_cidrs', [['10.0.0.0/24'], ['11.0.0.0/24']])
@@ -968,15 +971,24 @@ class TestOpenSwanConfigGeneration(BaseIPsecDeviceDriver):
                 local_cidrs.append("s={ %s }" % ' '.join(cidr))
             else:
                 local_cidrs.append("=%s" % cidr[0])
+            for net in cidr:
+                version = netaddr.IPNetwork(net).version
+                virtual_privates.append('%%v%s:%s' % (version, net))
         # Convert peer CIDRs into space separated strings
         cidrs = info.get('peer_cidrs', [['20.0.0.0/24', '30.0.0.0/24'],
                                         ['40.0.0.0/24', '50.0.0.0/24']])
+        for cidr in cidrs:
+            for net in cidr:
+                version = netaddr.IPNetwork(net).version
+                virtual_privates.append('%%v%s:%s' % (version, net))
         peer_cidrs = [' '.join(cidr) for cidr in cidrs]
         local_ip = info.get('local', '60.0.0.4')
         version = info.get('local_ip_vers', 4)
         next_hop = IPV4_NEXT_HOP if version == 4 else IPV6_NEXT_HOP % local_ip
         peer_ips = info.get('peers', ['60.0.0.5', '60.0.0.6'])
+        virtual_privates.sort()
         return EXPECTED_OPENSWAN_CONF % {
+            'virtual_privates': ','.join(virtual_privates),
             'next_hop': next_hop,
             'local_cidrs1': local_cidrs[0], 'local_cidrs2': local_cidrs[1],
             'local_ver': version,
@@ -1411,17 +1423,29 @@ class TestLibreSwanProcess(base.BaseTestCase):
     @mock.patch('os.path.exists', return_value=True)
     def test_ensure_configs_on_restart(self, exists_mock, remove_mock):
         openswan_ipsec.OpenSwanProcess.ensure_configs = mock.Mock()
-        with mock.patch.object(self.ipsec_process, '_execute') as fake_execute:
+        with mock.patch.object(
+            self.ipsec_process, '_execute'
+        ) as fake_execute, mock.patch.object(
+            self.ipsec_process, '_ipsec_execute'
+        ) as fake_ipsec_execute, mock.patch.object(
+            self.ipsec_process, '_ensure_needed_files'
+        ) as fake_ensure_needed_files:
             self.ipsec_process.ensure_configs()
             expected = [mock.call(['chown', '--from=%s' % os.getuid(),
                                    'root:root',
                                    self.ipsec_process._get_config_filename(
                                        'ipsec.secrets')]),
-                        mock.call(['ipsec', '_stackmanager', 'start']),
-                        mock.call(['ipsec', 'checknss',
-                                   self.ipsec_process.etc_dir])]
+                        mock.call(['chown', '--from=%s' % os.getuid(),
+                                   'root:root', self.ipsec_process.log_dir])]
             fake_execute.assert_has_calls(expected)
-            self.assertEqual(3, fake_execute.call_count)
+            self.assertEqual(2, fake_execute.call_count)
+
+            expected = [mock.call(['_stackmanager', 'start']),
+                        mock.call(['checknss'])]
+            fake_ipsec_execute.assert_has_calls(expected)
+            self.assertEqual(2, fake_ipsec_execute.call_count)
+
+            self.assertTrue(fake_ensure_needed_files.called)
             self.assertTrue(exists_mock.called)
             self.assertTrue(remove_mock.called)
 
@@ -1429,37 +1453,62 @@ class TestLibreSwanProcess(base.BaseTestCase):
     @mock.patch('os.path.exists', return_value=False)
     def test_ensure_configs(self, exists_mock, remove_mock):
         openswan_ipsec.OpenSwanProcess.ensure_configs = mock.Mock()
-        with mock.patch.object(self.ipsec_process, '_execute') as fake_execute:
+        with mock.patch.object(
+            self.ipsec_process, '_execute'
+        ) as fake_execute, mock.patch.object(
+            self.ipsec_process, '_ipsec_execute'
+        ) as fake_ipsec_execute, mock.patch.object(
+            self.ipsec_process, '_ensure_needed_files'
+        ) as fake_ensure_needed_files:
             self.ipsec_process.ensure_configs()
+
             expected = [mock.call(['chown', '--from=%s' % os.getuid(),
                                    'root:root',
                                    self.ipsec_process._get_config_filename(
                                        'ipsec.secrets')]),
-                        mock.call(['ipsec', '_stackmanager', 'start']),
-                        mock.call(['ipsec', 'checknss',
-                                   self.ipsec_process.etc_dir])]
+                        mock.call(['chown', '--from=%s' % os.getuid(),
+                                   'root:root', self.ipsec_process.log_dir])]
             fake_execute.assert_has_calls(expected)
-            self.assertEqual(3, fake_execute.call_count)
+            self.assertEqual(2, fake_execute.call_count)
+
+            expected = [mock.call(['_stackmanager', 'start']),
+                        mock.call(['checknss'])]
+            fake_ipsec_execute.assert_has_calls(expected)
+            self.assertEqual(2, fake_ipsec_execute.call_count)
+
+            self.assertTrue(fake_ensure_needed_files.called)
             self.assertTrue(exists_mock.called)
             self.assertFalse(remove_mock.called)
 
         exists_mock.reset_mock()
         remove_mock.reset_mock()
 
-        with mock.patch.object(self.ipsec_process, '_execute') as fake_execute:
-            fake_execute.side_effect = [None, None, RuntimeError, None]
+        with mock.patch.object(
+            self.ipsec_process, '_execute'
+        ) as fake_execute, mock.patch.object(
+            self.ipsec_process, '_ipsec_execute'
+        ) as fake_ipsec_execute, mock.patch.object(
+            self.ipsec_process, '_ensure_needed_files'
+        ) as fake_ensure_needed_files:
+            fake_ipsec_execute.side_effect = [None, RuntimeError, None]
             self.ipsec_process.ensure_configs()
+
             expected = [mock.call(['chown', '--from=%s' % os.getuid(),
                                    'root:root',
                                    self.ipsec_process._get_config_filename(
                                        'ipsec.secrets')]),
-                        mock.call(['ipsec', '_stackmanager', 'start']),
-                        mock.call(['ipsec', 'checknss',
-                                   self.ipsec_process.etc_dir]),
-                        mock.call(['ipsec', 'initnss',
-                                   self.ipsec_process.etc_dir])]
+                        mock.call(['chown', '--from=%s' % os.getuid(),
+                                   'root:root', self.ipsec_process.log_dir])]
             fake_execute.assert_has_calls(expected)
-            self.assertEqual(4, fake_execute.call_count)
+            self.assertEqual(2, fake_execute.call_count)
+
+            expected = [mock.call(['_stackmanager', 'start']),
+                        mock.call(['checknss']),
+                        mock.call(['initnss'])]
+            self.assertEqual(3, fake_ipsec_execute.call_count)
+            fake_ipsec_execute.assert_has_calls(expected)
+
+            self.assertTrue(fake_ensure_needed_files.called)
             self.assertTrue(exists_mock.called)
             self.assertFalse(remove_mock.called)
 

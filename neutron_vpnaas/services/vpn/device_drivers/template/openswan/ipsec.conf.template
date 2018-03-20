@@ -1,6 +1,7 @@
 # Configuration for {{vpnservice.name}}
 config setup
     nat_traversal=yes
+    virtual_private={{virtual_privates}}
 conn %default
     ikelifetime=480m
     keylife=60m
@@ -70,7 +71,7 @@ conn {{ipsec_site_connection.id}}
     # IPsecPolicys params
     ##########################
     # [transform_protocol]
-    auth={{ipsec_site_connection.ipsecpolicy.transform_protocol}}
+    phase2={{ipsec_site_connection.ipsecpolicy.transform_protocol}}
     {% if ipsec_site_connection.ipsecpolicy.transform_protocol == "ah" -%}
     # AH protocol does not support encryption
     # [auth_algorithm]-[pfs]
