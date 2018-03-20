@@ -1,0 +1,4 @@
+---
+fixes:
+  - The libreswan driver of neutron-vpnaas can now also work with Libreswan
+    3.19+ (bug `#1711456 <https://launchpad.net/bugs/1711456>`_).

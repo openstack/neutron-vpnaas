@@ -17,4 +17,4 @@ rm_file: RegExpFilter, rm, root, rm, -f, .*/ipsec.secrets
 strongswan: CommandFilter, strongswan, root
 neutron_netns_wrapper: CommandFilter, neutron-vpn-netns-wrapper, root
 neutron_netns_wrapper_local: CommandFilter, /usr/local/bin/neutron-vpn-netns-wrapper, root
-chown: RegExpFilter, chown, root, chown, --from=.*, root.root, .*/ipsec.secrets
+chown: RegExpFilter, chown, root, chown, --from=.*, root.root, .*/(ipsec.secrets|ipsec/[0-9a-z-]+/log)

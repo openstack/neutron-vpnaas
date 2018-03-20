@@ -14,6 +14,7 @@
 #    under the License.
 
 import netaddr
+from oslo_config import cfg
 import testtools
 
 from tempest.common import utils
@@ -29,6 +30,23 @@ from neutron_vpnaas.tests.tempest.scenario import base
 
 
 CONF = config.CONF
+
+# NOTE(huntxu): This is a workaround due to a upstream bug [1].
+# VPNaaS 4in6 and 6in4 is not working properly with LibreSwan 3.19+.
+# In OpenStack zuul checks the base CentOS 7 node is using Libreswan 3.20 on
+# CentOS 7.4. So we need to provide a way to skip the 4in6 and 6in4 test cases
+# for zuul.
+#
+# Once the upstream bug gets fixed and the base node uses a newer version of
+# Libreswan with that fix, we can remove this.
+#
+# [1] https://github.com/libreswan/libreswan/issues/175
+CONF.register_opt(
+    cfg.BoolOpt('skip_4in6_6in4_tests',
+                default=False,
+                help='Whether to skip 4in6 and 6in4 test cases.'),
+    'neutron_vpnaas_plugin_options'
+)
 
 
 class Vpnaas(base.BaseTempestTestCase):
@@ -247,6 +265,9 @@ class Vpnaas4in6(Vpnaas):
     @decorators.idempotent_id('2d5f18dc-6186-4deb-842b-051325bd0466')
     @testtools.skipUnless(CONF.network_feature_enabled.ipv6,
                           'IPv6 tests are disabled.')
+    @testtools.skipIf(
+        CONF.neutron_vpnaas_plugin_options.skip_4in6_6in4_tests,
+        'VPNaaS 4in6 test is skipped.')
     def test_vpnaas_4in6(self):
         self._test_vpnaas()
 
@@ -257,6 +278,9 @@ class Vpnaas6in4(Vpnaas):
     @decorators.idempotent_id('10febf33-c5b7-48af-aa13-94b4fb585a55')
     @testtools.skipUnless(CONF.network_feature_enabled.ipv6,
                           'IPv6 tests are disabled.')
+    @testtools.skipIf(
+        CONF.neutron_vpnaas_plugin_options.skip_4in6_6in4_tests,
+        'VPNaaS 6in4 test is skipped.')
     def test_vpnaas_6in4(self):
         self._test_vpnaas()
 
