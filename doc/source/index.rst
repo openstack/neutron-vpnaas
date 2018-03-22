@@ -27,30 +27,28 @@ The `VPNaaS API`_ is implementation as an extension to Neutron's networking API:
 
 Enjoy!
 
-User Documentation
-------------------
-
-VPNaaS API
-~~~~~~~~~~
-
-Go to https://developer.openstack.org/api-ref/network/
-and see the VPNaaS section.
-
-VPNaaS Flavors
-~~~~~~~~~~~~~~
+Using VPNaaS
+------------
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
-.. todo::
+   install/index
+   configuration/index
+   user/index
+   admin/index
+   API reference <https://developer.openstack.org/api-ref/network/v2/index.html#vpnaas-2-0-vpn-vpnservices-ikepolicies-ipsecpolicies-endpoint-groups-ipsec-site-connections>
+   Release Notes <https://docs.openstack.org/releasenotes/neutron-vpnaas/>
 
-   Info on the different Swan flavors, how they are different, and what
-   Operating Systems support them.
-
-Contributor Guide
------------------
+For Contributors
+----------------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    contributor/index
+
+Search
+------
+
+* :ref:`search`
