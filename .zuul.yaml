@@ -3,10 +3,12 @@
       jobs:
         - neutron-vpnaas-dsvm-functional-sswan
         - neutron-vpnaas-dsvm-tempest
+        - openstack-tox-lower-constraints
     gate:
       jobs:
         - neutron-vpnaas-dsvm-functional-sswan
         - neutron-vpnaas-dsvm-tempest
+        - openstack-tox-lower-constraints
     experimental:
       jobs:
         - neutron-vpnaas-dsvm-rally
