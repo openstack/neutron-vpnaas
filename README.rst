@@ -17,3 +17,9 @@ https://git.openstack.org/cgit/openstack/neutron-vpnaas.
 
 Please refer to Neutron documentation for more information:
 `Neutron README.rst <https://git.openstack.org/cgit/openstack/neutron/tree/README.rst>`_
+
+Team and repository tags
+========================
+
+.. image:: https://governance.openstack.org/tc/badges/neutron-vpnaas.svg
+    :target: https://governance.openstack.org/tc/reference/tags/index.html
