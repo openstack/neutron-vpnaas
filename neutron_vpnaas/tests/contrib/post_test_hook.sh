@@ -32,6 +32,10 @@ case $VENV in
 
         echo "Running neutron $VENV test suite"
         set +e
+        sudo -H -u $owner $sudo_env tox -e $VENV --notest
+        # Development version of neutron is not installed from g-r.
+        # We need to install neutron master explicitly.
+        sudo -H -u $owner $sudo_env .tox/$VENV/bin/pip install -e ../neutron
         sudo -H -u $owner $sudo_env tox -e $VENV
         testr_exit_code=$?
         set -e
