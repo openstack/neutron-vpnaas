@@ -27,7 +27,6 @@ from neutron_lib.exceptions import flavors as flav_exc
 from neutron_lib.plugins import constants as p_constants
 from neutron_lib.plugins import directory
 from oslo_utils import uuidutils
-import testtools
 
 from neutron_vpnaas.extensions import vpn_flavors
 from neutron_vpnaas.services.vpn import plugin as vpn_plugin
@@ -41,8 +40,8 @@ VPN_DRIVER_CLASS = 'neutron_vpnaas.services.vpn.plugin.VPNDriverPlugin'
 
 IPSEC_SERVICE_DRIVER = ('neutron_vpnaas.services.vpn.service_drivers.'
                         'ipsec.IPsecVPNDriver')
-CISCO_IPSEC_SERVICE_DRIVER = ('neutron_vpnaas.services.vpn.service_drivers.'
-                              'cisco_ipsec.CiscoCsrIPsecVPNDriver')
+DUMMY_IPSEC_SERVICE_DRIVER = ('neutron_vpnaas.tests.unit.dummy_ipsec.'
+                              'DummyIPsecVPNDriver')
 
 _uuid = uuidutils.generate_uuid
 
@@ -179,12 +178,9 @@ class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
             self.assertEqual(lib_constants.ACTIVE, vpnservice['status'])
 
 
-@testtools.skip('We have only one driver in our codebase,'
-                'so we cannot run the test successfully now')
 class TestVPNDriverPluginMultipleDrivers(base.BaseTestCase):
 
     def setUp(self):
-        # TODO(hoangcx): Set up a dummy driver in order to run test suite
         super(TestVPNDriverPluginMultipleDrivers, self).setUp()
         vpnaas_providers = [
             {'service_type': p_constants.VPN,
@@ -192,8 +188,8 @@ class TestVPNDriverPluginMultipleDrivers(base.BaseTestCase):
              'driver': IPSEC_SERVICE_DRIVER,
              'default': True},
             {'service_type': p_constants.VPN,
-             'name': 'cisco',
-             'driver': CISCO_IPSEC_SERVICE_DRIVER,
+             'name': 'dummy',
+             'driver': DUMMY_IPSEC_SERVICE_DRIVER,
              'default': False}]
         self.service_providers = (
             mock.patch.object(st_db.ServiceTypeManager,
@@ -223,8 +219,8 @@ class TestVPNDriverPluginMultipleDrivers(base.BaseTestCase):
             self.assertEqual('ipsec', driver_plugin.default_provider)
             self.assertIn('ipsec', driver_plugin.drivers)
             self.assertEqual('ipsec', driver_plugin.drivers['ipsec'].name)
-            self.assertIn('cisco', driver_plugin.drivers)
-            self.assertEqual('cisco', driver_plugin.drivers['cisco'].name)
+            self.assertIn('dummy', driver_plugin.drivers)
+            self.assertEqual('dummy', driver_plugin.drivers['dummy'].name)
 
     def test_provider_lost(self):
         LOST_SERVICE_ID = _uuid()
@@ -246,15 +242,15 @@ class TestVPNDriverPluginMultipleDrivers(base.BaseTestCase):
                 mock.ANY, p_constants.VPN, 'ipsec', UNASSO_SERVICE_ID)
 
     def test_get_driver_for_vpnservice(self):
-        CISCO_VPNSERVICE_ID = _uuid()
-        CISCO_VPNSERVICE = {'id': CISCO_VPNSERVICE_ID}
-        provider_names = {CISCO_VPNSERVICE_ID: 'cisco'}
+        DUMMY_VPNSERVICE_ID = _uuid()
+        DUMMY_VPNSERVICE = {'id': DUMMY_VPNSERVICE_ID}
+        provider_names = {DUMMY_VPNSERVICE_ID: 'dummy'}
         with self.vpnservices_providers_set(provider_names=provider_names):
             driver_plugin = vpn_plugin.VPNDriverPlugin()
             self.assertEqual(
-                driver_plugin.drivers['cisco'],
+                driver_plugin.drivers['dummy'],
                 driver_plugin._get_driver_for_vpnservice(
-                    self.adminContext, CISCO_VPNSERVICE))
+                    self.adminContext, DUMMY_VPNSERVICE))
 
     def test_get_driver_for_ipsec_site_connection(self):
         IPSEC_VPNSERVICE_ID = _uuid()
@@ -343,7 +339,7 @@ class TestVPNDriverPluginMultipleDrivers(base.BaseTestCase):
         FAKE_FLAVOR = {'id': FLAVOR_ID,
                        'service_type': p_constants.VPN,
                        'enabled': True}
-        PROVIDERS = [{'provider': 'cisco'}]
+        PROVIDERS = [{'provider': 'dummy'}]
         directory.add_plugin(p_constants.FLAVORS,
                              flavors_plugin.FlavorsPlugin())
         mock.patch(
@@ -356,6 +352,6 @@ class TestVPNDriverPluginMultipleDrivers(base.BaseTestCase):
         with self.vpnservices_providers_set():
             driver_plugin = vpn_plugin.VPNDriverPlugin()
             self.assertEqual(
-                'cisco',
+                'dummy',
                 driver_plugin._get_provider_for_flavor(
                     self.adminContext, FLAVOR_ID))
