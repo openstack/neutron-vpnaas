@@ -23,6 +23,7 @@ from neutron.agent.l3 import dvr_edge_router
 from neutron.agent.l3 import dvr_snat_ns
 from neutron.agent.l3 import legacy_router
 from neutron.agent.linux import iptables_manager
+from neutron.conf.agent.l3 import config as l3_config
 from neutron_lib import constants
 from oslo_config import cfg
 from oslo_utils import uuidutils
@@ -326,6 +327,7 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
         self._execute = mock.patch.object(ipsec_process, '_execute').start()
         self.agent = mock.Mock()
         self.conf = cfg.CONF
+        l3_config.register_l3_agent_config_opts(l3_config.OPTS, self.conf)
         self.agent.conf = self.conf
         self.driver = driver(
             self.agent,
