@@ -27,7 +27,7 @@
     irrelevant-files:
       - ^.*\.rst$
       - ^doc/.*$
-      - ^neutron-vpnaas/tests/unit/.*$
+      - ^neutron_vpnaas/tests/unit/.*$
       - ^releasenotes/.*$
 
 - job:
@@ -43,7 +43,7 @@
     irrelevant-files:
       - ^.*\.rst$
       - ^doc/.*$
-      - ^neutron-vpnaas/tests/unit/.*$
+      - ^neutron_vpnaas/tests/unit/.*$
       - ^releasenotes/.*$
 
 - job:
@@ -60,6 +60,6 @@
     irrelevant-files:
       - ^.*\.rst$
       - ^doc/.*$
-      - ^neutron-vpnaas/tests/unit/.*$
+      - ^neutron_vpnaas/tests/unit/.*$
       - ^releasenotes/.*$
 
