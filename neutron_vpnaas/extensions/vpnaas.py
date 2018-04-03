@@ -499,9 +499,6 @@ class Vpnaas(extensions.ExtensionDescriptor):
 @six.add_metaclass(abc.ABCMeta)
 class VPNPluginBase(service_base.ServicePluginBase):
 
-    def get_plugin_name(self):
-        return nconstants.VPN
-
     def get_plugin_type(self):
         return nconstants.VPN
 
