@@ -17,7 +17,6 @@ from six import moves
 
 from neutron.db import servicetype_db as st_db
 from neutron.tests.unit import testlib_api
-from neutron_lib import constants as lib_const
 from neutron_lib import context as n_ctx
 from neutron_lib.plugins import constants
 from neutron_lib.plugins import directory
@@ -398,7 +397,7 @@ class TestCiscoIPsecDriver(testlib_api.SqlTestCase):
         }
 
         l3_plugin = mock.Mock()
-        directory.add_plugin(lib_const.L3, l3_plugin)
+        directory.add_plugin(constants.L3, l3_plugin)
 
         l3_plugin.get_host_for_router.return_value = FAKE_HOST
         l3_agent = mock.Mock()

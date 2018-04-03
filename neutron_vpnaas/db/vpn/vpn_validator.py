@@ -18,8 +18,8 @@ import netaddr
 from neutron.db import l3_db
 from neutron.db import models_v2
 from neutron_lib.api import validators
-from neutron_lib import constants as const
 from neutron_lib import exceptions as nexception
+from neutron_lib.plugins import constants as plugin_const
 from neutron_lib.plugins import directory
 
 from neutron_vpnaas._i18n import _
@@ -42,7 +42,7 @@ class VpnReferenceValidator(object):
         try:
             return self._l3_plugin
         except AttributeError:
-            self._l3_plugin = directory.get_plugin(const.L3)
+            self._l3_plugin = directory.get_plugin(plugin_const.L3)
             return self._l3_plugin
 
     @property
