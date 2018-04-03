@@ -48,6 +48,8 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.ifconfig',
               'sphinx.ext.graphviz',
               'sphinx.ext.todo',
+              'oslo_config.sphinxext',
+              'oslo_config.sphinxconfiggen',
               'openstackdocstheme',]
 
 todo_include_todos = True
@@ -161,7 +163,7 @@ html_theme = 'openstackdocs'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ['_static']
+html_static_path = ['_static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -240,3 +242,24 @@ html_last_updated_fmt = '%Y-%m-%d %H:%M'
 repository_name = 'openstack/neutron-vpnaas'
 bug_project = 'neutron'
 bug_tag = 'doc'
+
+# -- Options for oslo_config.sphinxconfiggen ---------------------------------
+
+_config_generator_config_files = [
+    'l3_agent.ini',
+    'neutron_vpnaas.conf',
+]
+
+
+def _get_config_generator_config_definition(config_file):
+    config_file_path = '../../etc/oslo-config-generator/%s' % conf
+    # oslo_config.sphinxconfiggen appends '.conf.sample' to the filename,
+    # strip file extentension (.conf or .ini).
+    output_file_path = '_static/config_samples/%s' % conf.rsplit('.', 1)[0]
+    return (config_file_path, output_file_path)
+
+
+config_generator_config_file = [
+    _get_config_generator_config_definition(conf)
+    for conf in _config_generator_config_files
+]
