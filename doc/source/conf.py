@@ -246,7 +246,7 @@ bug_tag = 'doc'
 # -- Options for oslo_config.sphinxconfiggen ---------------------------------
 
 _config_generator_config_files = [
-    'l3_agent.ini',
+    'vpn_agent.ini',
     'neutron_vpnaas.conf',
 ]
 
