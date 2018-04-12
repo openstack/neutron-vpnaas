@@ -20,14 +20,14 @@ Create Date: 2015-08-06 18:21:03.241664
 
 """
 
-# revision identifiers, used by Alembic.
-revision = '41b509d10b5e'
-down_revision = '24f28869838b'
-
 from alembic import op
 import sqlalchemy as sa
 
 from neutron_vpnaas.services.vpn.common import constants
+
+# revision identifiers, used by Alembic.
+revision = '41b509d10b5e'
+down_revision = '24f28869838b'
 
 
 def upgrade():

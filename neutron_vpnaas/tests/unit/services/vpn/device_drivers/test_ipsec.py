@@ -343,8 +343,7 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
     @staticmethod
     def generate_diff(a, b):
         """Generates unified diff of a and b."""
-        by_lines = lambda x: x.splitlines(True)
-        a, b = list(by_lines(a)), list(by_lines(b))
+        a, b = list(a.splitlines(True)), list(b.splitlines(True))
         diff = difflib.unified_diff(a, b, fromfile="expected",
                                     tofile="actual")
         return diff
