@@ -67,7 +67,7 @@ class TestValidatorSelection(base.BaseTestCase):
             mock.patch.object(st_db.ServiceTypeManager,
                               'get_service_providers').start())
         self.service_providers.return_value = vpnaas_provider
-        mock.patch('neutron.common.rpc.create_connection').start()
+        mock.patch('neutron.common.rpc.Connection').start()
         stm = st_db.ServiceTypeManager()
         stm.get_provider_names_by_resource_ids = mock.Mock(
             return_value={})
@@ -87,7 +87,7 @@ class TestValidatorSelection(base.BaseTestCase):
 class TestIPsecDriver(base.BaseTestCase):
     def setUp(self):
         super(TestIPsecDriver, self).setUp()
-        mock.patch('neutron.common.rpc.create_connection').start()
+        mock.patch('neutron.common.rpc.Connection').start()
 
         l3_agent = mock.Mock()
         l3_agent.host = FAKE_HOST

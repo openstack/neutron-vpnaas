@@ -80,7 +80,7 @@ class TestCiscoValidatorSelection(base.BaseTestCase):
                 mock.patch.object(st_db.ServiceTypeManager,
                                   'get_service_providers').start())
             self.service_providers.return_value = vpnaas_provider
-        mock.patch('neutron.common.rpc.create_connection').start()
+        mock.patch('neutron.common.rpc.Connection').start()
         stm = st_db.ServiceTypeManager()
         stm.get_provider_names_by_resource_ids = mock.Mock(
             return_value={})
@@ -389,7 +389,7 @@ class TestCiscoIPsecDriver(testlib_api.SqlTestCase):
 
     def setUp(self):
         super(TestCiscoIPsecDriver, self).setUp()
-        mock.patch('neutron.common.rpc.create_connection').start()
+        mock.patch('neutron.common.rpc.Connection').start()
         self._fake_vpn_router_id = _uuid()
         service_plugin = mock.Mock()
         service_plugin._get_vpnservice.return_value = {
@@ -459,7 +459,7 @@ class TestCiscoIPsecDriverRequests(base.BaseTestCase):
 
     def setUp(self):
         super(TestCiscoIPsecDriverRequests, self).setUp()
-        mock.patch('neutron.common.rpc.create_connection').start()
+        mock.patch('neutron.common.rpc.Connection').start()
 
         service_plugin = mock.Mock()
         self.driver = ipsec_driver.CiscoCsrIPsecVPNDriver(service_plugin)

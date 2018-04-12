@@ -40,7 +40,7 @@ class TestVyattaDriver(base.BaseTestCase):
 
     def setUp(self):
         super(TestVyattaDriver, self).setUp()
-        mock.patch('neutron.common.rpc.create_connection').start()
+        mock.patch('neutron.common.rpc.Connection').start()
 
         l3_agent = mock.Mock()
         l3_agent.host = FAKE_HOST

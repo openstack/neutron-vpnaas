@@ -104,7 +104,7 @@ class CiscoCsrIPsecDriver(device_drivers.DeviceDriver):
         # TODO(pc_m): Once all driver implementations no longer need
         # vpn_service argument, replace with just config argument.
         self.host = host
-        self.conn = n_rpc.create_connection()
+        self.conn = n_rpc.Connection()
         context = ctx.get_admin_context_without_session()
         node_topic = '%s.%s' % (topics.CISCO_IPSEC_AGENT_TOPIC, self.host)
 

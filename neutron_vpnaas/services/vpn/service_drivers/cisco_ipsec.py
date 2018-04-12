@@ -135,7 +135,7 @@ class CiscoCsrIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
 
     def create_rpc_conn(self):
         self.endpoints = [CiscoCsrIPsecVpnDriverCallBack(self)]
-        self.conn = n_rpc.create_connection()
+        self.conn = n_rpc.Connection()
         self.conn.create_consumer(
             topics.CISCO_IPSEC_DRIVER_TOPIC, self.endpoints, fanout=False)
         self.conn.consume_in_threads()

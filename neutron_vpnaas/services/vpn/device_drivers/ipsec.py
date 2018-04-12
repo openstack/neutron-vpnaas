@@ -759,7 +759,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
         # implementations no longer need vpn_service.
         self.conf = vpn_service.conf
         self.host = host
-        self.conn = n_rpc.create_connection()
+        self.conn = n_rpc.Connection()
         self.context = context.get_admin_context_without_session()
         self.topic = topics.IPSEC_AGENT_TOPIC
         node_topic = '%s.%s' % (self.topic, self.host)
