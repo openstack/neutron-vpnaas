@@ -30,6 +30,7 @@
 # sys.path.insert(0, os.path.abspath('.'))
 
 # -- General configuration ------------------------------------------------
+from neutron_vpnaas.version import version_info as neutron_vpnaas_version
 
 # If your documentation needs a minimal Sphinx version, state it here.
 # needs_sphinx = '1.0'
@@ -62,8 +63,7 @@ copyright = u'2015, Neutron VPNaaS Developers'
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-# The short X.Y version.
-from neutron_vpnaas.version import version_info as neutron_vpnaas_version
+# The short X.Y version is imported above.
 # The full version, including alpha/beta/rc tags.
 release = neutron_vpnaas_version.version_string_with_vcs()
 # The short X.Y version.
