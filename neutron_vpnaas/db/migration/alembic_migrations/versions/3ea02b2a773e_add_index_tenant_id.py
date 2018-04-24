@@ -21,11 +21,11 @@ Create Date: 2015-02-10 17:51:10.752504
 
 """
 
+from alembic import op
+
 # revision identifiers, used by Alembic.
 revision = '3ea02b2a773e'
 down_revision = 'start_neutron_vpnaas'
-
-from alembic import op
 
 TABLES = ['ipsecpolicies', 'ikepolicies', 'ipsec_site_connections',
           'vpnservices']

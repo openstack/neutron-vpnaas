@@ -702,8 +702,8 @@ class VPNPluginRpcDbMixin(object):
                                 vpnservice['id'])
                     continue
 
-                if (not utils.in_pending_status(vpnservice_db.status)
-                    or vpnservice['updated_pending_status']):
+                if (not utils.in_pending_status(vpnservice_db.status) or
+                    vpnservice['updated_pending_status']):
                     vpnservice_db.status = vpnservice['status']
                 for conn_id, conn in vpnservice[
                     'ipsec_site_connections'].items():

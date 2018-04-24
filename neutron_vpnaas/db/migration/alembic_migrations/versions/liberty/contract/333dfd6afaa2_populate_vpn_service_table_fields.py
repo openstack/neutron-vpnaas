@@ -21,16 +21,14 @@ Create Date: 2015-07-27 16:43:59.123456
 
 """
 
-# revision identifiers, used by Alembic.
-revision = '333dfd6afaa2'
-down_revision = '56893333aa52'
-depends_on = '24f28869838b'
-
-
 from alembic import op
 import netaddr
 import sqlalchemy as sa
 
+# revision identifiers, used by Alembic.
+revision = '333dfd6afaa2'
+down_revision = '56893333aa52'
+depends_on = '24f28869838b'
 
 VPNService = sa.Table('vpnservices', sa.MetaData(),
                       sa.Column('router_id', sa.String(36), nullable=False),
