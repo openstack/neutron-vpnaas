@@ -2,28 +2,33 @@
     check:
       jobs:
         - neutron-vpnaas-dsvm-functional-sswan
-        - neutron-vpnaas-dsvm-tempest
+        - neutron-vpnaas-tempest
         - openstack-tox-lower-constraints
     gate:
       jobs:
         - neutron-vpnaas-dsvm-functional-sswan
-        - neutron-vpnaas-dsvm-tempest
+        - neutron-vpnaas-tempest
         - openstack-tox-lower-constraints
     experimental:
       jobs:
         - neutron-vpnaas-dsvm-rally
 
 - job:
-    name: neutron-vpnaas-dsvm-tempest
-    parent: legacy-dsvm-base
-    run: playbooks/legacy/neutron-vpnaas-dsvm-tempest/run.yaml
-    post-run: playbooks/legacy/neutron-vpnaas-dsvm-tempest/post.yaml
+    name: neutron-vpnaas-tempest
+    parent: devstack-tempest
     timeout: 3900
     required-projects:
-      - openstack-infra/devstack-gate
       - openstack/neutron
       - openstack/tempest
       - openstack/neutron-tempest-plugin
+    vars:
+      tempest_test_regex: '^neutron_vpnaas\.'
+      tox_envlist: all-plugin
+      devstack_plugins:
+        neutron-vpnaas: git://git.openstack.org/openstack/neutron-vpnaas
+        neutron-tempest-plugin: git://git.openstack.org/openstack/neutron-tempest-plugin
+      devstack_localrc:
+        IPSEC_PACKAGE: strongswan
     irrelevant-files:
       - ^.*\.rst$
       - ^doc/.*$
