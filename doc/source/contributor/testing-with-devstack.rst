@@ -99,27 +99,33 @@ On ``East``
 
 .. code-block:: none
 
-      neutron vpn-ikepolicy-create ikepolicy1
-      neutron vpn-ipsecpolicy-create ipsecpolicy1
-      neutron vpn-service-create --name myvpn --description "My vpn service" router1
-      neutron vpn-endpoint-group-create --name my-locals --type subnet --value mysubnet
-      neutron vpn-endpoint-group-create --name my-peers --type cidr --value 10.2.0.0/24
-      neutron ipsec-site-connection-create --name vpnconnection1 --vpnservice-id myvpn \
-      --ikepolicy-id ikepolicy1 --ipsecpolicy-id ipsecpolicy1 --peer-address 172.24.4.233 \
-      --peer-id 172.24.4.233 --local-ep-group my-locals --peer-ep-group my-peers --psk secret
+      openstack vpn ike policy create ikepolicy1
+      openstack vpn ipsec policy create ipsecpolicy1
+      openstack vpn service create --description "My vpn service" \
+          --router router1 myvpn
+      openstack vpn endpoint group create --type subnet --value mysubnet my-locals
+      openstack vpn endpoint group create --type cidr --value 10.2.0.0/24 my-peers
+      openstack vpn ipsec site connection create --vpnservice myvpn \
+          --ikepolicy ikepolicy1 --ipsecpolicy ipsecpolicy1 \
+          --peer-address 172.24.4.233 --peer-id 172.24.4.233 \
+          --local-endpoint-group my-locals --peer-endpoint-group my-peers \
+          --psk secret vpnconnection1
 
 On ``West``
 
 .. code-block:: none
 
-      neutron vpn-ikepolicy-create ikepolicy1
-      neutron vpn-ipsecpolicy-create ipsecpolicy1
-      neutron vpn-service-create --name myvpn --description "My vpn service" router1
-      neutron vpn-endpoint-group-create --name my-locals --type subnet --value mysubnet
-      neutron vpn-endpoint-group-create --name my-peers --type cidr --value 10.1.0.0/24
-      neutron ipsec-site-connection-create --name vpnconnection1 --vpnservice-id myvpn \
-      --ikepolicy-id ikepolicy1 --ipsecpolicy-id ipsecpolicy1 --peer-address 172.24.4.226 \
-      --peer-id 172.24.4.226 --local-ep-group my-locals --peer-ep-group my-peers --psk secret
+      openstack vpn ike policy create ikepolicy1
+      openstack vpn ipsec policy create ipsecpolicy1
+      openstack vpn service create --description "My vpn service" \
+          --router router1 myvpn
+      openstack vpn endpoint group create --type subnet --value mysubnet my-locals
+      openstack vpn endpoint group create --type cidr --value 10.1.0.0/24 my-peers
+      openstack vpn ipsec site connection create --vpnservice myvpn \
+          --ikepolicy ikepolicy1 --ipsecpolicy ipsecpolicy1 \
+          --peer-address 172.24.4.226 --peer-id 172.24.4.226 \
+          --local-endpoint-group my-locals --peer-endpoint-group my-peers \
+          --psk secret vpnconnection1
 
 .. note::
 
@@ -176,19 +182,21 @@ to be created, and a VM spun up in each private network.
 
       # Create second net, subnet, router
       source ~/devstack/openrc admin demo
-      neutron net-create privateB
-      neutron subnet-create --name subB privateB 10.2.0.0/24 --gateway 10.2.0.1
-      neutron router-create routerB
-      neutron router-interface-add routerB subB
-      neutron router-gateway-set routerB public
+      openstack network create privateB
+      openstack subnet create --network privateB --subnet-range 10.2.0.0/24 --gateway 10.2.0.1 subB
+      openstack router create routerB
+      openstack router add subnet routerB subB
+      openstack router set --external-gateway public routerB
 
       # Start up a VM in the privateA subnet.
-      PRIVATE_NET=`neutron net-list | grep 'private ' | cut -f 2 -d' '`
-      nova boot --flavor 1 --image cirros-0.3.5-x86_64-uec --nic net-id=$PRIVATE_NET peter
+      PRIVATE_NET=`openstack network show private -c id -f value`
+      openstack server create --flavor 1 --image cirros-0.3.5-x86_64-uec \
+          --nic net-id=$PRIVATE_NET peter
 
       # Start up a VM in the privateB subnet
-      PRIVATE_NETB=`neutron net-list | grep privateB | cut -f 2 -d' '`
-      nova boot --flavor 1 --image cirros-0.3.5-x86_64-uec --nic net-id=$PRIVATE_NETB paul
+      PRIVATE_NETB=`openstack network show privateB -c id -f value`
+      openstack server create --flavor 1 --image cirros-0.3.5-x86_64-uec \
+          --nic net-id=$PRIVATE_NETB paul
 
 At this point, you can verify that you have basic connectivity.
 
@@ -205,21 +213,27 @@ The following commands will create the IPsec connection:
 .. code-block:: none
 
       # Create VPN connections
-      neutron vpn-ikepolicy-create ikepolicy
-      neutron vpn-ipsecpolicy-create ipsecpolicy
-      neutron vpn-service-create --name myvpn --description "My vpn service" router1
-      neutron vpn-endpoint-group-create --name my-localsA --type subnet --value privateA
-      neutron vpn-endpoint-group-create --name my-peersA --type cidr --value 10.2.0.0/24
-      neutron ipsec-site-connection-create --name vpnconnection1 --vpnservice-id myvpn \
-      --ikepolicy-id ikepolicy --ipsecpolicy-id ipsecpolicy --peer-address 172.24.4.13 \
-      --peer-id 172.24.4.13 --local-ep-group my-localsA --peer-ep-group my-peersA --psk secret
+      openstack vpn ike policy create ikepolicy
+      openstack vpn ipsec policy create ipsecpolicy
+      openstack vpn service create --router router1 \
+          --description "My vpn service" myvpn
+      openstack vpn endpoint group create --type subnet --value privateA my-localsA
+      openstack vpn endpoint group create --type cidr --value 10.2.0.0/24 my-peersA
+      openstack vpn ipsec site connection create --vpnservice myvpn \
+          --ikepolicy ikepolicy --ipsecpolicy ipsecpolicy \
+          --peer-address 172.24.4.13 --peer-id 172.24.4.13 \
+          --local-endpoint-group my-localsA --peer-endpoint-group my-peersA \
+          --psk secret vpnconnection1
 
-      neutron vpn-service-create --name myvpnB --description "My vpn serviceB" routerB
-      neutron vpn-endpoint-group-create --name my-localsB --type subnet --value subB
-      neutron vpn-endpoint-group-create --name my-peersB --type cidr --value 10.1.0.0/24
-      neutron ipsec-site-connection-create --name vpnconnection2 --vpnservice-id myvpnB \
-      --ikepolicy-id ikepolicy --ipsecpolicy-id ipsecpolicy --peer-address 172.24.4.11 \
-      --peer-id 172.24.4.11 --local-ep-group my-localsB --peer-ep-group my-peersB --psk secret
+      openstack vpn service create --router routerB \
+          --description "My vpn serviceB" myvpnB
+      openstack vpn endpoint group create --type subnet --value subB my-localsB
+      openstack vpn endpoint group create --type cidr --value 10.1.0.0/24 my-peersB
+      openstack vpn ipsec site connection create --vpnservice myvpnB \
+          --ikepolicy ikepolicy --ipsecpolicy ipsecpolicy \
+          --peer-address 172.24.4.11 --peer-id 172.24.4.11 \
+          --local-endpoint-group my-localsB --peer-endpoint-group my-peersB \
+          --psk secret vpnconnection2
 
 At this point (once the connections become active - which can take up to 30 seconds or so),
 you should be able to ping from the VM in the privateA network, to the VM in the privateB
@@ -252,17 +266,18 @@ of VPN, in the future. An example:
 .. code-block:: none
 
       # Create VPN connections
-      neutron vpn-ikepolicy-create ikepolicy
-      neutron vpn-ipsecpolicy-create ipsecpolicy
-      neutron vpn-service-create --name myvpnC --description "My vpn service" router1
+      openstack vpn ike policy create ikepolicy
+      openstack vpn ipsec policy create ipsecpolicy
+      openstack vpn service create --router router1 \
+          --description "My vpn service" myvpnC
 
 To prepare for an IPsec site-to-site, one would create an endpoint group for
 the local subnets, and an endpoint group for the peer CIDRs, like so:
 
 .. code-block:: none
 
-      neutron vpn-endpoint-group-create --name my-locals --type subnet --value privateA --value privateA2
-      neutron vpn-endpoint-group-create --name my-peers --type cidr --value 10.2.0.0/24 --value 20.2.0.0/24
+      openstack vpn endpoint group create --type subnet --value privateA --value privateA2 my-locals
+      openstack vpn endpoint group create --type cidr --value 10.2.0.0/24 --value 20.2.0.0/24 my-peers
 
 where privateA and privateA2 are two local (private) subnets, and 10.2.0.0/24 and 20.2.0.0/24
 are two CIDRs representing peer (private) subnets that will be used by a connection.
@@ -271,9 +286,11 @@ be specified, instead of the peer-cidrs attribute:
 
 .. code-block:: none
 
-      neutron ipsec-site-connection-create --name vpnconnection3 --vpnservice-id myvpnC \
-      --ikepolicy-id ikepolicy --ipsecpolicy-id ipsecpolicy --peer-address 172.24.4.11 \
-      --peer-id 172.24.4.11 --local-ep-group my-locals --peer-ep-group my-peers --psk secret
+      openstack vpn ipsec site connection create --vpnservice myvpnC \
+          --ikepolicy ikepolicy --ipsecpolicy ipsecpolicy \
+          --peer-address 172.24.4.11 --peer-id 172.24.4.11 \
+          --local-endpoint-group my-locals --peer-endpoint-group my-peers \
+          --psk secret vpnconnection3
 
 .. note::
    - The validation logic makes sure that endpoint groups and peer CIDRs are not intermixed.

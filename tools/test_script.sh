@@ -1,52 +1,58 @@
 #!/usr/bin/env bash
 
-EXT_NW_ID=`neutron net-list | awk '/public/{print $2}'`
+EXT_NW_ID=`openstack network show public -c id -f value`
+EXTERNAL_SUBNET_IP_VERSION='v4'
 WEST_SUBNET='192.168.1.0/24'
 EAST_SUBNET='192.168.2.0/24'
 
 function setup_site(){
   local site_name=$1
   local cidr=$2
-  neutron net-create net_$site_name
-  neutron subnet-create --name subnet_$site_name net_$site_name $2
-  neutron router-create router_$site_name
-  neutron router-interface-add router_$site_name subnet_$site_name
-  neutron router-gateway-set router_$site_name $EXT_NW_ID
-  neutron vpn-service-create --name vpn_$site_name router_$site_name subnet_$site_name
+  openstack network create net_$site_name
+  openstack subnet create --network net_$site_name --subnet-range $2 subnet_$site_name
+  openstack router create router_$site_name
+  openstack router add subnet router_$site_name subnet_$site_name
+  openstack router set --external-gateway $EXT_NW_ID router_$site_name
+  openstack vpn service create --subnet subnet_$site_name --router router_$site_name vpn_$site_name
 }
 
 function get_external_ip(){
-  local router_id=`neutron router-show $1 | awk '/ id /{print $4}'`
-  echo `neutron port-list -c fixed_ips -c device_id -c device_owner|grep router_gateway | awk '/'.$router_id.'/{print $5}' | sed 's/["}]//g'`
+  echo `openstack vpn service show $1 -c external_${EXTERNAL_SUBNET_IP_VERSION}_ip -f value`
 }
 
 function clean_site(){
   local site_name=$1
-  neutron ipsec-site-connection-delete conn_$site_name
-  neutron vpn-service-list | awk '/vpn_'$site_name'/{print "neutron vpn-service-delete " $2}' | bash
-  neutron router-gateway-clear router_$site_name
-  neutron router-interface-delete router_$site_name subnet_$site_name
-  neutron router-list | awk '/router_'$site_name'/{print "neutron router-delete " $2}' | bash
-  neutron subnet-list | awk '/subnet_'$site_name'/{print "neutron subnet-delete " $2}' | bash
-  neutron net-list | awk '/net_'$site_name'/{print "neutron net-delete " $2}' | bash
+  openstack vpn ipsec site connection delete conn_$site_name
+  openstack vpn service delete vpn_$site_name
+  openstack router unset --external-gateway router_$site_name
+  openstack router remove subnet router_$site_name subnet_$site_name
+  openstack router delete router_$site_name
+  openstack subnet delete subnet_$site_name
+  openstack network delete net_$site_name
 }
 
 function setup(){
-  neutron vpn-ikepolicy-create ikepolicy1
-  neutron vpn-ipsecpolicy-create ipsecpolicy1
+  openstack vpn ike policy create ikepolicy1
+  openstack vpn ipsec policy create ipsecpolicy1
   setup_site west $WEST_SUBNET
-  WEST_IP=$(get_external_ip router_west)
+  WEST_IP=$(get_external_ip vpn_west)
   setup_site east $EAST_SUBNET
-  EAST_IP=$(get_external_ip router_east)
-  neutron ipsec-site-connection-create --name conn_east --vpnservice-id vpn_east --ikepolicy-id ikepolicy1 --ipsecpolicy-id ipsecpolicy1 --peer-address $WEST_IP --peer-id $WEST_IP --peer-cidr $WEST_SUBNET --psk secret
-  neutron ipsec-site-connection-create --name conn_west --vpnservice-id vpn_west --ikepolicy-id ikepolicy1 --ipsecpolicy-id ipsecpolicy1 --peer-address $EAST_IP --peer-id $EAST_IP --peer-cidr $EAST_SUBNET --psk secret
+  EAST_IP=$(get_external_ip vpn_east)
+  openstack vpn ipsec site connection create \
+      --vpnservice vpn_east --ikepolicy ikepolicy1 --ipsecpolicy ipsecpolicy1 \
+      --peer-address $WEST_IP --peer-id $WEST_IP --peer-cidr $WEST_SUBNET \
+      --psk secret conn_east
+  openstack vpn ipsec site connection create \
+      --vpnservice vpn_west --ikepolicy ikepolicy1 --ipsecpolicy ipsecpolicy1 \
+      --peer-address $EAST_IP --peer-id $EAST_IP --peer-cidr $EAST_SUBNET \
+      --psk secret conn_west
 }
 
 function cleanup(){
   clean_site west
   clean_site east
-  neutron vpn-ikepolicy-delete ikepolicy1
-  neutron vpn-ipsecpolicy-delete ipsecpolicy1
+  openstack vpn ike policy delete ikepolicy1
+  openstack vpn ipsec policy delete ipsecpolicy1
 }
 
 cleanup

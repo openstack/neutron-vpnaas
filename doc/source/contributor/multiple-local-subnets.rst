@@ -44,13 +44,15 @@ Client CLI API
 --------------
 
 The originally implemented client CLI APIs (which are still available
-for backward compatibility) for an IPsec connection are::
+for backward compatibility) for an IPsec connection are:
 
-    neutron vpn-service-create ROUTER SUBNET
-    neutron ipsec-site-connection-create
-       --vpnservice-id VPNSERVICE
-        --ikepolicy-id IKEPOLICY
-        --ipsecpolicy-id IPSECPOLICY
+.. code-block:: none
+
+    openstack vpn service create --router ROUTER --subnet SUBNET NAME
+    openstack vpn ipsec site connection create
+        --vpnservice VPNSERVICE
+        --ikepolicy IKEPOLICY
+        --ipsecpolicy IPSECPOLICY
         --peer-address PEER_ADDRESS
         --peer-id PEER_ID
         --peer-cidr PEER_CIDRS
@@ -58,34 +60,39 @@ for backward compatibility) for an IPsec connection are::
         --initiator {bi-directional | response-only}
         --mtu MTU
         --psk PSK
+        VPN_IPSEC_SITE_CONNECTION_NAME
 
 Changes to the API, to support multiple local subnets, are shown in
-**bold** text::
+**highlighted** text:
 
-    neutron vpn-service-create ROUTER
-    **neutron vpn-endpoint-groups-create**
-        **--name OPTIONAL-NAME**
-        **--description OPTIONAL-DESCRIPTION**
-        **--ep-type={subnet,cidr,network,vlan,router}**
-        **--ep-value=[list-of-endpoints-of-type]**
-    neutron ipsec-site-connection-create
-        --vpnservice-id VPNSERVICE
-        --ikepolicy-id IKEPOLICY
-        --ipsecpolicy-id IPSECPOLICY
+.. code-block:: none
+   :emphasize-lines: 2-6,17-18
+
+    openstack vpn service create --router ROUTER NAME
+    openstack vpn endpoint group create
+        --description OPTIONAL-DESCRIPTION
+        --type={subnet,cidr,network,vlan,router}
+        --value=ENDPOINT-OF-TYPE[,--value=ENDPOINT-OF-TYPE,...]
+        ENDPOINT-GROUP-NAME
+    openstack vpn ipsec site connection create
+        --vpnservice VPNSERVICE
+        --ikepolicy IKEPOLICY
+        --ipsecpolicy IPSECPOLICY
         --peer-address PEER_ADDRESS
         --peer-id PEER_ID
         --dpd action=ACTION,interval=INTERVAL,timeout=TIMEOUT
         --initiator {bi-directional | response-only}
         --mtu MTU
         --psk PSK
-        **--local-endpoints ENDPOINT-GROUPS-UUID**
-        **--peer-endpoints ENDPOINT-GROUPS-UUID**
+        --local-endpoint-group ENDPOINT-GROUP-UUID
+        --peer-endpoint-group ENDPOINT-GROUP-UUID
+        VPN_IPSEC_SITE_CONNECTION_NAME
 
 The SUBNET in the original service API is optional, and will be used as an
 indicator of whether or not the multiple local subnets feature is active.
 See the 'Backward Compatibility' section, below, for details.
 
-For the endpoint groups, the --ep-type value is a string, so that other
+For the endpoint groups, the ``--type`` value is a string, so that other
 types can be supported in the future.
 
 The endpoint groups API would enforce that the endpoint values are all of
@@ -102,58 +109,59 @@ specified, and the type would be 'network'.
 The ROUTER may also be able to be removed, in the future, and can be
 determined, when the connections are created.
 
-Note: Using --ep-type, as --endpoint-type is already used elsewhere, and
---type is too generic. Using --ep-value, as --endpoint is already in use,
---end-point could be easily mistyped as --endpoint, and --value is too
-generic.
-
 
 Examples
 --------
 
 The original APIs to create one side of an IPSec connection with
-only one local and peer subnet::
+only one local and peer subnet:
 
-    neutron vpn-ikepolicy-create ikepolicy
-    neutron vpn-ipsecpolicy-create ipsecpolicy
-    neutron vpn-service-create --name myvpn router1 privateA
-    neutron ipsec-site-connection-create
-        --name vpnconnection1
-        --vpnservice-id myvpn
-        --ikepolicy-id ikepolicy
-        --ipsecpolicy-id ipsecpolicy
+.. code-block:: none
+
+    openstack vpn ike policy create ikepolicy
+    openstack vpn ipsec policy create ipsecpolicy
+    openstack vpn service create --router router1 --subnet privateA myvpn
+    openstack vpn ipsec site connection create
+        --vpnservice myvpn
+        --ikepolicy ikepolicy
+        --ipsecpolicy ipsecpolicy
         --peer-address 172.24.4.13
         --peer-id 172.24.4.13
         --peer-cidr 10.3.0.0/24
         --psk secret
+        vpnconnection1
 
 The local CIDR is obtained from the subnet, privateA. In this example,
 that would be 10.1.0.0/24 (because that's how privateA was created).
 
 Using the multiple local subnet feature, the APIs (with changes shown
-in **bold** below::
+in **highlighted** below:
 
-    neutron vpn-ikepolicy-create ikepolicy
-    neutron vpn-ipsecpolicy-create ipsecpolicy
-    neutron vpn-service-create --name myvpn router1
-    **neutron vpn-endpoint-group-create**
-        **--name local-eps**
-        **--ep-type=subnet**
-        **--ep-value=privateA**
-        **--ep-value=privateB**
-    **neutron vpn-endpoint-group-create**
-        **--name peer-eps**
-        **--ep-type=cidr**
-        **--ep-vallue=10.3.0.0/24**
-    neutron ipsec-site-connection-create
-        --name vpnconnection1
-        --vpnservice-id myvpn
-        --ikepolicy-id ikepolicy
-        --ipsecpolicy-id ipsecpolicy
+.. code-block:: none
+   :emphasize-lines: 4-12,20-21
+
+    openstack vpn ike policy create ikepolicy
+    openstack vpn ipsec policy create ipsecpolicy
+    openstack vpn service create --router router1 myvpn
+    openstack vpn endpoint group create
+        --type=subnet
+        --value=privateA
+        --value=privateB
+        local-eps
+    openstack vpn endpoint group create
+        --type=cidr
+        --value=10.3.0.0/24
+        peer-eps
+    openstack vpn ipsec site connection create
+        --vpnservice myvpn
+        --ikepolicy ikepolicy
+        --ipsecpolicy ipsecpolicy
         --peer-address 172.24.4.13
+        --peer-id 172.24.4.13
         --psk secret
-        **--local-endpoints local-eps**
-        **--peer-endpoints peer-eps**
+        --local-endpoint-group local-eps
+        --peer-endpoint-group peer-eps
+        vpnconnection1
 
 The subnets privateA and privateB are used for local endpoints and the
 10.3.0.0/24 CIDR is used for the peer endpoint.
