@@ -425,7 +425,25 @@ class TestIPSecBase(base.BaseSudoTestCase):
             router_info.RouterInfo, 'get_external_device_name').start()
         mock_get_external_device_name.side_effect = get_external_device_name
 
-        agent._process_added_router(info)
+        # NOTE(huntxu): with commit 88f5e11d8bf, neutron plugs new ports as
+        # dead vlan(4095). During functional tests, all the ports are untagged.
+        # So need to remove such tag during functional testing.
+        original_plug_new = interface.OVSInterfaceDriver.plug_new
+
+        def plug_new(self, *args, **kwargs):
+            original_plug_new(self, *args, **kwargs)
+            bridge = (kwargs.get('bridge') or args[4] or
+                      self.conf.ovs_integration_bridge)
+            device_name = kwargs.get('device_name') or args[2]
+            ovsbr = ovs_lib.OVSBridge(bridge)
+            ovsbr.clear_db_attribute('Port', device_name, 'tag')
+
+        with mock.patch(
+            'neutron.agent.linux.interface.OVSInterfaceDriver.plug_new',
+            autospec=True
+        ) as ovs_plug_new:
+            ovs_plug_new.side_effect = plug_new
+            agent._process_added_router(info)
 
         return agent.router_info[info['id']]
 
