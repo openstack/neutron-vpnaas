@@ -1,0 +1,7 @@
+---
+upgrade:
+  - The following drivers are removed due to the lack of maintainers
+    of the drivers ``CiscoCsrIPsecDriver``, ``FedoraStrongSwanDriver``,
+    ``VyattaIPsecDriver``. Please refer the following `mailing list post
+    <http://lists.openstack.org/pipermail/openstack-dev/2018-February/127793.html>`_
+    for more detail.
