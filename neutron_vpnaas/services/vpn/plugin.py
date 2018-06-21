@@ -15,7 +15,6 @@
 #    under the License.
 
 from neutron.db import servicetype_db as st_db
-from neutron.services.flavors import flavors_plugin
 from neutron.services import provider_configuration as pconf
 from neutron.services import service_base
 from neutron_lib import context as ncontext
@@ -70,10 +69,11 @@ class VPNDriverPlugin(VPNPlugin, vpn_db.VPNPluginRpcDbMixin):
                   "default: %(default_driver)s"),
                  {'service_drivers': self.drivers.keys(),
                   'default_driver': self.default_provider})
-        # Try to find the flavor plugin only once
-        self._flavors_plugin = directory.get_plugin(constants.FLAVORS)
-
         vpn_db.subscribe()
+
+    @property
+    def _flavors_plugin(self):
+        return directory.get_plugin(constants.FLAVORS)
 
     def _check_orphan_vpnservice_associations(self):
         context = ncontext.get_admin_context()
@@ -119,18 +119,17 @@ class VPNDriverPlugin(VPNPlugin, vpn_db.VPNPluginRpcDbMixin):
 
     def _get_provider_for_flavor(self, context, flavor_id):
         if flavor_id:
-            if not self._flavors_plugin:
+            if self._flavors_plugin is None:
                 raise vpn_flavors.FlavorsPluginNotLoaded()
 
-            fl_db = flavors_plugin.FlavorsPlugin.get_flavor(
-                self._flavors_plugin, context, flavor_id)
+            fl_db = self._flavors_plugin.get_flavor(context, flavor_id)
             if fl_db['service_type'] != constants.VPN:
                 raise lib_exc.InvalidServiceType(
                     service_type=fl_db['service_type'])
             if not fl_db['enabled']:
                 raise flav_exc.FlavorDisabled()
-            providers = flavors_plugin.FlavorsPlugin.get_flavor_next_provider(
-                self._flavors_plugin, context, fl_db['id'])
+            providers = self._flavors_plugin.get_flavor_next_provider(
+                context, fl_db['id'])
             provider = providers[0].get('provider')
             if provider not in self.drivers:
                 raise vpn_flavors.NoProviderFoundForFlavor(flavor_id=flavor_id)
