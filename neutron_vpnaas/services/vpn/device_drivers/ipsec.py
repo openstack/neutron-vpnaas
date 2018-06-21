@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import abc
+import base64
 import copy
 import filecmp
 import os
@@ -37,6 +38,7 @@ from oslo_log import helpers as log_helpers
 from oslo_log import log as logging
 import oslo_messaging
 from oslo_service import loopingcall
+from oslo_utils import encodeutils
 from oslo_utils import fileutils
 import six
 
@@ -110,6 +112,18 @@ cfg.CONF.register_opts(pluto_opts, 'pluto')
 JINJA_ENV = None
 
 IPSEC_CONNS = 'ipsec_site_connections'
+
+# *Swan supports Base64 encoded binary values as PSKs. In such cases,
+# a character sequence beginning with 0s is interpreted as Base64
+# encoded binary data.
+#   - StrongSwan
+#     - https://wiki.strongswan.org/projects/strongswan/wiki/PskSecret
+#   - LibreSwan
+#     - https://libreswan.org/man/ipsec.secrets.5.html
+#     - https://libreswan.org/man/ipsec_ttodata.3.html
+#   - OpenSwan (no online documents, see manpages sources in the repository)
+#     - https://github.com/xelerance/Openswan
+PSK_BASE64_PREFIX = '0s'
 
 
 def _get_template(template_file):
@@ -209,9 +223,23 @@ class BaseSwanProcess(object):
                 (not ipsec_site_conn['local_id'])):
                 ipsec_site_conn['local_id'] = ipsec_site_conn['external_ip']
 
+    def base64_encode_psk(self):
+        if not self.vpnservice:
+            return
+        for ipsec_site_conn in self.vpnservice['ipsec_site_connections']:
+            psk = ipsec_site_conn['psk']
+            encoded_psk = base64.b64encode(encodeutils.safe_encode(psk))
+            # NOTE(huntxu): base64.b64encode returns an instance of 'bytes'
+            # in Python 3, convert it to a str. For Python 2, after calling
+            # safe_decode, psk is converted into a unicode not containing any
+            # non-ASCII characters so it doesn't matter.
+            psk = encodeutils.safe_decode(encoded_psk, incoming='utf_8')
+            ipsec_site_conn['psk'] = PSK_BASE64_PREFIX + psk
+
     def update_vpnservice(self, vpnservice):
         self.vpnservice = vpnservice
         self.translate_dialect()
+        self.base64_encode_psk()
 
     def _dialect(self, obj, key):
         obj[key] = self.DIALECT_MAP.get(obj[key], obj[key])

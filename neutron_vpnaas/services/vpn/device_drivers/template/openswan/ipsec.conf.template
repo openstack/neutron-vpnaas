@@ -1,4 +1,4 @@
-# Configuration for {{vpnservice.name}}
+# Configuration for {{vpnservice.id}}
 config setup
     nat_traversal=yes
 conn %default
