@@ -694,6 +694,8 @@ class VPNPluginRpcDbMixin(object):
 
 
 def vpn_callback(resource, event, trigger, **kwargs):
+    # TODO(boden): refactor back into single method once everything is using
+    # the event payload objects
     vpn_plugin = directory.get_plugin(p_constants.VPN)
     if vpn_plugin:
         context = kwargs.get('context')
@@ -703,6 +705,17 @@ def vpn_callback(resource, event, trigger, **kwargs):
         elif resource == resources.ROUTER_INTERFACE:
             subnet_id = kwargs.get('subnet_id')
             vpn_plugin.check_subnet_in_use(context, subnet_id, router_id)
+
+
+def vpn_router_gateway_callback(resource, event, trigger, payload=None):
+    # TODO(boden): refactor back into single method once everything is using
+    # the event payload objects
+    vpn_plugin = directory.get_plugin(p_constants.VPN)
+    if vpn_plugin:
+        context = payload.context
+        router_id = payload.resource_id
+        if resource == resources.ROUTER_GATEWAY:
+            vpn_plugin.check_router_in_use(context, router_id)
 
 
 def migration_callback(resource, event, trigger, **kwargs):
@@ -725,7 +738,8 @@ def subnet_callback(resource, event, trigger, **kwargs):
 
 def subscribe():
     registry.subscribe(
-        vpn_callback, resources.ROUTER_GATEWAY, events.BEFORE_DELETE)
+        vpn_router_gateway_callback, resources.ROUTER_GATEWAY,
+        events.BEFORE_DELETE)
     registry.subscribe(
         vpn_callback, resources.ROUTER_INTERFACE, events.BEFORE_DELETE)
     registry.subscribe(
