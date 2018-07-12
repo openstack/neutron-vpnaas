@@ -293,12 +293,19 @@ EXPECTED_IPSEC_STRONGSWAN_SECRET_CONF = '''
 '''
 
 PLUTO_ACTIVE_STATUS = """000 "%(conn_id)s/0x1": erouted;\n
-000 #4: "%(conn_id)s/0x1":500 STATE_QUICK_R2 (IPsec SA established);""" % {
+000 #4: "%(conn_id)s/0x1":500 STATE_QUICK_R2 (IPsec SA established); \
+newest IPSEC;""" % {
+    'conn_id': FAKE_IPSEC_SITE_CONNECTION2_ID}
+PLUTO_ACTIVE_STATUS_IKEV2 = """000 "%(conn_id)s/0x1": erouted;\n
+000 #4: "%(conn_id)s/0x1":500 STATE_PARENT_R2 (PARENT SA established); \
+newest IPSEC;""" % {
     'conn_id': FAKE_IPSEC_SITE_CONNECTION2_ID}
 PLUTO_MULTIPLE_SUBNETS_ESTABLISHED_STATUS = """000 "%(conn_id1)s/1x1": erouted;\n
-000 #4: "%(conn_id1)s/1x1":500 STATE_QUICK_R2 (IPsec SA established);\n
+000 #4: "%(conn_id1)s/1x1":500 STATE_QUICK_R2 (IPsec SA established); \
+newest IPSEC;\n
 000 "%(conn_id2)s/2x1": erouted;\n
-000 #4: "%(conn_id2)s/2x1":500 STATE_QUICK_R2 (IPsec SA established);\n""" % {
+000 #4: "%(conn_id2)s/2x1":500 STATE_QUICK_R2 (IPsec SA established); \
+newest IPSEC;\n""" % {
     'conn_id1': FAKE_IPSEC_SITE_CONNECTION1_ID,
     'conn_id2': FAKE_IPSEC_SITE_CONNECTION2_ID}
 PLUTO_ACTIVE_NO_IPSEC_SA_STATUS = """000 "%(conn_id)s/0x1": erouted;\n
@@ -789,6 +796,29 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         router_id = self.router.router_id
         connection_id = FAKE_IPSEC_SITE_CONNECTION2_ID
         self.driver.ensure_process(router_id, self.vpnservice)
+        self._execute.return_value = active_status
+        self.driver.report_status(mock.Mock())
+        process_status = self.driver.process_status_cache[
+            router_id]
+        ipsec_site_conn = process_status['ipsec_site_connections']
+        self.assertEqual(constants.ACTIVE, process_status['status'])
+        self.assertEqual(constants.ACTIVE,
+                         ipsec_site_conn[connection_id]['status'])
+
+    def _test_status_handling_for_ike_v2_active_connection(self,
+            active_status):
+        """Test status handling for active connection."""
+        router_id = self.router.router_id
+        connection_id = FAKE_IPSEC_SITE_CONNECTION2_ID
+        ike_policy = {'ike_version': 'v2',
+                      'encryption_algorithm': 'aes-128',
+                      'auth_algorithm': 'sha1',
+                      'pfs': 'group5',
+                      'lifetime_value': 3600}
+        vpn_service = FAKE_VPN_SERVICE
+        for isc in vpn_service["ipsec_site_connections"]:
+            isc['ikepolicy'] = ike_policy
+        self.driver.ensure_process(router_id, vpn_service)
         self._execute.return_value = active_status
         self.driver.report_status(mock.Mock())
         process_status = self.driver.process_status_cache[
@@ -1391,6 +1421,11 @@ class TestOpenSwanProcess(IPSecDeviceLegacy):
     def test_status_handling_for_active_connection(self):
         """Test status handling for active connection."""
         self._test_status_handling_for_active_connection(PLUTO_ACTIVE_STATUS)
+
+    def test_status_handling_for_ike_v2_active_connection(self):
+        """Test status handling for active connection."""
+        self._test_status_handling_for_ike_v2_active_connection(
+            PLUTO_ACTIVE_STATUS_IKEV2)
 
     def test_status_handling_for_deleted_connection(self):
         """Test status handling for deleted connection."""
