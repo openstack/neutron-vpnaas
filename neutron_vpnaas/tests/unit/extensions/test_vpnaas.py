@@ -37,10 +37,9 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
                            'ikepolicy': 'ikepolicies',
                            'ipsec_site_connection': 'ipsec-site-connections',
                            'endpoint_group': 'endpoint-groups'}
-        self._setUpExtension(
+        self.setup_extension(
             'neutron_vpnaas.extensions.vpnaas.VPNPluginBase', nconstants.VPN,
-            vpnaas.RESOURCE_ATTRIBUTE_MAP, vpnaas.Vpnaas,
-            'vpn', plural_mappings=plural_mappings,
+            vpnaas.Vpnaas, 'vpn', plural_mappings=plural_mappings,
             use_quota=True)
 
     def test_ikepolicy_create(self):

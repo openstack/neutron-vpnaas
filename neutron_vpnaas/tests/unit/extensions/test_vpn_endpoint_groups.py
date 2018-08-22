@@ -43,11 +43,10 @@ class VpnEndpointGroupsTestCase(base.ExtensionTestCase):
     def setUp(self):
         super(VpnEndpointGroupsTestCase, self).setUp()
         plural_mappings = {'endpoint_group': 'endpoint-groups'}
-        self._setUpExtension(
+        self.setup_extension(
             'neutron_vpnaas.tests.unit.extensions.test_vpn_endpoint_groups.'
             'VpnEndpointGroupsTestPlugin',
             nconstants.VPN,
-            vpn_endpoint_groups.RESOURCE_ATTRIBUTE_MAP,
             vpn_endpoint_groups.Vpn_endpoint_groups,
             'vpn', plural_mappings=plural_mappings,
             use_quota=True)
