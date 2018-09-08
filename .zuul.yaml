@@ -1,27 +1,22 @@
 - project:
     templates:
       - check-requirements
-      - periodic-stable-jobs-neutron
+      - openstack-cover-jobs-neutron
+      - openstack-lower-constraints-jobs-neutron
       - openstack-python-jobs-neutron
       - openstack-python35-jobs-neutron
+      - periodic-stable-jobs-neutron
       - publish-openstack-sphinx-docs
       - release-notes-jobs
     check:
       jobs:
         - neutron-vpnaas-dsvm-functional-sswan
         - neutron-vpnaas-tempest
-        - neutron-vpnaas-tox-lower-constraints
         - neutron-vpnaas-tempest-libreswan-centos
-        - openstack-tox-cover:
-            voting: false
-            required-projects:
-              - openstack/neutron
-
     gate:
       jobs:
         - neutron-vpnaas-dsvm-functional-sswan
         - neutron-vpnaas-tempest
-        - neutron-vpnaas-tox-lower-constraints
     experimental:
       jobs:
         - neutron-vpnaas-dsvm-rally
@@ -96,9 +91,3 @@
       - ^doc/.*$
       - ^neutron_vpnaas/tests/unit/.*$
       - ^releasenotes/.*$
-
-- job:
-    name: neutron-vpnaas-tox-lower-constraints
-    parent: openstack-tox-lower-constraints
-    required-projects:
-      - openstack/neutron
