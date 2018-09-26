@@ -15,9 +15,9 @@
 
 import abc
 
-from neutron.common import rpc as n_rpc
 from neutron_lib.plugins import constants
 from neutron_lib.plugins import directory
+from neutron_lib import rpc as n_rpc
 from oslo_log import log as logging
 import oslo_messaging
 import six
