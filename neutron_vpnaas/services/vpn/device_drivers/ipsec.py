@@ -845,8 +845,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
         # TODO(pcm): Use router object method to tell if DVR, when available
         if router.router['distributed']:
             return router.snat_namespace.name
-        else:
-            return router.ns_name
+        return router.ns_name
 
     def get_router_based_iptables_manager(self, router):
         """Returns router based iptables manager
@@ -864,8 +863,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
         # TODO(pcm): Use router object method to tell if DVR, when available
         if router.router['distributed']:
             return router.snat_iptables_manager
-        else:
-            return router.iptables_manager
+        return router.iptables_manager
 
     def add_nat_rule(self, router_id, chain, rule, top=False):
         """Add nat rule in namespace.

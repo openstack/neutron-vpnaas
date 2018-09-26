@@ -91,6 +91,7 @@ class IPsecVpnAgentApi(service_drivers.BaseIPsecVpnAgentApi):
 
     target = oslo_messaging.Target(version=BASE_IPSEC_VERSION)
 
+    # pylint: disable=useless-super-delegation
     def __init__(self, topic, default_version, driver):
         super(IPsecVpnAgentApi, self).__init__(
             topic, default_version, driver)

@@ -95,8 +95,7 @@ class Vpn_endpoint_groups(extensions.ExtensionDescriptor):
     def get_extended_resources(self, version):
         if version == "2.0":
             return RESOURCE_ATTRIBUTE_MAP
-        else:
-            return {}
+        return {}
 
 
 @six.add_metaclass(abc.ABCMeta)

@@ -27,6 +27,7 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
 
     Libreswan needs nssdb initialised before running pluto daemon.
     """
+    # pylint: disable=useless-super-delegation
     def __init__(self, conf, process_id, vpnservice, namespace):
         super(LibreSwanProcess, self).__init__(conf, process_id,
                                               vpnservice, namespace)
