@@ -1061,7 +1061,13 @@ class IPsecDriver(device_drivers.DeviceDriver):
     @log_helpers.log_method_call
     def report_status(self, context):
         status_changed_vpn_services = []
-        for process in self.processes.values():
+        for process_id, process in self.processes.items():
+            # NOTE(mnaser): It's not necessary to check status for processes
+            #               of a backup L3 agent
+            router = self.routers.get(process_id)
+            if router and router.router['ha'] and router.ha_state == 'backup':
+                LOG.debug("%s router in backup state, skipping", process_id)
+                continue
             if not self.should_be_reported(context, process):
                 continue
             previous_status = self.get_process_status_cache(process)
