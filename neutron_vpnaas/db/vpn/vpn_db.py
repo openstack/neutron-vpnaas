@@ -727,10 +727,10 @@ def migration_callback(resource, event, trigger, **kwargs):
     return True
 
 
-def subnet_callback(resource, event, trigger, **kwargs):
+def subnet_callback(resource, event, trigger, payload=None):
     """Respond to subnet based notifications - see if subnet in use."""
-    context = kwargs['context']
-    subnet_id = kwargs['subnet_id']
+    context = payload.context
+    subnet_id = payload.resource_id
     vpn_plugin = directory.get_plugin(p_constants.VPN)
     if vpn_plugin:
         vpn_plugin.check_subnet_in_use_by_endpoint_group(context, subnet_id)
