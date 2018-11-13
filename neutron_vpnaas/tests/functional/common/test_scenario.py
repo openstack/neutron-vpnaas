@@ -335,10 +335,6 @@ class TestIPSecBase(base.BaseSudoTestCase):
         br_int_2 = get_ovs_bridge(agent2.conf.ovs_integration_bridge)
         net_helpers.create_patch_ports(br_int_1, br_int_2)
 
-        br_ex_1 = get_ovs_bridge(agent1.conf.external_network_bridge)
-        br_ex_2 = get_ovs_bridge(agent2.conf.external_network_bridge)
-        net_helpers.create_patch_ports(br_ex_1, br_ex_2)
-
     def _get_config_opts(self):
         """Register default config options"""
         config = cfg.ConfigOpts()
@@ -366,9 +362,7 @@ class TestIPSecBase(base.BaseSudoTestCase):
             'neutron.agent.linux.interface.OVSInterfaceDriver')
 
         br_int = self.useFixture(net_helpers.OVSBridgeFixture()).bridge
-        br_ex = self.useFixture(net_helpers.OVSBridgeFixture()).bridge
         config.set_override('ovs_integration_bridge', br_int.br_name)
-        config.set_override('external_network_bridge', br_ex.br_name)
 
         temp_dir = self.get_new_temp_dir()
         get_temp_file_path = functools.partial(self.get_temp_file_path,
@@ -385,8 +379,8 @@ class TestIPSecBase(base.BaseSudoTestCase):
         config.set_override('config_base_dir',
                           ipsec_config_base_dir, group='ipsec')
 
-        # Assign ip address to br-ex port because it is a gateway
-        ex_port = ip_lib.IPDevice(br_ex.br_name)
+        # Assign ip address to br-int port because it is a gateway
+        ex_port = ip_lib.IPDevice(br_int.br_name)
         ex_port.addr.add(str(PUBLIC_NET[1]))
 
         return config
