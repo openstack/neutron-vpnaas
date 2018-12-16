@@ -1,30 +1,39 @@
-=====================
-Configuration Options
-=====================
+===================
+Configuration Guide
+===================
+
+Configuration
+-------------
 
 This section provides a list of all possible options for each
 configuration file.
 
-Configuration Reference
------------------------
-
-Neutron uses the following configuration files for its various services.
+Neutron VPNaaS uses the following configuration files for its various services.
 
 .. toctree::
-   :glob:
    :maxdepth: 1
 
-   *
+   neutron_vpnaas
+   l3_agent
 
-Sample Configuration Files
---------------------------
-
-The following are sample configuration files for all Neutron services and
+The following are sample configuration files for Neutron VPNaaS services and
 utilities. These are generated from code and reflect the current state of code
-in the Neutron repository.
+in the neutron-vpnaas repository.
 
 .. toctree::
    :glob:
    :maxdepth: 1
 
    samples/*
+
+Policy
+------
+
+Neutron VPNaaS, like most OpenStack projects, uses a policy language to
+restrict permissions on REST API actions.
+
+.. toctree::
+   :maxdepth: 1
+
+   Policy Reference <policy>
+   Sample Policy File <policy-sample>

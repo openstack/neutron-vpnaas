@@ -50,6 +50,8 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.todo',
               'oslo_config.sphinxext',
               'oslo_config.sphinxconfiggen',
+              'oslo_policy.sphinxext',
+              'oslo_policy.sphinxpolicygen',
               'openstackdocstheme',]
 
 todo_include_todos = True
@@ -263,3 +265,8 @@ config_generator_config_file = [
     _get_config_generator_config_definition(conf)
     for conf in _config_generator_config_files
 ]
+
+# -- Options for oslo_policy.sphinxpolicygen ---------------------------------
+
+policy_generator_config_file = '../../etc/oslo-policy-generator/policy.conf'
+sample_policy_basename = '_static/neutron-vpnaas'
