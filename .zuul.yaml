@@ -13,13 +13,12 @@
       jobs:
         - neutron-vpnaas-dsvm-functional-sswan
         - neutron-vpnaas-tempest
-        - neutron-vpnaas-tempest-libreswan-centos:
-            # Cinder DB migration fails on CentOS 7 (bug 1808709)
-            voting: false
+        - neutron-vpnaas-tempest-libreswan-centos
     gate:
       jobs:
         - neutron-vpnaas-dsvm-functional-sswan
         - neutron-vpnaas-tempest
+        - neutron-vpnaas-tempest-libreswan-centos
     experimental:
       jobs:
         - neutron-vpnaas-dsvm-rally
