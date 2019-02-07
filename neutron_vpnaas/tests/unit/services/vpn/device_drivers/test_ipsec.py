@@ -327,7 +327,7 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
               vpnservice=FAKE_VPN_SERVICE):
         super(BaseIPsecDeviceDriver, self).setUp()
         for klass in [
-            'neutron.common.rpc.Connection',
+            'neutron_lib.rpc.Connection',
             'oslo_service.loopingcall.FixedIntervalLoopingCall'
         ]:
             mock.patch(klass).start()
