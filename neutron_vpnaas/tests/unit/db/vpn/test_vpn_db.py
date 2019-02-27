@@ -1733,7 +1733,7 @@ class NeutronResourcesMixin(object):
         }}
         return self.core_plugin.create_port(self.context, port)
 
-    def create_basic_topology(self):
+    def create_basic_topology(self, create_router_port=True):
         """Setup networks, subnets, and a router for testing VPN."""
 
         public_net = self.create_network(overrides={'name': 'public',
@@ -1755,7 +1755,8 @@ class NeutronResourcesMixin(object):
                    'subnet_id': public_subnet['id'],
                    'ip': '192.168.100.5'}
         router = self.create_router(gw=gw_info)
-        self.create_router_port_for_subnet(router, private_subnet)
+        if create_router_port:
+            self.create_router_port_for_subnet(router, private_subnet)
         return (private_subnet, router)
 
 
@@ -2203,3 +2204,40 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         self.assertRaises(vpnaas.SubnetInUseByEndpointGroup,
                           self.plugin.check_subnet_in_use_by_endpoint_group,
                           self.context, local_subnet['id'])
+
+    def test_subnet_in_use_by_ipsec_site_connection(self):
+        mock.patch.object(self.plugin, '_get_validator').start()
+
+        private_subnet, router = self.create_basic_topology(
+            create_router_port=False)
+        self.l3_plugin.add_router_interface(
+            self.context,
+            router['id'],
+            {'subnet_id': private_subnet['id']})
+        vpn_service_info = self.prepare_service_info(private_subnet=None,
+                                                     router=router)
+        vpn_service = self.plugin.create_vpnservice(self.context,
+                                                    vpn_service_info)
+
+        ike_policy = self.create_ike_policy()
+        ipsec_policy = self.create_ipsec_policy()
+        ipsec_site_connection = self.prepare_connection_info(
+            vpn_service['id'],
+            ike_policy['id'],
+            ipsec_policy['id'])
+
+        local_ep_group = self.create_endpoint_group(
+            group_type='subnet', endpoints=[private_subnet['id']])
+        peer_ep_group = self.create_endpoint_group(
+            group_type='cidr', endpoints=['20.1.0.0/24', '20.2.0.0/24'])
+        ipsec_site_connection['ipsec_site_connection'].update(
+            {'local_ep_group_id': local_ep_group['id'],
+             'peer_ep_group_id': peer_ep_group['id']})
+        self.plugin.create_ipsec_site_connection(self.context,
+                                                 ipsec_site_connection)
+
+        self.assertRaises(vpnaas.SubnetInUseByIPsecSiteConnection,
+                          self.plugin.check_subnet_in_use,
+                          self.context,
+                          private_subnet['id'],
+                          router['id'])
