@@ -14,12 +14,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from neutron.db import common_db_mixin as base_db
 from neutron.db import models_v2
 from neutron_lib.callbacks import events
 from neutron_lib.callbacks import registry
 from neutron_lib.callbacks import resources
 from neutron_lib import constants as lib_constants
+from neutron_lib.db import model_query
+from neutron_lib.db import utils as db_utils
 from neutron_lib.exceptions import l3 as l3_exception
 from neutron_lib.plugins import constants as p_constants
 from neutron_lib.plugins import directory
@@ -41,8 +42,7 @@ LOG = logging.getLogger(__name__)
 
 
 class VPNPluginDb(vpnaas.VPNPluginBase,
-                  vpn_endpoint_groups.VPNEndpointGroupsPluginBase,
-                  base_db.CommonDbMixin):
+                  vpn_endpoint_groups.VPNEndpointGroupsPluginBase):
     """VPN plugin database class using SQLAlchemy models."""
 
     def _get_validator(self):
@@ -63,7 +63,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
 
     def _get_resource(self, context, model, v_id):
         try:
-            r = self._get_by_id(context, model, v_id)
+            r = model_query.get_by_id(context, model, v_id)
         except exc.NoResultFound:
             with excutils.save_and_reraise_exception(reraise=False) as ctx:
                 if issubclass(model, vpn_models.IPsecSiteConnection):
@@ -118,7 +118,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                'peer_ep_group_id': ipsec_site_conn['peer_ep_group_id'],
                }
 
-        return self._fields(res, fields)
+        return db_utils.resource_fields(res, fields)
 
     def get_endpoint_info(self, context, ipsec_sitecon):
         """Obtain all endpoint info, and store in connection for validation."""
@@ -268,9 +268,10 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
             ipsec_site_conn_db, fields)
 
     def get_ipsec_site_connections(self, context, filters=None, fields=None):
-        return self._get_collection(context, vpn_models.IPsecSiteConnection,
-                                    self._make_ipsec_site_connection_dict,
-                                    filters=filters, fields=fields)
+        return model_query.get_collection(
+            context, vpn_models.IPsecSiteConnection,
+            self._make_ipsec_site_connection_dict,
+            filters=filters, fields=fields)
 
     def update_ipsec_site_conn_status(self, context, conn_id, new_status):
         with context.session.begin():
@@ -307,7 +308,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                'pfs': ikepolicy['pfs']
                }
 
-        return self._fields(res, fields)
+        return db_utils.resource_fields(res, fields)
 
     def create_ikepolicy(self, context, ikepolicy):
         ike = ikepolicy['ikepolicy']
@@ -370,9 +371,9 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         return self._make_ikepolicy_dict(ike_db, fields)
 
     def get_ikepolicies(self, context, filters=None, fields=None):
-        return self._get_collection(context, vpn_models.IKEPolicy,
-                                    self._make_ikepolicy_dict,
-                                    filters=filters, fields=fields)
+        return model_query.get_collection(context, vpn_models.IKEPolicy,
+                                          self._make_ikepolicy_dict,
+                                          filters=filters, fields=fields)
 
     def _make_ipsecpolicy_dict(self, ipsecpolicy, fields=None):
 
@@ -391,7 +392,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                'pfs': ipsecpolicy['pfs']
                }
 
-        return self._fields(res, fields)
+        return db_utils.resource_fields(res, fields)
 
     def create_ipsecpolicy(self, context, ipsecpolicy):
         ipsecp = ipsecpolicy['ipsecpolicy']
@@ -452,9 +453,9 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         return self._make_ipsecpolicy_dict(ipsec_db, fields)
 
     def get_ipsecpolicies(self, context, filters=None, fields=None):
-        return self._get_collection(context, vpn_models.IPsecPolicy,
-                                    self._make_ipsecpolicy_dict,
-                                    filters=filters, fields=fields)
+        return model_query.get_collection(context, vpn_models.IPsecPolicy,
+                                          self._make_ipsecpolicy_dict,
+                                          filters=filters, fields=fields)
 
     def _make_vpnservice_dict(self, vpnservice, fields=None):
         res = {'id': vpnservice['id'],
@@ -468,7 +469,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                'external_v4_ip': vpnservice['external_v4_ip'],
                'external_v6_ip': vpnservice['external_v6_ip'],
                'status': vpnservice['status']}
-        return self._fields(res, fields)
+        return db_utils.resource_fields(res, fields)
 
     def create_vpnservice(self, context, vpnservice):
         vpns = vpnservice['vpnservice']
@@ -529,9 +530,9 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         return self._make_vpnservice_dict(vpns_db, fields)
 
     def get_vpnservices(self, context, filters=None, fields=None):
-        return self._get_collection(context, vpn_models.VPNService,
-                                    self._make_vpnservice_dict,
-                                    filters=filters, fields=fields)
+        return model_query.get_collection(context, vpn_models.VPNService,
+                                          self._make_vpnservice_dict,
+                                          filters=filters, fields=fields)
 
     def check_router_in_use(self, context, router_id):
         vpnservices = self.get_vpnservices(
@@ -601,7 +602,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                'type': endpoint_group['endpoint_type'],
                'endpoints': [ep['endpoint']
                              for ep in endpoint_group['endpoints']]}
-        return self._fields(res, fields)
+        return db_utils.resource_fields(res, fields)
 
     def create_endpoint_group(self, context, endpoint_group):
         group = endpoint_group['endpoint_group']
@@ -647,9 +648,9 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         return self._make_endpoint_group_dict(endpoint_group_db, fields)
 
     def get_endpoint_groups(self, context, filters=None, fields=None):
-        return self._get_collection(context, vpn_models.VPNEndpointGroup,
-                                    self._make_endpoint_group_dict,
-                                    filters=filters, fields=fields)
+        return model_query.get_collection(context, vpn_models.VPNEndpointGroup,
+                                          self._make_endpoint_group_dict,
+                                          filters=filters, fields=fields)
 
     def check_endpoint_group_not_in_use(self, context, group_id):
         query = context.session.query(vpn_models.IPsecSiteConnection)
