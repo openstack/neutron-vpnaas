@@ -20,6 +20,7 @@ import sys
 from eventlet.green import subprocess
 from neutron.common import config
 from neutron.common import utils
+from neutron_lib.utils import helpers
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_rootwrap import wrapper
@@ -67,6 +68,8 @@ def execute(cmd):
                                  env=env)
 
     _stdout, _stderr = obj.communicate()
+    _stdout = helpers.safe_decode_utf8(_stdout)
+    _stderr = helpers.safe_decode_utf8(_stderr)
     msg = ('Command: %(cmd)s Exit code: %(returncode)s '
            'Stdout: %(stdout)s Stderr: %(stderr)s' %
            {'cmd': cmd,
