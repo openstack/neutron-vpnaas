@@ -279,6 +279,13 @@ class BaseSwanProcess(object):
             {'vpnservice': vpnservice,
              'state_path': self.conf.state_path})
 
+    def _get_rootwrap_config(self):
+        if 'neutron-rootwrap' in cfg.CONF.AGENT.root_helper:
+            rh_tokens = cfg.CONF.AGENT.root_helper.split(' ')
+            if len(rh_tokens) == 3 and os.path.exists(rh_tokens[2]):
+                return rh_tokens[2]
+        return None
+
     @abc.abstractmethod
     def get_status(self):
         pass

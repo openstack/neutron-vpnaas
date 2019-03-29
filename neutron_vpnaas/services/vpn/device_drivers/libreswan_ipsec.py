@@ -29,6 +29,7 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
     """
     # pylint: disable=useless-super-delegation
     def __init__(self, conf, process_id, vpnservice, namespace):
+        self._rootwrap_cfg = self._get_rootwrap_config()
         super(LibreSwanProcess, self).__init__(conf, process_id,
                                               vpnservice, namespace)
 
@@ -47,6 +48,8 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
         return ip_wrapper.netns.execute(
             [NS_WRAPPER,
              '--mount_paths=%s' % mount_paths_str,
+             ('--rootwrap_config=%s' % self._rootwrap_cfg
+                 if self._rootwrap_cfg else ''),
              '--cmd=%s,%s' % (self.binary, ','.join(cmd))],
             check_exit_code=check_exit_code,
             extra_ok_codes=extra_ok_codes)
