@@ -30,7 +30,7 @@
     post-run: playbooks/legacy/neutron-vpnaas-dsvm-tempest/post.yaml
     timeout: 3900
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/neutron
       - openstack/tempest
       - openstack/neutron-tempest-plugin
@@ -42,7 +42,7 @@
     post-run: playbooks/legacy/neutron-vpnaas-dsvm-functional-sswan/post.yaml
     timeout: 7800
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/neutron
       - openstack/neutron-vpnaas
     irrelevant-files:
@@ -57,7 +57,7 @@
     post-run: playbooks/legacy/neutron-vpnaas-dsvm-rally/post.yaml
     timeout: 7800
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/neutron
       - openstack/neutron-vpnaas
       - openstack/rally
