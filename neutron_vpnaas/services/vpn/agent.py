@@ -77,7 +77,7 @@ class VPNAgent(l3_extension.L3AgentExtension):
     def delete_router(self, context, data):
         """Handles router delete event"""
         for device_driver in self.device_drivers:
-            device_driver.destroy_router(data)
+            device_driver.destroy_router(data['id'])
 
     def ha_state_change(self, context, data):
         """Enable the vpn process when router transitioned to master.
