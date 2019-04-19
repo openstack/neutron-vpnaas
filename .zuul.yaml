@@ -38,8 +38,8 @@
       tempest_test_regex: ^neutron_vpnaas\.
       tox_envlist: all-plugin
       devstack_plugins:
-        neutron-vpnaas: https://git.openstack.org/openstack/neutron-vpnaas
-        neutron-tempest-plugin: https://git.openstack.org/openstack/neutron-tempest-plugin
+        neutron-vpnaas: https://opendev.org/openstack/neutron-vpnaas
+        neutron-tempest-plugin: https://opendev.org/openstack/neutron-tempest-plugin
       devstack_localrc:
         IPSEC_PACKAGE: strongswan
     irrelevant-files:
@@ -71,7 +71,7 @@
     post-run: playbooks/legacy/neutron-vpnaas-dsvm-functional-sswan/post.yaml
     timeout: 7800
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/neutron
       - openstack/neutron-vpnaas
     irrelevant-files:
@@ -87,7 +87,7 @@
     post-run: playbooks/legacy/neutron-vpnaas-dsvm-rally/post.yaml
     timeout: 7800
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/neutron
       - openstack/neutron-vpnaas
       - openstack/rally
