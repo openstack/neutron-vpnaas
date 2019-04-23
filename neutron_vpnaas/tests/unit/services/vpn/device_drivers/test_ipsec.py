@@ -933,6 +933,27 @@ class IPSecDeviceDVR(BaseIPsecDeviceDriver):
         router.snat_iptables_manager.apply = self.apply_mock
         self.driver.routers[FAKE_ROUTER_ID] = router
 
+    def test_sync_dvr(self):
+        fake_vpn_service = FAKE_VPN_SERVICE
+        self.driver.agent_rpc.get_vpn_services_on_host.return_value = [
+            fake_vpn_service]
+        context = mock.Mock()
+        self.driver._sync_vpn_processes = mock.Mock()
+        self.driver._delete_vpn_processes = mock.Mock()
+        self.driver._cleanup_stale_vpn_processes = mock.Mock()
+        sync_routers = [{'id': fake_vpn_service['router_id']}]
+        sync_router_ids = [fake_vpn_service['router_id']]
+        with mock.patch.object(self.driver,
+                'get_process_status_cache') as process_status:
+            self.driver.sync(context, sync_routers)
+            self.driver._sync_vpn_processes.assert_called_once_with(
+                [fake_vpn_service], sync_router_ids)
+            self.driver._delete_vpn_processes.assert_called_once_with(
+                sync_router_ids, sync_router_ids)
+            self.driver._cleanup_stale_vpn_processes.assert_called_once_with(
+                sync_router_ids)
+            self.assertEqual(0, process_status.call_count)
+
     def test_get_namespace_for_dvr_edge_router(self):
         namespace = self.driver.get_namespace(FAKE_ROUTER_ID)
         self.assertEqual('snat-' + FAKE_ROUTER_ID, namespace)
