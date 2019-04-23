@@ -41,7 +41,7 @@ recommended to check `Request for Feature Enhancements`_ (RFE) process.
 
 .. __: https://bugs.launchpad.net/neutron/+bugs?field.tag=vpnaas
 .. __: https://bugs.launchpad.net/neutron/+bugs?field.tag=rfe
-.. _`neutron drivers`: https://review.openstack.org/#/admin/groups/464,members
+.. _`neutron drivers`: https://review.opendev.org/#/admin/groups/464,members
 .. _`Request for Feature Enhancements`: https://docs.openstack.org/neutron/latest/contributor/policies/blueprints.html#neutron-request-for-feature-enhancements
 
 To get in touch with the neutron-vpnaas community,

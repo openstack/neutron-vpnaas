@@ -4,7 +4,7 @@ set -ex
 
 VENV=${1:-"dsvm-functional"}
 DEVSTACK_LOCAL_CONFIG="NETWORK_API_EXTENSIONS=all"
-DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin neutron-vpnaas https://git.openstack.org/openstack/neutron-vpnaas"
+DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin neutron-vpnaas https://opendev.org/openstack/neutron-vpnaas"
 export DEVSTACK_LOCAL_CONFIG
 
 case $VENV in

@@ -33,7 +33,7 @@ section of devstack's local.conf file::
 
 For example::
 
-   enable_plugin neutron-vpnaas https://git.openstack.org/openstack/neutron-vpnaas stable/kilo
+   enable_plugin neutron-vpnaas https://opendev.org/openstack/neutron-vpnaas stable/kilo
 
 The default implementation for IPSEC package under DevStack is 'strongswan'.
 However, depending upon the Linux distribution, you may need to override

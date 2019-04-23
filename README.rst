@@ -12,11 +12,11 @@ The homepage for Neutron is: https://launchpad.net/neutron.  Use this
 site for asking for help, and filing bugs. We use a single Launchpad
 page for all Neutron projects.
 
-Code is available on git.openstack.org at:
-https://git.openstack.org/cgit/openstack/neutron-vpnaas.
+Code is available on opendev.org at:
+https://opendev.org/openstack/neutron-vpnaas.
 
 Please refer to Neutron documentation for more information:
-`Neutron README.rst <https://git.openstack.org/cgit/openstack/neutron/tree/README.rst>`_
+`Neutron README.rst <https://opendev.org/openstack/neutron/src/branch/master/README.rst>`_
 
 Team and repository tags
 ========================

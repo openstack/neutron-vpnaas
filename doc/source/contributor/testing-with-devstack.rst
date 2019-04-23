@@ -12,7 +12,7 @@ you'll need the following settings in your local.conf.
 
 
 You can find an example at `devstack/local.conf.sample
-<https://git.openstack.org/cgit/openstack/neutron-vpnaas/tree/devstack/local.conf.sample>`_
+<https://opendev.org/openstack/neutron-vpnaas/src/branch/master/devstack/local.conf.sample>`_
 in the source tree.
 
 Quick Test Script
@@ -22,7 +22,7 @@ This quick test script creates two sites with a router, a network and a subnet c
 with public network. Then, connect both sites via VPN.
 
 You can find an example at `tools/test_script.sh
-<https://git.openstack.org/cgit/openstack/neutron-vpnaas/tree/tools/test_script.sh>`_
+<https://opendev.org/openstack/neutron-vpnaas/src/branch/master/tools/test_script.sh>`_
 in the source tree.
 
 Using Two DevStack Nodes for Testing
@@ -159,7 +159,7 @@ DevStack Configuration
 ^^^^^^^^^^^^^^^^^^^^^^
 
 For single DevStack and two routers case, You can find an example at `devstack/local_AIO.conf.sample
-<https://git.openstack.org/cgit/openstack/neutron-vpnaas/tree/devstack/local_AIO.conf.sample>`_
+<https://opendev.org/openstack/neutron-vpnaas/src/branch/master/devstack/local_AIO.conf.sample>`_
 in the source tree.
 
 Start up the cloud using ``./stack.sh`` and ensure it completes successfully.

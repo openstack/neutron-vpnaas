@@ -1,6 +1,6 @@
 [[local|localrc]]
 
-enable_plugin neutron-vpnaas https://git.openstack.org/openstack/neutron-vpnaas
+enable_plugin neutron-vpnaas https://opendev.org/openstack/neutron-vpnaas
 
 disable_service n-net
 enable_service q-svc
