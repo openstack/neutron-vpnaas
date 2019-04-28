@@ -8,9 +8,7 @@
       - release-notes-jobs
     check:
       jobs:
-        # Making FT non-voting temporarily till fixed
-        - neutron-vpnaas-dsvm-functional-sswan:
-            voting: false
+        - neutron-vpnaas-dsvm-functional-sswan
         - neutron-vpnaas-tempest
         - neutron-vpnaas-tox-lower-constraints
         - neutron-vpnaas-tempest-libreswan-centos
@@ -21,8 +19,7 @@
 
     gate:
       jobs:
-        # Disable FT temporarily till fixed
-        # - neutron-vpnaas-dsvm-functional-sswan
+        - neutron-vpnaas-dsvm-functional-sswan
         - neutron-vpnaas-tempest
         - neutron-vpnaas-tox-lower-constraints
     experimental:
