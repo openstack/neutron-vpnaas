@@ -82,6 +82,7 @@ class StrongSwanProcess(ipsec.BaseSwanProcess):
         self.DIALECT_MAP['v2'] = 'ikev2'
         self.DIALECT_MAP['sha256'] = 'sha256'
         self._strongswan_piddir = self._get_strongswan_piddir()
+        self._rootwrap_cfg = self._get_rootwrap_config()
         LOG.debug("strongswan piddir is '%s'", (self._strongswan_piddir))
         super(StrongSwanProcess, self).__init__(conf, process_id,
                                                 vpnservice, namespace)
@@ -115,6 +116,8 @@ class StrongSwanProcess(ipsec.BaseSwanProcess):
             [NS_WRAPPER,
              '--mount_paths=/etc:%s/etc,%s:%s/var/run' % (
                  self.config_dir, self._strongswan_piddir, self.config_dir),
+             ('--rootwrap_config=%s' % self._rootwrap_cfg
+                 if self._rootwrap_cfg else ''),
              '--cmd=%s' % ','.join(cmd)],
             check_exit_code=check_exit_code,
             extra_ok_codes=extra_ok_codes)
