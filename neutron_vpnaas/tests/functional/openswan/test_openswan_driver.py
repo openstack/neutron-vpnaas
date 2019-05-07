@@ -120,8 +120,8 @@ class TestOpenSwanDeviceDriver(test_scenario.TestIPSecBase):
 
             self.sync_to_create_ipsec_connections(site1, site2)
             # when restart_check_config is not set, start will be
-            # called in each sync
-            self.assertEqual(2, my_start.call_count)
+            # called in first sync
+            self.assertEqual(1, my_start.call_count)
             my_start.reset_mock()
 
             cfg.CONF.set_override('restart_check_config', True, group='pluto')
