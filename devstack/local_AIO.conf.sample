@@ -5,7 +5,7 @@ enable_service q-agent
 enable_service q-dhcp
 enable_service q-l3
 enable_service q-meta
-enable_plugin neutron-vpnaas https://git.openstack.org/openstack/neutron-vpnaas
+enable_plugin neutron-vpnaas https://opendev.org/openstack/neutron-vpnaas
 
 FIXED_RANGE=10.1.0.0/24
 FIXED_NETWORK_SIZE=256
