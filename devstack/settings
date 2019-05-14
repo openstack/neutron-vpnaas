@@ -3,12 +3,27 @@
 # Plugin
 VPN_PLUGIN=${VPN_PLUGIN:-"vpnaas"}
 
-# Service Driver
-NEUTRON_VPNAAS_SERVICE_PROVIDER=${NEUTRON_VPNAAS_SERVICE_PROVIDER:-"VPN:strongswan:neutron_vpnaas.services.vpn.service_drivers.ipsec.IPsecVPNDriver:default"}
-
 # Device driver
 IPSEC_PACKAGE=${IPSEC_PACKAGE:-"strongswan"}
 NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec:StrongSwanDriver"}
+
+function _get_service_provider {
+     local ipsec_package=$1
+     local name driver
+
+     driver="neutron_vpnaas.services.vpn.service_drivers.ipsec.IPsecVPNDriver"
+     if [ "$ipsec_package" = "libreswan" ]; then
+         name="openswan"
+     else
+         name="strongswan"
+     fi
+     echo "VPN:${name}:${driver}:default"
+}
+
+# Service Driver, default value depends on IPSEC_PACKAGE.
+if [ -z "$NEUTRON_VPNAAS_SERVICE_PROVIDER" ]; then
+    NEUTRON_VPNAAS_SERVICE_PROVIDER=$(_get_service_provider $IPSEC_PACKAGE)
+fi
 
 # Config files
 NEUTRON_CONF_DIR=${NEUTRON_CONF_DIR:-"/etc/neutron"}
