@@ -47,6 +47,7 @@ kill_ip_monitor: KillFilter, root, ip, -9
 ovs-vsctl: CommandFilter, ovs-vsctl, root
 
 # iptables_manager
+iptables: CommandFilter, iptables, root
 iptables-save: CommandFilter, iptables-save, root
 iptables-restore: CommandFilter, iptables-restore, root
 ip6tables-save: CommandFilter, ip6tables-save, root
