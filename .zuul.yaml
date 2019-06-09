@@ -39,6 +39,7 @@
         neutron-tempest-plugin: https://opendev.org/openstack/neutron-tempest-plugin
       devstack_localrc:
         IPSEC_PACKAGE: strongswan
+        USE_PYTHON3: true
     irrelevant-files:
       - ^.*\.rst$
       - ^doc/.*$
@@ -52,6 +53,7 @@
     vars:
       devstack_localrc:
         IPSEC_PACKAGE: libreswan
+        USE_PYTHON3: false
       # VPNaaS 4in6 and 6in4 scenarios would fail after LibreSwan 3.18.
       # Base node using Libreswan 3.20 on CentOS 7.4.
       # Refer to https://github.com/libreswan/libreswan/issues/175.
