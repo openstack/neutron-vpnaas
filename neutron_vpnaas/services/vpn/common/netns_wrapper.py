@@ -58,7 +58,7 @@ def setup_conf():
 def execute(cmd):
     if not cmd:
         return
-    cmd = map(str, cmd)
+    cmd = list(map(str, cmd))
     LOG.debug("Running command: %s", cmd)
     env = os.environ.copy()
     obj = utils.subprocess_popen(cmd, shell=False,
