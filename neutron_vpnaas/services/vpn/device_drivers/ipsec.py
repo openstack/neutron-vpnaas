@@ -1108,7 +1108,7 @@ class IPsecDriver(device_drivers.DeviceDriver):
         3) VpnService is deleted during agent down
         4) RPC failure
 
-        In order to handle, these failure cases,
+        In order to handle these failure cases,
         This driver takes simple sync strategies.
         """
         vpnservices = self.agent_rpc.get_vpn_services_on_host(
