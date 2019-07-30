@@ -23,7 +23,7 @@ capabilities to Neutron. Maintained as a separate repo, this works in
 conjunction with the Neutron repo to provide VPN services for OpenStack.
 The `VPNaaS API`_ is implementation as an extension to Neutron's networking API:
 
-.. _`VPNaaS API`: https://developer.openstack.org/api-ref/network/v2/index.html#vpnaas-2-0-vpn-vpnservices-ikepolicies-ipsecpolicies-endpoint-groups-ipsec-site-connections
+.. _`VPNaaS API`: https://docs.openstack.org/api-ref/network/v2/index.html#vpnaas-2-0-vpn-vpnservices-ikepolicies-ipsecpolicies-endpoint-groups-ipsec-site-connections
 
 Enjoy!
 
@@ -37,7 +37,7 @@ Using VPNaaS
    configuration/index
    user/index
    admin/index
-   API reference <https://developer.openstack.org/api-ref/network/v2/index.html#vpnaas-2-0-vpn-vpnservices-ikepolicies-ipsecpolicies-endpoint-groups-ipsec-site-connections>
+   API reference <https://docs.openstack.org/api-ref/network/v2/index.html#vpnaas-2-0-vpn-vpnservices-ikepolicies-ipsecpolicies-endpoint-groups-ipsec-site-connections>
    Release Notes <https://docs.openstack.org/releasenotes/neutron-vpnaas/>
 
 For Contributors
