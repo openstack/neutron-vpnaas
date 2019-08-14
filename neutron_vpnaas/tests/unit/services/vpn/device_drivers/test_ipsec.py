@@ -73,6 +73,7 @@ FAKE_VPN_SERVICE = {
          'admin_state_up': True,
          'id': FAKE_IPSEC_SITE_CONNECTION1_ID,
          'external_ip': '60.0.0.4',
+         'local_id': '60.0.0.4',
          'peer_address': '60.0.0.5',
          'mtu': 1500,
          'peer_id': '60.0.0.5',
@@ -90,6 +91,7 @@ FAKE_VPN_SERVICE = {
          'local_ip_vers': 4,
          'admin_state_up': True,
          'external_ip': '60.0.0.4',
+         'local_id': '60.0.0.4',
          'peer_address': '60.0.0.6',
          'peer_id': '60.0.0.6',
          'mtu': 1500,
@@ -170,7 +172,7 @@ conn %%default
 conn %(conn1_id)s
     %(next_hop)s
     left=%(left)s
-    leftid=%(left)s
+    leftid=%(leftid)s
     auto=start
     # NOTE:REQUIRED
     # [subnet]
@@ -192,7 +194,7 @@ conn %(conn1_id)s
     %(conn_details)sconn %(conn2_id)s
     %(next_hop)s
     left=%(left)s
-    leftid=%(left)s
+    leftid=%(leftid)s
     auto=start
     # NOTE:REQUIRED
     # [subnet]
@@ -238,7 +240,7 @@ conn %(conn1_id)s
     keyexchange=ikev1
     left=%(left)s
     leftsubnet=%(local_cidrs1)s
-    leftid=%(left)s
+    leftid=%(leftid)s
     leftfirewall=yes
     right=%(right1)s
     rightsubnet=%(peer_cidrs1)s
@@ -257,7 +259,7 @@ conn %(conn2_id)s
     keyexchange=ikev1
     left=%(left)s
     leftsubnet=%(local_cidrs2)s
-    leftid=%(left)s
+    leftid=%(leftid)s
     leftfirewall=yes
     right=%(right2)s
     rightsubnet=%(peer_cidrs2)s
@@ -393,14 +395,13 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
                 conn['peer_address'] = peers[i]
 
         local_ip = overrides.get('local')
-        if local_ip:
-            for conn in self.vpnservice['ipsec_site_connections']:
-                conn['external_ip'] = local_ip
-
         local_id = overrides.get('local_id')
         if local_ip:
             for conn in self.vpnservice['ipsec_site_connections']:
-                conn['local_id'] = local_id
+                conn['external_ip'] = local_ip
+                conn['local_id'] = local_ip
+                if local_id:
+                    conn['local_id'] = local_id
 
     def check_config_file(self, expected, actual):
         expected = expected.strip()
@@ -1034,6 +1035,10 @@ class TestOpenSwanConfigGeneration(BaseIPsecDeviceDriver):
                 virtual_privates.append('%%v%s:%s' % (version, net))
         peer_cidrs = [' '.join(cidr) for cidr in cidrs]
         local_ip = info.get('local', '60.0.0.4')
+        local_id = info.get('local_id')
+        leftid = local_ip
+        if local_id:
+            leftid = local_id
         version = info.get('local_ip_vers', 4)
         next_hop = IPV4_NEXT_HOP if version == 4 else IPV6_NEXT_HOP % local_ip
         peer_ips = info.get('peers', ['60.0.0.5', '60.0.0.6'])
@@ -1046,6 +1051,7 @@ class TestOpenSwanConfigGeneration(BaseIPsecDeviceDriver):
             'local_ver': version,
             'peer_cidrs1': peer_cidrs[0], 'peer_cidrs2': peer_cidrs[1],
             'left': local_ip,
+            'leftid': leftid,
             'right1': peer_ips[0], 'right2': peer_ips[1],
             'conn1_id': FAKE_IPSEC_SITE_CONNECTION1_ID,
             'conn2_id': FAKE_IPSEC_SITE_CONNECTION2_ID,
@@ -1089,6 +1095,18 @@ class TestOpenSwanConfigGeneration(BaseIPsecDeviceDriver):
         self.process.update_vpnservice(self.vpnservice)
         self._test_ipsec_connection_config(overrides)
 
+    def test_config_files_with_ipv6_addresses_without_local_id(self):
+        """Test creating config files using IPv6 addressing."""
+        overrides = {'local_cidrs': [['2002:0a00::/48'], ['2002:0b00::/48']],
+                     'local_ip_vers': 6,
+                     'peer_cidrs': [['2002:1400::/48', '2002:1e00::/48'],
+                                    ['2002:2800::/48', '2002:3200::/48']],
+                     'local': '2002:3c00:0004::',
+                     'peers': ['2002:3c00:0005::', '2002:3c00:0006::']}
+        self.modify_config_for_test(overrides)
+        self.process.update_vpnservice(self.vpnservice)
+        self._test_ipsec_connection_config(overrides)
+
     def test_secrets_config_file(self):
         expected = EXPECTED_IPSEC_OPENSWAN_SECRET_CONF
         actual = self.process._gen_config_content(
@@ -1118,6 +1136,10 @@ class IPsecStrongswanConfigGeneration(BaseIPsecDeviceDriver):
                                         ['40.0.0.0/24', '50.0.0.0/24']])
         peer_cidrs = [','.join(cidr) for cidr in cidrs]
         local_ip = info.get('local', '60.0.0.4')
+        local_id = info.get('local_id')
+        leftid = local_ip
+        if local_id:
+            leftid = local_id
         peer_ips = info.get('peers', ['60.0.0.5', '60.0.0.6'])
         auth_mode = info.get('ipsec_auth', STRONGSWAN_AUTH_ESP)
         return EXPECTED_IPSEC_STRONGSWAN_CONF % {
@@ -1125,6 +1147,7 @@ class IPsecStrongswanConfigGeneration(BaseIPsecDeviceDriver):
             'local_cidrs1': local_cidrs[0], 'local_cidrs2': local_cidrs[1],
             'peer_cidrs1': peer_cidrs[0], 'peer_cidrs2': peer_cidrs[1],
             'left': local_ip,
+            'leftid': leftid,
             'right1': peer_ips[0], 'right2': peer_ips[1],
             'dpd_action': 'hold',
             'dpd_delay': 30,
@@ -1156,6 +1179,16 @@ class IPsecStrongswanConfigGeneration(BaseIPsecDeviceDriver):
                      'local': '2002:3c00:0004::',
                      'peers': ['2002:3c00:0005::', '2002:3c00:0006::'],
                      'local_id': '2002:3c00:0004::'}
+        self.modify_config_for_test(overrides)
+        self.process.update_vpnservice(self.vpnservice)
+        self._test_ipsec_connection_config(overrides)
+
+    def test_ipsec_config_file_for_v6_without_local_id(self):
+        overrides = {'local_cidrs': [['2002:0a00::/48'], ['2002:0b00::/48']],
+                     'peer_cidrs': [['2002:1400::/48', '2002:1e00::/48'],
+                                    ['2002:2800::/48', '2002:3200::/48']],
+                     'local': '2002:3c00:0004::',
+                     'peers': ['2002:3c00:0005::', '2002:3c00:0006::']}
         self.modify_config_for_test(overrides)
         self.process.update_vpnservice(self.vpnservice)
         self._test_ipsec_connection_config(overrides)
