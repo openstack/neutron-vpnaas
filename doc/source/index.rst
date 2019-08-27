@@ -21,7 +21,8 @@ Welcome to Neutron VPNaaS documentation!
 Neutron VPNaaS provides Virtual Private Network as a Service (VPNaaS)
 capabilities to Neutron. Maintained as a separate repo, this works in
 conjunction with the Neutron repo to provide VPN services for OpenStack.
-The `VPNaaS API`_ is implementation as an extension to Neutron's networking API:
+The `VPNaaS API`_ is implementation as an extension to the OpenStack
+networking API.
 
 .. _`VPNaaS API`: https://developer.openstack.org/api-ref/network/v2/index.html#vpnaas-2-0-vpn-vpnservices-ikepolicies-ipsecpolicies-endpoint-groups-ipsec-site-connections
 
@@ -48,7 +49,9 @@ For Contributors
 
    contributor/index
 
-Search
-------
+.. only:: html
 
-* :ref:`search`
+   Search
+   ------
+
+   * :ref:`search`
