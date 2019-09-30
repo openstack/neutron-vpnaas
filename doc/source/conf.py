@@ -218,10 +218,10 @@ html_last_updated_fmt = '%Y-%m-%d %H:%M'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author,
 # documentclass [howto/manual]).
-#latex_documents = [
-#    ('index', 'Neutron.tex', u'Neutron Documentation',
-#     u'Neutron development team', 'manual'),
-#]
+latex_documents = [
+    ('index', 'doc-neutron-vpnaas.tex', u'Neutron VPN-as-a-Service Documentation',
+     u'Neutron development team', 'manual'),
+]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
@@ -239,6 +239,18 @@ html_last_updated_fmt = '%Y-%m-%d %H:%M'
 
 # If false, no module index is generated.
 #latex_use_modindex = True
+
+# Disable usage of xindy https://bugzilla.redhat.com/show_bug.cgi?id=1643664
+latex_use_xindy = False
+
+latex_domain_indices = False
+
+latex_elements = {
+    'extraclassoptions': 'openany,oneside',
+    'makeindex': '',
+    'printindex': '',
+    'preamble': r'\setcounter{tocdepth}{3}',
+}
 
 # -- Options for openstackdocstheme -------------------------------------------
 repository_name = 'openstack/neutron-vpnaas'
