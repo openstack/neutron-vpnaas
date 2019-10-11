@@ -57,8 +57,6 @@ strongswan_opts = [
 ]
 cfg.CONF.register_opts(strongswan_opts, 'strongswan')
 
-NS_WRAPPER = 'neutron-vpn-netns-wrapper'
-
 
 class StrongSwanProcess(ipsec.BaseSwanProcess):
 
@@ -112,8 +110,9 @@ class StrongSwanProcess(ipsec.BaseSwanProcess):
         The namespace wrapper will bind /etc/ and /var/run
         """
         ip_wrapper = ip_lib.IPWrapper(namespace=self.namespace)
+        ns_wrapper = self.get_ns_wrapper()
         return ip_wrapper.netns.execute(
-            [NS_WRAPPER,
+            [ns_wrapper,
              '--mount_paths=/etc:%s/etc,%s:%s/var/run' % (
                  self.config_dir, self._strongswan_piddir, self.config_dir),
              ('--rootwrap_config=%s' % self._rootwrap_cfg

@@ -19,8 +19,6 @@ from neutron.agent.linux import ip_lib
 
 from neutron_vpnaas.services.vpn.device_drivers import ipsec
 
-NS_WRAPPER = 'neutron-vpn-netns-wrapper'
-
 
 class LibreSwanProcess(ipsec.OpenSwanProcess):
     """Libreswan Process manager class.
@@ -45,8 +43,9 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
         mount_paths_str = ','.join(
             "%s:%s" % (source, target)
             for source, target in mount_paths.items())
+        ns_wrapper = self.get_ns_wrapper()
         return ip_wrapper.netns.execute(
-            [NS_WRAPPER,
+            [ns_wrapper,
              '--mount_paths=%s' % mount_paths_str,
              ('--rootwrap_config=%s' % self._rootwrap_cfg
                  if self._rootwrap_cfg else ''),

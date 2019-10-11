@@ -20,6 +20,7 @@ import os
 import re
 import shutil
 import socket
+import sys
 
 import eventlet
 import jinja2
@@ -175,6 +176,8 @@ class BaseSwanProcess(object, metaclass=abc.ABCMeta):
         "v1": "never"
     }
 
+    NS_WRAPPER = 'neutron-vpn-netns-wrapper'
+
     STATUS_DICT = {
         'erouted': constants.ACTIVE,
         'unrouted': constants.DOWN
@@ -233,6 +236,18 @@ class BaseSwanProcess(object, metaclass=abc.ABCMeta):
             # non-ASCII characters so it doesn't matter.
             psk = encodeutils.safe_decode(encoded_psk, incoming='utf_8')
             ipsec_site_conn['psk'] = PSK_BASE64_PREFIX + psk
+
+    def get_ns_wrapper(self):
+        """
+        Check if we're inside a virtualenv. If we are, then we should
+        respect this and launch wrapper from venv as well.
+        """
+        if (hasattr(sys, 'real_prefix') or
+            (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)):
+            ns_wrapper = os.path.join(sys.prefix, "bin/", self.NS_WRAPPER)
+        else:
+            ns_wrapper = self.NS_WRAPPER
+        return ns_wrapper
 
     def update_vpnservice(self, vpnservice):
         self.vpnservice = vpnservice
