@@ -559,12 +559,8 @@ class OpenSwanProcess(BaseSwanProcess):
 
     def restart(self):
         """Restart the process."""
-        should_be_restart = False
-        if self._config_changed() or not cfg.CONF.pluto.restart_check_config:
-            should_be_restart = True
-        if not should_be_restart:
+        if cfg.CONF.pluto.restart_check_config and not self._config_changed():
             return
-
         # stop() followed immediately by a start() runs the risk that the
         # current pluto daemon has not had a chance to shutdown. We check
         # the current process information to see if the daemon is still
