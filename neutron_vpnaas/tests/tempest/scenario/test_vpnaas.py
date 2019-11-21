@@ -107,8 +107,11 @@ class Vpnaas(base.BaseTempestTestCase):
             external_network_id=CONF.network.public_network_id)
         cls.network = cls.create_network(network_name='left-network')
         ip_version = 6 if cls.inner_ipv6 else 4
+        v4_cidr = netaddr.IPNetwork('10.20.0.0/24')
+        v6_cidr = netaddr.IPNetwork('2001:db8:0:2::/64')
+        cidr = v6_cidr if cls.inner_ipv6 else v4_cidr
         cls.subnet = cls.create_subnet(
-            cls.network, ip_version=ip_version, name='left-subnet',
+            cls.network, ip_version=ip_version, cidr=cidr, name='left-subnet',
             **cls.extra_subnet_attributes)
         cls.create_router_interface(cls.router['id'], cls.subnet['id'])
 
@@ -148,7 +151,7 @@ class Vpnaas(base.BaseTempestTestCase):
             external_network_id=CONF.network.public_network_id)
         network = cls.create_network(network_name='right-network')
         v4_cidr = netaddr.IPNetwork('10.10.0.0/24')
-        v6_cidr = netaddr.IPNetwork('2003:1::/64')
+        v6_cidr = netaddr.IPNetwork('2001:db8:0:1::/64')
         cidr = v6_cidr if cls.inner_ipv6 else v4_cidr
         ip_version = 6 if cls.inner_ipv6 else 4
         subnet = cls.create_subnet(
