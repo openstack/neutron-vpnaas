@@ -11,43 +11,25 @@
     check:
       jobs:
         - neutron-vpnaas-dsvm-functional-sswan
-        - neutron-vpnaas-tempest
-        - neutron-vpnaas-tempest-libreswan-centos
+        - neutron-tempest-plugin-vpnaas
+        - neutron-tempest-plugin-vpnaas-libreswan-centos:
+            # TODO(mlavalle) switch to voting when this job is moved to Centos
+            # 8
+            voting: false
     gate:
       jobs:
         - neutron-vpnaas-dsvm-functional-sswan
-        - neutron-vpnaas-tempest
-        - neutron-vpnaas-tempest-libreswan-centos
+        - neutron-tempest-plugin-vpnaas
+        # TODO(mlavalle) uncomment following line  when the job is moved to
+        # Centos 8
+        # - neutron-tempest-plugin-vpnaas-libreswan-centos
     experimental:
       jobs:
         - neutron-vpnaas-dsvm-rally
 
 - job:
-    name: neutron-vpnaas-tempest
-    parent: devstack-tempest
-    timeout: 3900
-    required-projects:
-      - openstack/neutron
-      - openstack/tempest
-      - openstack/neutron-tempest-plugin
-    vars:
-      tempest_test_regex: ^neutron_vpnaas\.
-      tox_envlist: all-plugin
-      devstack_plugins:
-        neutron-vpnaas: https://opendev.org/openstack/neutron-vpnaas
-        neutron-tempest-plugin: https://opendev.org/openstack/neutron-tempest-plugin
-      devstack_localrc:
-        IPSEC_PACKAGE: strongswan
-        USE_PYTHON3: true
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^doc/.*$
-      - ^neutron_vpnaas/tests/unit/.*$
-      - ^releasenotes/.*$
-
-- job:
-    name: neutron-vpnaas-tempest-libreswan-centos
-    parent: neutron-vpnaas-tempest
+    name: neutron-tempest-plugin-vpnaas-libreswan-centos
+    parent: neutron-tempest-plugin-vpnaas
     nodeset: devstack-single-node-centos-7
     vars:
       devstack_localrc:
