@@ -14,8 +14,6 @@
 
 import abc
 
-import six
-
 from neutron.api.v2 import resource_helper
 
 from neutron_lib.api import converters
@@ -98,8 +96,7 @@ class Vpn_endpoint_groups(extensions.ExtensionDescriptor):
         return {}
 
 
-@six.add_metaclass(abc.ABCMeta)
-class VPNEndpointGroupsPluginBase(object):
+class VPNEndpointGroupsPluginBase(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def create_endpoint_group(self, context, endpoint_group):

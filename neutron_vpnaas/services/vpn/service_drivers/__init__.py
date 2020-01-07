@@ -20,15 +20,13 @@ from neutron_lib.plugins import directory
 from neutron_lib import rpc as n_rpc
 from oslo_log import log as logging
 import oslo_messaging
-import six
 
 from neutron_vpnaas.services.vpn.service_drivers import driver_validator
 
 LOG = logging.getLogger(__name__)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class VpnDriver(object):
+class VpnDriver(object, metaclass=abc.ABCMeta):
 
     def __init__(self, service_plugin, validator=None):
         self.service_plugin = service_plugin

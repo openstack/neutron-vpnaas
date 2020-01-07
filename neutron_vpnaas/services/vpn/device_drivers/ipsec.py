@@ -40,7 +40,6 @@ import oslo_messaging
 from oslo_service import loopingcall
 from oslo_utils import encodeutils
 from oslo_utils import fileutils
-import six
 
 from neutron_vpnaas._i18n import _
 from neutron_vpnaas.extensions import vpnaas
@@ -134,8 +133,7 @@ def _get_template(template_file):
     return JINJA_ENV.get_template(template_file)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class BaseSwanProcess(object):
+class BaseSwanProcess(object, metaclass=abc.ABCMeta):
     """Swan Family Process Manager
 
     This class manages start/restart/stop ipsec process.
@@ -796,8 +794,7 @@ class IPsecVpnDriverApi(object):
         return cctxt.call(context, 'update_status', status=status)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class IPsecDriver(device_drivers.DeviceDriver):
+class IPsecDriver(device_drivers.DeviceDriver, metaclass=abc.ABCMeta):
     """VPN Device Driver for IPSec.
 
     This class is designed for use with L3-agent now.

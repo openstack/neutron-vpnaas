@@ -23,8 +23,6 @@ from neutron_lib import exceptions as nexception
 from neutron_lib.plugins import constants as nconstants
 from neutron_lib.services import base as service_base
 
-import six
-
 from neutron.api.v2 import resource_helper
 
 from neutron_vpnaas._i18n import _
@@ -514,8 +512,7 @@ class Vpnaas(extensions.ExtensionDescriptor):
         return {}
 
 
-@six.add_metaclass(abc.ABCMeta)
-class VPNPluginBase(service_base.ServicePluginBase):
+class VPNPluginBase(service_base.ServicePluginBase, metaclass=abc.ABCMeta):
 
     def get_plugin_type(self):
         return nconstants.VPN
