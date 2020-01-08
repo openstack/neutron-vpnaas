@@ -26,7 +26,7 @@ It includes both of in-tree and out-of-tree drivers.
 +----------------------------+---------------------------+------------------+
 | Driver                     | Contact person            | IRC nick         |
 +============================+===========================+==================+
-| LibreSwanDriver            | Hunt Xu                   | huntxu           |
+| LibreSwanDriver            | Dongcan Ye                | yedongcan        |
 +----------------------------+---------------------------+------------------+
 | MidonetIPsecVPNDriver [#]_ | YAMAMOTO Takashi          | yamamoto         |
 +----------------------------+---------------------------+------------------+
