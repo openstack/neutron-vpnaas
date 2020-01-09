@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import configparser as ConfigParser
 import errno
 import os
 import sys
@@ -24,14 +25,8 @@ from neutron_lib.utils import helpers
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_rootwrap import wrapper
-import six
 
 from neutron_vpnaas._i18n import _
-
-if six.PY3:
-    import configparser as ConfigParser
-else:
-    import ConfigParser
 
 LOG = logging.getLogger(__name__)
 

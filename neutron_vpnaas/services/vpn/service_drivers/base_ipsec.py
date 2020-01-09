@@ -16,7 +16,6 @@ import abc
 
 import netaddr
 import oslo_messaging
-import six
 
 from neutron.db.models import l3agent
 from neutron.db.models import servicetype
@@ -97,8 +96,7 @@ class IPsecVpnAgentApi(service_drivers.BaseIPsecVpnAgentApi):
             topic, default_version, driver)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class BaseIPsecVPNDriver(service_drivers.VpnDriver):
+class BaseIPsecVPNDriver(service_drivers.VpnDriver, metaclass=abc.ABCMeta):
     """Base VPN Service Driver class."""
 
     def __init__(self, service_plugin, validator=None):

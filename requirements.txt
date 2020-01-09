@@ -8,7 +8,6 @@ Jinja2>=2.10 # BSD License (3 clause)
 netaddr>=0.7.18 # BSD
 SQLAlchemy>=1.2.0 # MIT
 alembic>=0.8.10 # MIT
-six>=1.10.0 # MIT
 neutron-lib>=1.18.0 # Apache-2.0
 oslo.concurrency>=3.26.0 # Apache-2.0
 oslo.config>=5.2.0 # Apache-2.0
