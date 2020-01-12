@@ -55,7 +55,7 @@ function neutron_vpnaas_configure_db {
 
 function neutron_vpnaas_generate_config_files {
     # Uses oslo config generator to generate VPNaaS sample configuration files
-    (cd $NEUTRON_VPNAAS_DIR && exec sudo ./tools/generate_config_file_samples.sh)
+    (cd $NEUTRON_VPNAAS_DIR && exec ./tools/generate_config_file_samples.sh)
 }
 
 # Main plugin processing
