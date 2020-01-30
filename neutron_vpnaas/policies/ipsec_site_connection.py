@@ -12,7 +12,7 @@
 
 from oslo_policy import policy
 
-from neutron_vpnaas.policies import base
+from neutron_lib import policy as base
 
 
 rules = [
