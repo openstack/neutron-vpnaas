@@ -9,7 +9,7 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - neutron-vpnaas-dsvm-functional-sswan
+        - neutron-vpnaas-functional-sswan
         - neutron-tempest-plugin-vpnaas
         - neutron-tempest-plugin-vpnaas-libreswan-centos:
             # TODO(mlavalle) switch to voting when this job is moved to Centos
@@ -17,7 +17,7 @@
             voting: false
     gate:
       jobs:
-        - neutron-vpnaas-dsvm-functional-sswan
+        - neutron-vpnaas-functional-sswan
         - neutron-tempest-plugin-vpnaas
         # TODO(mlavalle) uncomment following line  when the job is moved to
         # Centos 8
@@ -44,20 +44,12 @@
               skip_4in6_6in4_tests: true
 
 - job:
-    name: neutron-vpnaas-dsvm-functional-sswan
-    parent: legacy-dsvm-base
-    run: playbooks/legacy/neutron-vpnaas-dsvm-functional-sswan/run.yaml
-    post-run: playbooks/legacy/neutron-vpnaas-dsvm-functional-sswan/post.yaml
-    timeout: 7800
-    required-projects:
-      - openstack/devstack-gate
-      - openstack/neutron
-      - openstack/neutron-vpnaas
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^doc/.*$
-      - ^neutron_vpnaas/tests/unit/.*$
-      - ^releasenotes/.*$
+    name: neutron-vpnaas-functional-sswan
+    parent: neutron-functional
+    pre-run: playbooks/configure_functional_job.yaml
+    vars:
+      project_name: neutron-vpnaas
+      tox_envlist: dsvm-functional-sswan
 
 - job:
     name: neutron-vpnaas-dsvm-rally
