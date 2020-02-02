@@ -24,7 +24,7 @@
         # - neutron-tempest-plugin-vpnaas-libreswan-centos
     experimental:
       jobs:
-        - neutron-vpnaas-dsvm-rally
+        - neutron-vpnaas-rally
 
 - job:
     name: neutron-tempest-plugin-vpnaas-libreswan-centos
@@ -60,16 +60,20 @@
       - ^releasenotes/.*$
 
 - job:
-    name: neutron-vpnaas-dsvm-rally
-    parent: legacy-dsvm-base
-    run: playbooks/legacy/neutron-vpnaas-dsvm-rally/run.yaml
-    post-run: playbooks/legacy/neutron-vpnaas-dsvm-rally/post.yaml
+    name: neutron-vpnaas-rally
+    parent: rally-task-neutron
     timeout: 7800
+    vars:
+      devstack_plugins:
+        rally-openstack: https://opendev.org/openstack/rally-openstack
+        neutron-vpnaas: https://opendev.org/openstack/neutron-vpnaas
+      rally_task: rally-jobs/rally-configs/rally_config_dvr.yaml
     required-projects:
       - openstack/devstack-gate
       - openstack/neutron
       - openstack/neutron-vpnaas
       - openstack/rally
+      - openstack/rally-openstack
     irrelevant-files:
       - ^.*\.rst$
       - ^doc/.*$
