@@ -72,8 +72,12 @@ disable=
 # "R" Refactor recommendations
  abstract-class-little-used,
  abstract-class-not-used,
+ consider-using-set-comprehension,
  duplicate-code,
+ inconsistent-return-statements,
  interface-not-implemented,
+ no-else-raise,
+ no-else-return,
  no-self-use,
  too-few-public-methods,
  too-many-ancestors,
@@ -84,7 +88,8 @@ disable=
  too-many-locals,
  too-many-public-methods,
  too-many-return-statements,
- too-many-statements
+ too-many-statements,
+ useless-object-inheritance
 
 [BASIC]
 # Variable names can be 1 to 31 characters long, with lowercase and underscores
