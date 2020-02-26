@@ -331,8 +331,8 @@ class TestIPSecBase(base.BaseSudoTestCase):
          For packet flow between resources connected to these two agents,
          agent's ovs bridges are connected through patch ports.
         """
-        br_int_1 = get_ovs_bridge(agent1.conf.ovs_integration_bridge)
-        br_int_2 = get_ovs_bridge(agent2.conf.ovs_integration_bridge)
+        br_int_1 = get_ovs_bridge(agent1.conf.OVS.integration_bridge)
+        br_int_2 = get_ovs_bridge(agent2.conf.OVS.integration_bridge)
         net_helpers.create_patch_ports(br_int_1, br_int_2)
 
     def _get_config_opts(self):
@@ -362,7 +362,7 @@ class TestIPSecBase(base.BaseSudoTestCase):
             'neutron.agent.linux.interface.OVSInterfaceDriver')
 
         br_int = self.useFixture(net_helpers.OVSBridgeFixture()).bridge
-        config.set_override('ovs_integration_bridge', br_int.br_name)
+        config.set_override('integration_bridge', br_int.br_name, 'OVS')
 
         temp_dir = self.get_new_temp_dir()
         get_temp_file_path = functools.partial(self.get_temp_file_path,
@@ -432,7 +432,7 @@ class TestIPSecBase(base.BaseSudoTestCase):
         def plug_new(self, *args, **kwargs):
             original_plug_new(self, *args, **kwargs)
             bridge = (kwargs.get('bridge') or args[4] or
-                      self.conf.ovs_integration_bridge)
+                      self.conf.OVS.integration_bridge)
             device_name = kwargs.get('device_name') or args[2]
             ovsbr = ovs_lib.OVSBridge(bridge)
             ovsbr.clear_db_attribute('Port', device_name, 'tag')
@@ -457,7 +457,7 @@ class TestIPSecBase(base.BaseSudoTestCase):
         There will be a unique namespace for each port, which is representing
         a VM for the test.
         """
-        bridge = get_ovs_bridge(self.vpn_agent.conf.ovs_integration_bridge)
+        bridge = get_ovs_bridge(self.vpn_agent.conf.OVS.integration_bridge)
         site.vm = []
         for internal_port in site.router.internal_ports:
             router_ip_cidr = self._port_first_ip_cidr(internal_port)
