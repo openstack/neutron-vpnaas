@@ -27,6 +27,6 @@ ROUTER_ENDPOINT = 'router'
 # IMPORTANT: The ordering of these is important, as it is used in an enum
 # for the database (and migration script). Only add to this list.
 VPN_SUPPORTED_ENDPOINT_TYPES = [
-    SUBNET_ENDPOINT, CIDR_ENDPOINT, NETWORK_ENDPOINT,
-    VLAN_ENDPOINT, ROUTER_ENDPOINT,
+    SUBNET_ENDPOINT, CIDR_ENDPOINT, VLAN_ENDPOINT,
+    NETWORK_ENDPOINT, ROUTER_ENDPOINT,
 ]

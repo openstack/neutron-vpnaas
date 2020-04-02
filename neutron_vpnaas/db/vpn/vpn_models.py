@@ -180,7 +180,7 @@ class VPNEndpointGroup(model_base.BASEV2, model_base.HasId,
     name = sa.Column(sa.String(db_const.NAME_FIELD_SIZE))
     description = sa.Column(sa.String(db_const.DESCRIPTION_FIELD_SIZE))
     endpoint_type = sa.Column(sa.Enum(*constants.VPN_SUPPORTED_ENDPOINT_TYPES,
-                                      name="vpn_endpoint_type"),
+                                      name="endpoint_type"),
                               nullable=False)
     endpoints = orm.relationship(VPNEndpoint,
                                  backref='endpoint_group',
