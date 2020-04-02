@@ -13,8 +13,8 @@
 #    under the License.
 
 import copy
+from unittest import mock
 
-import mock
 from oslo_utils import uuidutils
 from webob import exc
 

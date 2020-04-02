@@ -13,8 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import contextlib
+from unittest import mock
 
-import mock
 from neutron.db import servicetype_db as st_db
 from neutron.services.flavors import flavors_plugin
 from neutron.tests.unit.db import test_agentschedulers_db

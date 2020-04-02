@@ -17,8 +17,8 @@
 import contextlib
 import copy
 import os
+from unittest import mock
 
-import mock
 from neutron.api import extensions as api_extensions
 from neutron.common import config
 from neutron.db import agentschedulers_db
