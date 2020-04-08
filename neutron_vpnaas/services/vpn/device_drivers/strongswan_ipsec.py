@@ -72,7 +72,7 @@ class StrongSwanProcess(ipsec.BaseSwanProcess):
         'CONNECTING': constants.DOWN,
         'INSTALLED': constants.ACTIVE
     }
-    STATUS_RE = '([a-f0-9\-]+).* (ROUTED|CONNECTING|INSTALLED)'
+    STATUS_RE = r'([a-f0-9\-]+).* (ROUTED|CONNECTING|INSTALLED)'
     STATUS_NOT_RUNNING_RE = 'Command:.*ipsec.*status.*Exit code: [1|3] '
 
     def __init__(self, conf, process_id, vpnservice, namespace):

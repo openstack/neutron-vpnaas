@@ -182,12 +182,12 @@ class BaseSwanProcess(object, metaclass=abc.ABCMeta):
         'erouted': constants.ACTIVE,
         'unrouted': constants.DOWN
     }
-    STATUS_RE = '\d\d\d "([a-f0-9\-]+).* (unrouted|erouted);'
+    STATUS_RE = r'\d\d\d "([a-f0-9\-]+).* (unrouted|erouted);'
     STATUS_NOT_RUNNING_RE = 'Command:.*ipsec.*status.*Exit code: [1|3]$'
     STATUS_IPSEC_SA_ESTABLISHED_RE = (
-        '\d{3} #\d+: "([a-f0-9\-]+).*established.*newest IPSEC')
+        r'\d{3} #\d+: "([a-f0-9\-]+).*established.*newest IPSEC')
     STATUS_IPSEC_SA_ESTABLISHED_RE2 = (
-        '\d{3} #\d+: "([a-f0-9\-\/x]+).*established.*newest IPSEC')
+        r'\d{3} #\d+: "([a-f0-9\-\/x]+).*established.*newest IPSEC')
 
     def __init__(self, conf, process_id, vpnservice, namespace):
         self.conf = conf
