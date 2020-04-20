@@ -14,8 +14,8 @@
 #    under the License.
 
 import socket
+from unittest import mock
 
-import mock
 from neutron.db import l3_db
 from neutron_lib import context as n_ctx
 from neutron_lib import exceptions as nexception

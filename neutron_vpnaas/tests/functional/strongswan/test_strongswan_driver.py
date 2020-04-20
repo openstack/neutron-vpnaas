@@ -14,8 +14,8 @@
 #    under the License.
 
 import os
+from unittest import mock
 
-import mock
 from neutron.agent.l3 import agent as neutron_l3_agent
 from neutron.agent.l3 import legacy_router
 from neutron.conf.agent.l3 import config as l3_config

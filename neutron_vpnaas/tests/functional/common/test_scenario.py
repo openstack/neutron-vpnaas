@@ -13,8 +13,8 @@
 import collections
 import copy
 import functools
+from unittest import mock
 
-import mock
 import netaddr
 from neutron.agent.common import ovs_lib
 from neutron.agent.l3 import agent as neutron_l3_agent

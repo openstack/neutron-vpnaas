@@ -17,8 +17,8 @@ import difflib
 import io
 import os
 import socket
+from unittest import mock
 
-import mock
 import netaddr
 from neutron.agent.l3 import dvr_edge_router
 from neutron.agent.l3 import dvr_snat_ns
