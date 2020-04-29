@@ -194,7 +194,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
             for cidr in ipsec_sitecon['peer_cidrs']:
                 peer_cidr_db = vpn_models.IPsecPeerCidr(
                     cidr=cidr,
-                    ipsec_site_connection_id=ipsec_site_conn_db['id']
+                    ipsec_site_connection_id=ipsec_site_conn_db.id
                 )
                 context.session.add(peer_cidr_db)
         return self._make_ipsec_site_connection_dict(ipsec_site_conn_db)
@@ -619,7 +619,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
             for endpoint in group['endpoints']:
                 endpoint_db = vpn_models.VPNEndpoint(
                     endpoint=endpoint,
-                    endpoint_group_id=endpoint_group_db['id']
+                    endpoint_group_id=endpoint_group_db.id
                 )
                 context.session.add(endpoint_db)
         return self._make_endpoint_group_dict(endpoint_group_db)
