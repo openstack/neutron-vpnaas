@@ -10,15 +10,15 @@
     check:
       jobs:
         - neutron-vpnaas-functional-sswan
-        - neutron-tempest-plugin-vpnaas
-        - neutron-tempest-plugin-vpnaas-libreswan-centos:
+        - neutron-tempest-plugin-vpnaas-ussuri
+        - neutron-tempest-plugin-vpnaas-libreswan-centos-ussuri:
             # TODO(mlavalle) switch to voting when this job is moved to Centos
             # 8
             voting: false
     gate:
       jobs:
         - neutron-vpnaas-functional-sswan
-        - neutron-tempest-plugin-vpnaas
+        - neutron-tempest-plugin-vpnaas-ussuri
         # TODO(mlavalle) uncomment following line  when the job is moved to
         # Centos 8
         # - neutron-tempest-plugin-vpnaas-libreswan-centos
@@ -27,8 +27,8 @@
         - neutron-vpnaas-rally
 
 - job:
-    name: neutron-tempest-plugin-vpnaas-libreswan-centos
-    parent: neutron-tempest-plugin-vpnaas
+    name: neutron-tempest-plugin-vpnaas-libreswan-centos-ussuri
+    parent: neutron-tempest-plugin-vpnaas-ussuri
     nodeset: devstack-single-node-centos-7
     vars:
       devstack_localrc:
