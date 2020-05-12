@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The phase1 negotiation mode can use ``aggressive`` mode in VPNaaS
+    ikepolicy when using \*Swan drivers.

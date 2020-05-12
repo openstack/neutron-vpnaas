@@ -512,6 +512,26 @@ class TestVpnaas(VPNPluginDbTestCase):
         with self.ikepolicy(name=name, description=description) as ikepolicy:
             self._check_policy(ikepolicy['ikepolicy'], keys, lifetime)
 
+    def test_create_ikepolicy_with_aggressive_mode(self):
+        """Test case to create an ikepolicy with aggressive mode."""
+        name = "ikepolicy1"
+        description = 'ipsec-ikepolicy'
+        mode = 'aggressive'
+        keys = [('name', name),
+                ('description', 'ipsec-ikepolicy'),
+                ('auth_algorithm', 'sha1'),
+                ('encryption_algorithm', 'aes-128'),
+                ('phase1_negotiation_mode', 'aggressive'),
+                ('ike_version', 'v1'),
+                ('pfs', 'group5'),
+                ('tenant_id', self._tenant_id)]
+        lifetime = {
+            'units': 'seconds',
+            'value': 3600}
+        with self.ikepolicy(name=name, description=description,
+                            phase1_negotiation_mode=mode) as ikepolicy:
+            self._check_policy(ikepolicy['ikepolicy'], keys, lifetime)
+
     def test_delete_ikepolicy(self):
         """Test case to delete an ikepolicy."""
         with self.ikepolicy(do_delete=False) as ikepolicy:
@@ -622,6 +642,30 @@ class TestVpnaas(VPNPluginDbTestCase):
             for k, v in keys:
                 self.assertEqual(res['ikepolicy'][k], v)
 
+    def test_update_ikepolicy_with_aggressive_mode(self):
+        """Test case to update an ikepolicy with aggressive mode."""
+        name = "new_ikepolicy1"
+        keys = [('name', name),
+                ('auth_algorithm', 'sha1'),
+                ('encryption_algorithm', 'aes-128'),
+                ('phase1_negotiation_mode', 'aggressive'),
+                ('ike_version', 'v1'),
+                ('pfs', 'group5'),
+                ('tenant_id', self._tenant_id),
+                ('lifetime', {'units': 'seconds',
+                              'value': 60})]
+        with self.ikepolicy(name=name) as ikepolicy:
+            data = {'ikepolicy': {'name': name,
+                                  'phase1_negotiation_mode': 'aggressive',
+                                  'lifetime': {'units': 'seconds',
+                                               'value': 60}}}
+            req = self.new_update_request("ikepolicies",
+                                          data,
+                                          ikepolicy['ikepolicy']['id'])
+            res = self.deserialize(self.fmt, req.get_response(self.ext_api))
+            for k, v in keys:
+                self.assertEqual(res['ikepolicy'][k], v)
+
     def test_create_ikepolicy_with_invalid_values(self):
         """Test case to test invalid values."""
         name = 'ikepolicy1'
@@ -643,7 +687,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                                expected_res_status=400)
         self._create_ikepolicy(name=name,
                                fmt=self.fmt,
-                               phase1_negotiation_mode='aggressive',
+                               phase1_negotiation_mode='unsupported',
                                expected_res_status=400)
         self._create_ikepolicy(name=name,
                                fmt=self.fmt,
