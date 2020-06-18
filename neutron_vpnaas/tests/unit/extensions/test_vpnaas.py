@@ -71,6 +71,35 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         self.assertIn('ikepolicy', res)
         self.assertDictSupersetOf(return_value, res['ikepolicy'])
 
+    def test_ikepolicy_create_with_aggressive_mode(self):
+        """Test case to create an ikepolicy with agressive mode."""
+        ikepolicy_id = _uuid()
+        data = {'ikepolicy': {'name': 'ikepolicy1',
+                              'description': 'myikepolicy1',
+                              'auth_algorithm': 'sha1',
+                              'encryption_algorithm': 'aes-128',
+                              'phase1_negotiation_mode': 'aggressive',
+                              'lifetime': {
+                                  'units': 'seconds',
+                                  'value': 3600},
+                              'ike_version': 'v1',
+                              'pfs': 'group5',
+                              'tenant_id': _uuid()}}
+
+        return_value = copy.copy(data['ikepolicy'])
+        return_value.update({'id': ikepolicy_id})
+
+        instance = self.plugin.return_value
+        instance.create_ikepolicy.return_value = return_value
+        res = self.api.post(_get_path('vpn/ikepolicies', fmt=self.fmt),
+                            self.serialize(data),
+                            content_type='application/%s' % self.fmt)
+        self.assertEqual(1, instance.create_ikepolicy.call_count)
+        self.assertEqual(exc.HTTPCreated.code, res.status_int)
+        res = self.deserialize(res)
+        self.assertIn('ikepolicy', res)
+        self.assertDictSupersetOf(return_value, res['ikepolicy'])
+
     def test_ikepolicy_list(self):
         """Test case to list all ikepolicies."""
         ikepolicy_id = _uuid()
@@ -100,6 +129,39 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
                         'auth_algorithm': 'sha1',
                         'encryption_algorithm': 'aes-256',
                         'phase1_negotiation_mode': 'main',
+                        'lifetime': {
+                            'units': 'seconds',
+                            'value': 3600},
+                        'ike_version': 'v1',
+                        'pfs': 'group5',
+                        'tenant_id': _uuid(),
+                        'id': ikepolicy_id}
+
+        instance = self.plugin.return_value
+        instance.update_ikepolicy.return_value = return_value
+
+        res = self.api.put(_get_path('vpn/ikepolicies', id=ikepolicy_id,
+                                     fmt=self.fmt),
+                           self.serialize(update_data))
+
+        instance.update_ikepolicy.assert_called_with(mock.ANY, ikepolicy_id,
+                                                     ikepolicy=update_data)
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
+        res = self.deserialize(res)
+        self.assertIn('ikepolicy', res)
+        self.assertEqual(return_value, res['ikepolicy'])
+
+    def test_ikepolicy_update_with_aggressive_mode(self):
+        """Test case to update an ikepolicy with aggressive mode."""
+        ikepolicy_id = _uuid()
+        update_data = {'ikepolicy':
+                       {'name': 'ikepolicy1',
+                        'phase1_negotiation_mode': 'aggressive',
+                        'encryption_algorithm': 'aes-256'}}
+        return_value = {'name': 'ikepolicy1',
+                        'auth_algorithm': 'sha1',
+                        'encryption_algorithm': 'aes-256',
+                        'phase1_negotiation_mode': 'aggressive',
                         'lifetime': {
                             'units': 'seconds',
                             'value': 3600},

@@ -63,6 +63,9 @@ conn {{ipsec_site_connection.id}}
     ikev2={{ipsec_site_connection.ikepolicy.ike_version}}
     # [encryption_algorithm]-[auth_algorithm]-[pfs]
     ike={{ipsec_site_connection.ikepolicy.encryption_algorithm}}-{{ipsec_site_connection.ikepolicy.auth_algorithm}};{{ipsec_site_connection.ikepolicy.pfs}}
+    {% if ipsec_site_connection.ikepolicy.phase1_negotiation_mode == "aggressive" -%}
+    aggressive=yes
+    {% endif -%}
     # [lifetime_value]
     ikelifetime={{ipsec_site_connection.ikepolicy.lifetime_value}}s
     # NOTE: it looks lifetime_units=kilobytes can't be enforced (could be seconds,  hours,  days...)

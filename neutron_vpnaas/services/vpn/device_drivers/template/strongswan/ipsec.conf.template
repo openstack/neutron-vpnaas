@@ -23,6 +23,9 @@ conn {{ipsec_site_connection.id}}
     dpdtimeout={{ipsec_site_connection.dpd_timeout}}s
     ike={{ipsec_site_connection.ikepolicy.encryption_algorithm}}-{{ipsec_site_connection.ikepolicy.auth_algorithm}}-{{ipsec_site_connection.ikepolicy.pfs}}
     ikelifetime={{ipsec_site_connection.ikepolicy.lifetime_value}}s
+    {%- if ipsec_site_connection.ikepolicy.phase1_negotiation_mode == "aggressive" %}
+    aggressive=yes
+    {%- endif %}
     {%- if ipsec_site_connection.ipsecpolicy.transform_protocol == "ah" %}
     ah={{ipsec_site_connection.ipsecpolicy.auth_algorithm}}-{{ipsec_site_connection.ipsecpolicy.pfs}}
     {%- else %}

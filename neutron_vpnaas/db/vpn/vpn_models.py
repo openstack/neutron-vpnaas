@@ -75,7 +75,7 @@ class IKEPolicy(model_base.BASEV2, model_base.HasId, model_base.HasProject):
                                              "aes-256", "aes-192",
                                              name="vpn_encrypt_algorithms"),
                                      nullable=False)
-    phase1_negotiation_mode = sa.Column(sa.Enum("main",
+    phase1_negotiation_mode = sa.Column(sa.Enum("main", 'aggressive',
                                                 name="ike_phase1_mode"),
                                         nullable=False)
     lifetime_units = sa.Column(sa.Enum("seconds", "kilobytes",
