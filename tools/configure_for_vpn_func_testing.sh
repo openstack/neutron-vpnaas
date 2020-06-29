@@ -47,7 +47,7 @@ function configure_host_for_vpn_func_testing {
     fi
     # Note(pc_m): Need to ensure this is installed so we have
     # oslo-config-generator present (as this script runs before tox.ini).
-    sudo pip install --force oslo.config
+    sudo pip3 install --force oslo.config
     _install_vpn_package
 }
 
