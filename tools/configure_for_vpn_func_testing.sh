@@ -20,6 +20,7 @@ IS_GATE=${IS_GATE:-False}
 USE_CONSTRAINT_ENV=${USE_CONSTRAINT_ENV:-False}
 PROJECT_NAME=${PROJECT_NAME:-neutron-vpnaas}
 REPO_BASE=${GATE_DEST:-$(cd $(dirname "$BASH_SOURCE")/../.. && pwd)}
+NEUTRON_DIR=$REPO_BASE/neutron
 
 source $REPO_BASE/neutron/tools/configure_for_func_testing.sh
 source $REPO_BASE/neutron-vpnaas/devstack/settings
@@ -47,7 +48,7 @@ function configure_host_for_vpn_func_testing {
     fi
     # Note(pc_m): Need to ensure this is installed so we have
     # oslo-config-generator present (as this script runs before tox.ini).
-    sudo pip install --force oslo.config
+    sudo pip3 install --force oslo.config
     _install_vpn_package
 }
 

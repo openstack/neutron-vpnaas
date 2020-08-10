@@ -1,0 +1,4 @@
+- hosts: all
+  roles:
+    - role: ensure-tox
+      ensure_global_symlinks: true

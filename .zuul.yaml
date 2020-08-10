@@ -2,7 +2,6 @@
     templates:
       - check-requirements
       - openstack-cover-jobs-neutron
-      - openstack-lower-constraints-jobs-neutron
       - openstack-python-jobs-neutron
       - openstack-python3-train-jobs-neutron
       - periodic-stable-jobs-neutron
@@ -12,15 +11,14 @@
       jobs:
         - neutron-vpnaas-dsvm-functional-sswan
         - neutron-vpnaas-tempest
-        - neutron-vpnaas-tempest-libreswan-centos
     gate:
       jobs:
         - neutron-vpnaas-dsvm-functional-sswan
         - neutron-vpnaas-tempest
-        - neutron-vpnaas-tempest-libreswan-centos
     experimental:
       jobs:
         - neutron-vpnaas-dsvm-rally
+        - neutron-vpnaas-tempest-libreswan-centos
 
 - job:
     name: neutron-vpnaas-tempest
@@ -28,14 +26,18 @@
     timeout: 3900
     required-projects:
       - openstack/neutron
+      - openstack/neutron-vpnaas
       - openstack/tempest
       - openstack/neutron-tempest-plugin
     vars:
-      tempest_test_regex: ^neutron_vpnaas\.
-      tox_envlist: all-plugin
+      tempest_test_regex: ^neutron_vpnaas\.tests\.tempest
+      tox_envlist: all
       devstack_plugins:
         neutron-vpnaas: https://opendev.org/openstack/neutron-vpnaas
         neutron-tempest-plugin: https://opendev.org/openstack/neutron-tempest-plugin
+      tempest_plugins:
+        - neutron-tempest-plugin
+        - neutron-vpnaas
       devstack_localrc:
         IPSEC_PACKAGE: strongswan
         USE_PYTHON3: true
@@ -65,6 +67,7 @@
 - job:
     name: neutron-vpnaas-dsvm-functional-sswan
     parent: legacy-dsvm-base
+    pre-run: playbooks/legacy/neutron-vpnaas-dsvm-functional-sswan/pre.yaml
     run: playbooks/legacy/neutron-vpnaas-dsvm-functional-sswan/run.yaml
     post-run: playbooks/legacy/neutron-vpnaas-dsvm-functional-sswan/post.yaml
     timeout: 7800
