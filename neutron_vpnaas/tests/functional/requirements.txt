@@ -8,3 +8,8 @@ psutil>=1.1.1,<2.0.0
 psycopg2
 PyMySQL>=0.6.2  # MIT License
 
+# Make sure that mock is installed in functional environment for
+# neutron. This needs to be removed from master as soon as new neutron
+# is released from Victoria, as mock is removed in development branch.
+mock>=2.0.0 # BSD
+
