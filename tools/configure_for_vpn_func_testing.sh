@@ -20,6 +20,7 @@ IS_GATE=${IS_GATE:-False}
 USE_CONSTRAINT_ENV=${USE_CONSTRAINT_ENV:-False}
 PROJECT_NAME=${PROJECT_NAME:-neutron-vpnaas}
 REPO_BASE=${GATE_DEST:-$(cd $(dirname "$BASH_SOURCE")/../.. && pwd)}
+NEUTRON_DIR=$REPO_BASE/neutron
 
 source $REPO_BASE/neutron/tools/configure_for_func_testing.sh
 source $REPO_BASE/neutron-vpnaas/devstack/settings
