@@ -509,6 +509,19 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
             vpns_db.update(vpns)
         return self._make_vpnservice_dict(vpns_db)
 
+    def set_vpnservice_status(self, context, vpnservice_id, status,
+                              updated_pending_status=False):
+        vpns = {'status': status}
+        with db_api.CONTEXT_WRITER.using(context):
+            vpns_db = self._get_resource(context, vpn_models.VPNService,
+                                         vpnservice_id)
+            if (utils.in_pending_status(vpns_db.status) and
+                    not updated_pending_status):
+                raise vpnaas.VPNStateInvalidToUpdate(
+                    id=vpnservice_id, state=vpns_db.status)
+            vpns_db.update(vpns)
+        return self._make_vpnservice_dict(vpns_db)
+
     def update_vpnservice(self, context, vpnservice_id, vpnservice):
         vpns = vpnservice['vpnservice']
         with db_api.CONTEXT_WRITER.using(context):
@@ -681,6 +694,22 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         with db_api.CONTEXT_READER.using(context):
             vpnservice = self._get_vpnservice(context, vpnservice_id)
             return vpnservice['router_id']
+
+    @db_api.CONTEXT_READER
+    def get_peer_cidrs_for_router(self, context, router_id):
+        filters = {'router_id': [router_id]}
+        vpnservices = model_query.get_collection_query(
+            context, vpn_models.VPNService, filters=filters).all()
+        cidrs = []
+        for vpnservice in vpnservices:
+            for ipsec_site_connection in vpnservice.ipsec_site_connections:
+                if ipsec_site_connection.peer_cidrs:
+                    for peer_cidr in ipsec_site_connection.peer_cidrs:
+                        cidrs.append(peer_cidr.cidr)
+                if ipsec_site_connection.peer_ep_group is not None:
+                    for ep in ipsec_site_connection.peer_ep_group.endpoints:
+                        cidrs.append(ep.endpoint)
+        return cidrs
 
 
 class VPNPluginRpcDbMixin(object):

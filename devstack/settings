@@ -1,23 +1,36 @@
 # Settings for the VPNaaS devstack plugin
 
 # Plugin
-VPN_PLUGIN=${VPN_PLUGIN:-"vpnaas"}
+if [[ $Q_AGENT == "ovn" ]]; then
+    VPN_PLUGIN=${VPN_PLUGIN:-"ovn-vpnaas"}
+else
+    VPN_PLUGIN=${VPN_PLUGIN:-"vpnaas"}
+fi
 
 # Device driver
 IPSEC_PACKAGE=${IPSEC_PACKAGE:-"strongswan"}
-NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec:StrongSwanDriver"}
+if [[ $Q_AGENT == "ovn" ]]; then
+    NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.ovn_ipsec.OvnStrongSwanDriver"}
+else
+    NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec:StrongSwanDriver"}
+fi
 
 function _get_service_provider {
-     local ipsec_package=$1
-     local name driver
+    local ipsec_package=$1
+    local name driver
 
-     driver="neutron_vpnaas.services.vpn.service_drivers.ipsec.IPsecVPNDriver"
-     if [ "$ipsec_package" = "libreswan" ]; then
-         name="openswan"
-     else
-         name="strongswan"
-     fi
-     echo "VPN:${name}:${driver}:default"
+    if [[ $Q_AGENT == "ovn" ]]; then
+        driver="neutron_vpnaas.services.vpn.service_drivers.ovn_ipsec.IPsecOvnVPNDriver"
+    else
+        driver="neutron_vpnaas.services.vpn.service_drivers.ipsec.IPsecVPNDriver"
+    fi
+
+    if [ "$ipsec_package" = "libreswan" ]; then
+        name="openswan"
+    else
+        name="strongswan"
+    fi
+    echo "VPN:${name}:${driver}:default"
 }
 
 # Service Driver, default value depends on IPSEC_PACKAGE.
@@ -31,3 +44,5 @@ NEUTRON_VPNAAS_DIR=$DEST/neutron-vpnaas
 
 NEUTRON_VPNAAS_CONF_FILE=neutron_vpnaas.conf
 NEUTRON_VPNAAS_CONF=$NEUTRON_CONF_DIR/$NEUTRON_VPNAAS_CONF_FILE
+
+OVN_VPNAGENT_CONF=$NEUTRON_CONF_DIR/neutron_ovn_vpn_agent.ini

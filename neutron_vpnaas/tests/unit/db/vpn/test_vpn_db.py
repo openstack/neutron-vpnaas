@@ -2290,3 +2290,77 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
                           self.context,
                           private_subnet['id'],
                           router['id'])
+
+    def _setup_ipsec_site_connections_with_ep_groups(self, peer_cidr_lists):
+        private_subnet, router = self.create_basic_topology()
+        vpn_service_info = self.prepare_service_info(private_subnet=None,
+                                                     router=router)
+        vpn_service = self.plugin.create_vpnservice(self.context,
+                                                    vpn_service_info)
+
+        ike_policy = self.create_ike_policy()
+        ipsec_policy = self.create_ipsec_policy()
+        ipsec_site_connection = self.prepare_connection_info(
+            vpn_service['id'],
+            ike_policy['id'],
+            ipsec_policy['id'])
+
+        local_ep_group = self.create_endpoint_group(
+            group_type='subnet', endpoints=[private_subnet['id']])
+        for peer_cidrs in peer_cidr_lists:
+            peer_ep_group = self.create_endpoint_group(
+                group_type='cidr', endpoints=peer_cidrs)
+            ipsec_site_connection['ipsec_site_connection'].update(
+                {'local_ep_group_id': local_ep_group['id'],
+                'peer_ep_group_id': peer_ep_group['id']})
+            self.plugin.create_ipsec_site_connection(self.context,
+                                                    ipsec_site_connection)
+        return private_subnet, router
+
+    def _setup_ipsec_site_connections_without_ep_groups(self, peer_cidr_lists):
+        private_subnet, router = self.create_basic_topology()
+        vpn_service_info = \
+            self.prepare_service_info(private_subnet=private_subnet,
+                                      router=router)
+        vpn_service = self.plugin.create_vpnservice(self.context,
+                                                    vpn_service_info)
+
+        ike_policy = self.create_ike_policy()
+        ipsec_policy = self.create_ipsec_policy()
+        ipsec_site_connection = self.prepare_connection_info(
+            vpn_service['id'],
+            ike_policy['id'],
+            ipsec_policy['id'])
+
+        for peer_cidrs in peer_cidr_lists:
+            ipsec_site_connection['ipsec_site_connection'].update(
+                {'peer_cidrs': peer_cidrs})
+            self.plugin.create_ipsec_site_connection(self.context,
+                                                     ipsec_site_connection)
+        return private_subnet, router
+
+    def _test_get_peer_cidrs_for_router(self, setup_func):
+        mock.patch.object(self.plugin, '_get_validator').start()
+
+        # create 1st setup with two connections
+        peer_cidrs = [
+            ['20.1.0.0/24', '20.2.0.0/24'],
+            ['20.3.0.0/24']
+        ]
+        private_subnet, router = setup_func(peer_cidrs)
+
+        # create a 2nd setup for a different router
+        setup_func([['10.1.0.0/24', '10.2.0.0/24']])
+
+        returned_cidrs = self.plugin.get_peer_cidrs_for_router(self.context,
+                                                               router['id'])
+        expected = ['20.1.0.0/24', '20.2.0.0/24', '20.3.0.0/24']
+        self.assertEqual(sorted(expected), sorted(returned_cidrs))
+
+    def test_get_peer_cidrs_for_router_with_ep_groups(self):
+        self._test_get_peer_cidrs_for_router(
+            self._setup_ipsec_site_connections_with_ep_groups)
+
+    def test_get_peer_cidrs_for_router_without_ep_groups(self):
+        self._test_get_peer_cidrs_for_router(
+            self._setup_ipsec_site_connections_without_ep_groups)

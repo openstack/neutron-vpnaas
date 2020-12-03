@@ -75,6 +75,13 @@ class VPNDriverPlugin(VPNPlugin, vpn_db.VPNPluginRpcDbMixin):
     def _flavors_plugin(self):
         return directory.get_plugin(constants.FLAVORS)
 
+    def start_rpc_listeners(self):
+        servers = []
+        for driver_name, driver in self.drivers.items():
+            if hasattr(driver, 'start_rpc_listeners'):
+                servers.extend(driver.start_rpc_listeners())
+        return servers
+
     def _check_orphan_vpnservice_associations(self):
         context = ncontext.get_admin_context()
         vpnservices = self.get_vpnservices(context)

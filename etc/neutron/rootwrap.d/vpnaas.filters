@@ -12,6 +12,8 @@ cp: RegExpFilter, cp, root, cp, -a, .*, .*/strongswan.d
 ip: IpFilter, ip, root
 ip_exec: IpNetnsExecFilter, ip, root
 ipsec: CommandFilter, ipsec, root
+sysctl_ip4_forward: RegExpFilter, sysctl, root, sysctl, -w, net.ipv4.ip_forward=1
+sysctl_ip6_forward: RegExpFilter, sysctl, root, sysctl, -w, net.ipv6.conf.all.forwarding=1
 rm: RegExpFilter, rm, root, rm, -rf, (.*/strongswan.d|.*/ipsec/[0-9a-z-]+)
 rm_file: RegExpFilter, rm, root, rm, -f, .*/ipsec.secrets
 strongswan: CommandFilter, strongswan, root

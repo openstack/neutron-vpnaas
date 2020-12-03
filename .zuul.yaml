@@ -20,8 +20,12 @@
         - openstack-tox-py311:
             required-projects:
               - openstack/neutron
+        - openstack-tox-docs:
+            required-projects:
+              - openstack/neutron
         - neutron-vpnaas-functional-sswan
         - neutron-tempest-plugin-vpnaas
+        - neutron-tempest-plugin-vpnaas-ovn
         - neutron-tempest-plugin-vpnaas-libreswan-centos:
             # TODO(mlavalle) switch to voting when this job is moved to Centos
             # 8
@@ -40,8 +44,12 @@
         - openstack-tox-py311:
             required-projects:
               - openstack/neutron
+        - openstack-tox-docs:
+            required-projects:
+              - openstack/neutron
         - neutron-vpnaas-functional-sswan
         - neutron-tempest-plugin-vpnaas
+        - neutron-tempest-plugin-vpnaas-ovn
         # TODO(mlavalle) uncomment following line  when the job is moved to
         # Centos 8
         # - neutron-tempest-plugin-vpnaas-libreswan-centos
@@ -62,6 +70,7 @@
               - openstack/neutron
         - neutron-vpnaas-openstack-tox-py310-with-sqlalchemy-main
         - neutron-tempest-plugin-vpnaas
+        - neutron-tempest-plugin-vpnaas-ovn
         - neutron-vpnaas-functional-sswan
 
 - job:

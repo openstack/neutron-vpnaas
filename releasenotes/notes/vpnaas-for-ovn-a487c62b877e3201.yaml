@@ -1,0 +1,8 @@
+---
+prelude: >
+    VPNaaS support for ML2/OVN
+features:
+  - |
+    Neutron VPNaaS now supports OVN networking. There is a new stand-alone
+    VPN agent to support ML2/OVN+VPN. OVN-specific service and device drivers
+    have been added.
