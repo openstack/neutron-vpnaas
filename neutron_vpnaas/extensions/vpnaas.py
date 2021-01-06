@@ -177,8 +177,9 @@ def _validate_subnet_list_or_none(data, key_specs=None):
     if data is not None:
         return validators.validate_subnet_list(data, key_specs)
 
+
 validators.add_validator('type:subnet_list_or_none',
-                        _validate_subnet_list_or_none)
+                         _validate_subnet_list_or_none)
 
 vpn_supported_initiators = ['bi-directional', 'response-only']
 vpn_supported_encryption_algorithms = ['3des', 'aes-128',

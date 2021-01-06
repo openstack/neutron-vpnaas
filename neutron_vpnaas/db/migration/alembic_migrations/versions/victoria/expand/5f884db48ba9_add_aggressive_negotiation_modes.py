@@ -13,6 +13,9 @@
 #    under the License.
 #
 
+from alembic import op
+import sqlalchemy as sa
+
 """add_aggressive_negotiation_modes
 
 Revision ID: 5f884db48ba9
@@ -24,10 +27,6 @@ Create Date: 2020-05-12 14:37:46.320070
 # revision identifiers, used by Alembic.
 revision = '5f884db48ba9'
 down_revision = '95601446dbcc'
-
-from alembic import op
-import sqlalchemy as sa
-
 
 phase1_negotiation_modes = sa.Enum('main', 'aggressive',
                                    name='ike_phase1_mode')

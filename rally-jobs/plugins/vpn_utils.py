@@ -324,24 +324,24 @@ def get_server_ip(nova_client, server_id, network_suffix):
 
 
 def add_floating_ip(nova_client, server):
-        """Associates floating-ip to a server
+    """Associates floating-ip to a server
 
-        :param nova_client: nova client
-        :param server: nova instance
-        :return: associated floating ip
-        """
+    :param nova_client: nova client
+    :param server: nova instance
+    :return: associated floating ip
+    """
 
-        fip_list = nova_client.floating_ips.list()
-        for fip in fip_list:
-            if fip.instance_id is None:
-                floating_ip = fip
-                break
-        else:
-            LOG.debug("CREATING NEW FLOATING IP")
-            floating_ip = nova_client.floating_ips.create()
-        LOG.debug("ASSOCIATING FLOATING IP %s", floating_ip.ip)
-        nova_client.servers.add_floating_ip(server.id, floating_ip.ip)
-        return floating_ip
+    fip_list = nova_client.floating_ips.list()
+    for fip in fip_list:
+        if fip.instance_id is None:
+            floating_ip = fip
+            break
+    else:
+        LOG.debug("CREATING NEW FLOATING IP")
+        floating_ip = nova_client.floating_ips.create()
+    LOG.debug("ASSOCIATING FLOATING IP %s", floating_ip.ip)
+    nova_client.servers.add_floating_ip(server.id, floating_ip.ip)
+    return floating_ip
 
 
 def get_namespace(host, private_key):
