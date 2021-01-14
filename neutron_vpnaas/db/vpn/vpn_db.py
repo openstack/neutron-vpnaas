@@ -19,6 +19,7 @@ from neutron_lib.callbacks import events
 from neutron_lib.callbacks import registry
 from neutron_lib.callbacks import resources
 from neutron_lib import constants as lib_constants
+from neutron_lib.db import api as db_api
 from neutron_lib.db import model_query
 from neutron_lib.db import utils as db_utils
 from neutron_lib.exceptions import l3 as l3_exception
@@ -57,7 +58,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         return vpn_validator.VpnReferenceValidator()
 
     def update_status(self, context, model, v_id, status):
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             v_db = self._get_resource(context, model, v_id)
             v_db.update({'status': status})
 
@@ -151,7 +152,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         ipsec_sitecon = ipsec_site_connection['ipsec_site_connection']
         validator = self._get_validator()
         validator.assign_sensible_ipsec_sitecon_defaults(ipsec_sitecon)
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             #Check permissions
             vpnservice_id = ipsec_sitecon['vpnservice_id']
             self._get_resource(context, vpn_models.VPNService, vpnservice_id)
@@ -205,7 +206,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         ipsec_sitecon = ipsec_site_connection['ipsec_site_connection']
         changed_peer_cidrs = False
         validator = self._get_validator()
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             ipsec_site_conn_db = self._get_resource(
                 context, vpn_models.IPsecSiteConnection, ipsec_site_conn_id)
             vpnservice_id = ipsec_site_conn_db['vpnservice_id']
@@ -244,13 +245,13 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
             del ipsec_sitecon["peer_cidrs"]
             if ipsec_sitecon:
                 ipsec_site_conn_db.update(ipsec_sitecon)
-        result = self._make_ipsec_site_connection_dict(ipsec_site_conn_db)
+            result = self._make_ipsec_site_connection_dict(ipsec_site_conn_db)
         if changed_peer_cidrs:
             result['peer_cidrs'] = new_peer_cidrs
         return result
 
     def delete_ipsec_site_connection(self, context, ipsec_site_conn_id):
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             ipsec_site_conn_db = self._get_resource(
                 context, vpn_models.IPsecSiteConnection, ipsec_site_conn_id)
             context.session.delete(ipsec_site_conn_db)
@@ -274,7 +275,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
             filters=filters, fields=fields)
 
     def update_ipsec_site_conn_status(self, context, conn_id, new_status):
-        with context.session.begin():
+        with db_api.CONTEXT_WRITER.using(context):
             self._update_connection_status(context, conn_id, new_status, True)
 
     def _update_connection_status(self, context, conn_id, new_status,
@@ -317,7 +318,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         lifetime_units = lifetime_info.get('units', 'seconds')
         lifetime_value = lifetime_info.get('value', 3600)
 
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             validator.validate_ike_policy(context, ike)
             ike_db = vpn_models.IKEPolicy(
                 id=uuidutils.generate_uuid(),
@@ -339,7 +340,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
     def update_ikepolicy(self, context, ikepolicy_id, ikepolicy):
         ike = ikepolicy['ikepolicy']
         validator = self._get_validator()
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             validator.validate_ike_policy(context, ike)
             if context.session.query(vpn_models.IPsecSiteConnection).filter_by(
                     ikepolicy_id=ikepolicy_id).first():
@@ -357,7 +358,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         return self._make_ikepolicy_dict(ike_db)
 
     def delete_ikepolicy(self, context, ikepolicy_id):
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             if context.session.query(vpn_models.IPsecSiteConnection).filter_by(
                     ikepolicy_id=ikepolicy_id).first():
                 raise vpnaas.IKEPolicyInUse(ikepolicy_id=ikepolicy_id)
@@ -401,7 +402,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         lifetime_units = lifetime_info.get('units', 'seconds')
         lifetime_value = lifetime_info.get('value', 3600)
 
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             validator.validate_ipsec_policy(context, ipsecp)
             ipsecp_db = vpn_models.IPsecPolicy(
                 id=uuidutils.generate_uuid(),
@@ -421,7 +422,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
     def update_ipsecpolicy(self, context, ipsecpolicy_id, ipsecpolicy):
         ipsecp = ipsecpolicy['ipsecpolicy']
         validator = self._get_validator()
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             validator.validate_ipsec_policy(context, ipsecp)
             if context.session.query(vpn_models.IPsecSiteConnection).filter_by(
                     ipsecpolicy_id=ipsecpolicy_id).first():
@@ -439,7 +440,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         return self._make_ipsecpolicy_dict(ipsecp_db)
 
     def delete_ipsecpolicy(self, context, ipsecpolicy_id):
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             if context.session.query(vpn_models.IPsecSiteConnection).filter_by(
                     ipsecpolicy_id=ipsecpolicy_id).first():
                 raise vpnaas.IPsecPolicyInUse(ipsecpolicy_id=ipsecpolicy_id)
@@ -475,7 +476,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         vpns = vpnservice['vpnservice']
         flavor_id = vpns.get('flavor_id', None)
         validator = self._get_validator()
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             validator.validate_vpnservice(context, vpns)
             vpnservice_db = vpn_models.VPNService(
                 id=uuidutils.generate_uuid(),
@@ -494,7 +495,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                                 v6_ip=None):
         """Update the external tunnel IP(s) for service."""
         vpns = {'external_v4_ip': v4_ip, 'external_v6_ip': v6_ip}
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             vpns_db = self._get_resource(context, vpn_models.VPNService,
                                          vpnservice_id)
             vpns_db.update(vpns)
@@ -502,7 +503,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
 
     def update_vpnservice(self, context, vpnservice_id, vpnservice):
         vpns = vpnservice['vpnservice']
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             vpns_db = self._get_resource(context, vpn_models.VPNService,
                                          vpnservice_id)
             self.assert_update_allowed(vpns_db)
@@ -511,7 +512,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         return self._make_vpnservice_dict(vpns_db)
 
     def delete_vpnservice(self, context, vpnservice_id):
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             if context.session.query(vpn_models.IPsecSiteConnection).filter_by(
                 vpnservice_id=vpnservice_id
             ).first():
@@ -547,7 +548,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                                            'services': services})
 
     def check_subnet_in_use(self, context, subnet_id, router_id):
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_READER.using(context):
             vpnservices = context.session.query(
                 vpn_models.VPNService).filter_by(
                     subnet_id=subnet_id, router_id=router_id).first()
@@ -580,7 +581,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                     ipsec_site_connection_id=connection['id'])
 
     def check_subnet_in_use_by_endpoint_group(self, context, subnet_id):
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_READER.using(context):
             query = context.session.query(vpn_models.VPNEndpointGroup)
             query = query.filter(vpn_models.VPNEndpointGroup.endpoint_type ==
                                  v_constants.SUBNET_ENDPOINT)
@@ -607,7 +608,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
     def create_endpoint_group(self, context, endpoint_group):
         group = endpoint_group['endpoint_group']
         validator = self._get_validator()
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             validator.validate_endpoint_group(context, group)
             endpoint_group_db = vpn_models.VPNEndpointGroup(
                 id=uuidutils.generate_uuid(),
@@ -628,7 +629,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                               endpoint_group):
         group_changes = endpoint_group['endpoint_group']
         # Note: Endpoints cannot be changed, so will not do validation
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             endpoint_group_db = self._get_resource(context,
                                                    vpn_models.VPNEndpointGroup,
                                                    endpoint_group_id)
@@ -636,7 +637,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         return self._make_endpoint_group_dict(endpoint_group_db)
 
     def delete_endpoint_group(self, context, endpoint_group_id):
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             self.check_endpoint_group_not_in_use(context, endpoint_group_id)
             endpoint_group_db = self._get_resource(
                 context, vpn_models.VPNEndpointGroup, endpoint_group_id)
@@ -697,7 +698,7 @@ class VPNPluginRpcDbMixin(object):
         The agent will set updated_pending_status as True,
         when agent updates any pending status.
         """
-        with context.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(context):
             for vpnservice in service_status_info_list:
                 try:
                     vpnservice_db = self._get_vpnservice(
