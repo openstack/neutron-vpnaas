@@ -158,7 +158,19 @@ class StrongSwanProcess(ipsec.BaseSwanProcess):
 
     def restart(self):
         """Restart the process."""
+        self.reload_secrets()
         self.reload()
+
+    def reload_secrets(self):
+        """Reload the ipsec.secrets file.
+
+        Flushes and rereads all secrets defined in ipsec.secrets. This needs
+        to be done each time when a new site connection is associated with
+        a VPN service which already hosts a site connection - 'ipsec reload'
+        does not reload the secrets and new connections will not authenticate
+        properly.
+        """
+        self._execute([self.binary, 'rereadsecrets'])
 
     def reload(self):
         """Reload the process.
