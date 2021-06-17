@@ -14,7 +14,7 @@
         VENV={{ tests_venv }}
 
         source $DEVSTACK_PATH/functions
-        source $NEUTRON_PATH/devstack/lib/ovs
+        source $DEVSTACK_PATH/lib/neutron_plugins/ovs_source
         source $NEUTRON_VPNAAS_PATH/tools/configure_for_vpn_func_testing.sh
 
         configure_host_for_vpn_func_testing
