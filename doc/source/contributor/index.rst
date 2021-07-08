@@ -47,7 +47,7 @@ recommended to check `Request for Feature Enhancements`_ (RFE) process.
 To get in touch with the neutron-vpnaas community,
 look at the following resource:
 
-- Join the ``#openstack-vpnaas`` IRC channel on Freenode. This is where the
+- Join the ``#openstack-vpnaas`` IRC channel on OFTC. This is where the
   VPNaaS team is available for discussion.
 - We will hold for `VPN-as-a-Service (bi-)weekly IRC meeting`
   when needed in the near further.
