@@ -731,9 +731,9 @@ def vpn_router_gateway_callback(resource, event, trigger, payload=None):
             vpn_plugin.check_subnet_in_use(context, subnet_id, router_id)
 
 
-def migration_callback(resource, event, trigger, **kwargs):
-    context = kwargs['context']
-    router = kwargs['router']
+def migration_callback(resource, event, trigger, payload):
+    context = payload.context
+    router = payload.latest_state
     vpn_plugin = directory.get_plugin(p_constants.VPN)
     if vpn_plugin:
         vpn_plugin.check_router_in_use(context, router['id'])

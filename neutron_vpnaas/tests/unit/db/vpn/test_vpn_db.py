@@ -28,6 +28,7 @@ from neutron import extensions as nextensions
 from neutron.scheduler import l3_agent_scheduler
 from neutron.tests.unit.db import test_db_base_plugin_v2 as test_db_plugin
 from neutron.tests.unit.extensions import test_l3 as test_l3_plugin
+from neutron_lib.callbacks import events
 from neutron_lib import constants as lib_constants
 from neutron_lib import context
 from neutron_lib.exceptions import l3 as l3_exception
@@ -1700,9 +1701,11 @@ class TestVpnaas(VPNPluginDbTestCase):
     def test_check_router_has_no_vpn(self):
         vpn_plugin = mock.Mock()
         directory.add_plugin('VPN', vpn_plugin)
-        kwargs = {'context': mock.ANY, 'router': {'id': 'foo_id'}}
+        payload = events.DBEventPayload(
+            context=mock.ANY,
+            states=({'id': 'foo_id'},))
         self.assertTrue(vpn_db.migration_callback(
-            mock.ANY, mock.ANY, mock.ANY, **kwargs))
+            mock.ANY, mock.ANY, mock.ANY, payload))
         vpn_plugin.check_router_in_use.assert_called_once_with(
             mock.ANY, 'foo_id')
 
