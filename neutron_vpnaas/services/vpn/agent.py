@@ -94,6 +94,9 @@ class VPNAgent(l3_extension.L3AgentExtension):
                 else:
                     process.disable()
 
+    def update_network(self, context, data):
+        pass
+
 
 class L3WithVPNaaS(VPNAgent):
 
