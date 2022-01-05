@@ -55,8 +55,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Neutron VPNaaS Release Notes'
-copyright = u'2015, Neutron VPNaaS Developers'
+project = 'Neutron VPNaaS Release Notes'
+copyright = '2015, Neutron VPNaaS Developers'
 
 # Release notes are version independent.
 # The full version, including alpha/beta/rc tags.
@@ -202,8 +202,8 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     ('index', 'NeutronVPNaaSReleaseNotes.tex',
-     u'Neutron VPNaaS Release Notes Documentation',
-     u'Neutron VPNaaS Developers', 'manual'),
+     'Neutron VPNaaS Release Notes Documentation',
+     'Neutron VPNaaS Developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -232,9 +232,9 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'neutronvpnaasreleasenotes', u'Neutron VPNaaS Release Notes '
+    ('index', 'neutronvpnaasreleasenotes', 'Neutron VPNaaS Release Notes '
      'Documentation',
-     [u'Neutron VPNaaS Developers'], 1)
+     ['Neutron VPNaaS Developers'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -247,9 +247,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    ('index', 'NeutronVPNaaSReleaseNotes', u'Neutron VPNaaS Release Notes '
+    ('index', 'NeutronVPNaaSReleaseNotes', 'Neutron VPNaaS Release Notes '
      'Documentation',
-     u'Neutron VPNaaS Developers', 'NeutronVPNaaSReleaseNotes',
+     'Neutron VPNaaS Developers', 'NeutronVPNaaSReleaseNotes',
      'One line description of project.',
      'Miscellaneous'),
 ]
