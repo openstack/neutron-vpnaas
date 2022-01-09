@@ -490,7 +490,7 @@ class TestIPSecBase(base.BaseSudoTestCase):
             site.backup_router = self.create_router(self.failover_agent,
                                                     backup_info)
             linux_utils.wait_until_true(
-                lambda: site.router.ha_state == 'master')
+                lambda: site.router.ha_state in ('master', 'primary'))
             linux_utils.wait_until_true(
                 lambda: site.backup_router.ha_state == 'backup')
 
@@ -558,7 +558,8 @@ class TestIPSecBase(base.BaseSudoTestCase):
         device_name = router1.get_ha_device_name()
         ha_device = ip_lib.IPDevice(device_name, router1.ns_name)
         ha_device.link.set_down()
-        linux_utils.wait_until_true(lambda: router2.ha_state == 'master')
+        linux_utils.wait_until_true(
+            lambda: router2.ha_state in ('master', 'primary'))
         linux_utils.wait_until_true(lambda: router1.ha_state == 'backup')
 
     def _ipsec_process_exists(self, conf, router, pid_files):
