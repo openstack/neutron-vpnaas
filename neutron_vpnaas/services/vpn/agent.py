@@ -89,7 +89,7 @@ class VPNAgent(l3_extension.L3AgentExtension):
         for device_driver in self.device_drivers:
             if router_id in device_driver.processes:
                 process = device_driver.processes[router_id]
-                if state == 'master':
+                if state in ('master', 'primary'):
                     process.enable()
                 else:
                     process.disable()
