@@ -88,6 +88,10 @@ class VPNAgent(l3_extension.L3AgentExtension):
         state = data['state']
         for device_driver in self.device_drivers:
             if router_id in device_driver.processes:
+                # NOTE(mnaser): We need to update the router object so it has
+                #               the new HA state so we can do status updates.
+                device_driver.routers[router_id].ha_state = state
+
                 process = device_driver.processes[router_id]
                 if state in ('master', 'primary'):
                     process.enable()
