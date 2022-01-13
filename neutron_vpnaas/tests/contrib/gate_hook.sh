@@ -19,7 +19,7 @@ case $VENV in
         DEVSTACK_PATH=$GATE_DEST/devstack
         IS_GATE=True
         USE_CONSTRAINT_ENV=False
-        BUILD_OVS_FROM_SOURCE=False
+        Q_BUILD_OVS_FROM_GIT=False
 
         source $NEUTRON_VPN_PATH/tools/configure_for_vpn_func_testing.sh
 
