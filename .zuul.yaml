@@ -25,6 +25,11 @@
     experimental:
       jobs:
         - neutron-vpnaas-rally
+    periodic-weekly:
+      jobs:
+        - openstack-tox-py39
+        - neutron-tempest-plugin-vpnaas
+        - neutron-vpnaas-functional-sswan
 
 - job:
     name: neutron-tempest-plugin-vpnaas-libreswan-centos
