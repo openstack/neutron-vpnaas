@@ -26,9 +26,10 @@ from neutron.agent.linux import external_process
 from neutron.agent.linux import interface
 from neutron.agent.linux import ip_lib
 from neutron.agent.linux import utils as linux_utils
+from neutron.common import config as common_config
 from neutron.common import utils as common_utils
 from neutron.conf.agent import common as agent_config
-from neutron.conf import common as common_config
+from neutron.conf import common as conf_common
 from neutron.services.provider_configuration import serviceprovider_opts
 from neutron.tests.common import l3_test_common
 from neutron.tests.common import net_helpers
@@ -142,7 +143,6 @@ PRIVATE_NET = netaddr.IPNetwork('35.4.0.0/16')
 FAKE_PUBLIC_SUBNET_ID = _uuid()
 FAKE_PRIVATE_SUBNET_ID = _uuid()
 
-MAC_BASE = cfg.CONF.base_mac.split(':')
 FAKE_ROUTER = {
     'enable_snat': True,
     'gw_port': {
@@ -189,6 +189,10 @@ class SiteInfo(object):
         self.generate_router_info()
         self._prepare_vpn_service_info()
 
+    def _get_random_mac(self):
+        mac_base = cfg.CONF.base_mac.split(':')
+        return n_utils.get_random_mac(mac_base)
+
     def _generate_private_interface_for_router(self, subnet):
         subnet_id = _uuid()
         return {
@@ -196,7 +200,7 @@ class SiteInfo(object):
             'admin_state_up': True,
             'network_id': _uuid(),
             'mtu': 1500,
-            'mac_address': n_utils.get_random_mac(MAC_BASE),
+            'mac_address': self._get_random_mac(),
             'subnets': [
                 {
                     'ipv6_ra_mode': None,
@@ -225,8 +229,7 @@ class SiteInfo(object):
         self.info['gw_port']['id'] = _uuid()
         self.info['gw_port']['fixed_ips'][0]['ip_address'] = str(
             self.public_net)
-        self.info['gw_port']['mac_address'] = (
-            n_utils.get_random_mac(MAC_BASE))
+        self.info['gw_port']['mac_address'] = self._get_random_mac()
         self.info['ha'] = False
 
     def _prepare_vpn_service_info(self):
@@ -293,6 +296,7 @@ class TestIPSecBase(base.BaseSudoTestCase):
 
     def setUp(self):
         super(TestIPSecBase, self).setUp()
+        common_config.register_common_config_options()
         mock.patch('neutron.agent.l3.agent.L3PluginApi').start()
         mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.'
             'IPsecVpnDriverApi').start()
@@ -338,8 +342,8 @@ class TestIPSecBase(base.BaseSudoTestCase):
     def _get_config_opts(self):
         """Register default config options"""
         config = cfg.ConfigOpts()
-        config.register_opts(common_config.core_opts)
-        config.register_opts(common_config.core_cli_opts)
+        config.register_opts(conf_common.core_opts)
+        config.register_opts(conf_common.core_cli_opts)
         config.register_opts(serviceprovider_opts, 'service_providers')
         config.register_opts(vpn_agent_opts, 'vpnagent')
         config.register_opts(ipsec.ipsec_opts, 'ipsec')

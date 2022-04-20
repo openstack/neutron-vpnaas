@@ -112,6 +112,7 @@ def filter_command(command, rootwrap_config):
 
 
 def execute_with_mount():
+    config.register_common_config_options()
     conf = setup_conf()
     conf()
     config.setup_logging()
