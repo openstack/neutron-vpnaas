@@ -9,11 +9,7 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - neutron-vpnaas-functional-sswan:
-            # TODO(mnaser): This is a temporary measure so that we can land
-            #               individual smaller & backportable patches to unbreak
-            #               the gate.
-            voting: false
+        - neutron-vpnaas-functional-sswan
         - neutron-tempest-plugin-vpnaas
         - neutron-tempest-plugin-vpnaas-libreswan-centos:
             # TODO(mlavalle) switch to voting when this job is moved to Centos
@@ -21,10 +17,7 @@
             voting: false
     gate:
       jobs:
-        # - neutron-vpnaas-functional-sswan
-        # TODO(mnaser): This is a temporary measure so that we can land
-        #               individual smaller & backportable patches to unbreak
-        #               the gate.
+        - neutron-vpnaas-functional-sswan
         - neutron-tempest-plugin-vpnaas
         # TODO(mlavalle) uncomment following line  when the job is moved to
         # Centos 8
