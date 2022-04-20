@@ -17,7 +17,6 @@ from unittest import mock
 
 import netaddr
 from neutron.agent.common import ovs_lib
-from neutron.agent.l3 import agent as neutron_l3_agent
 from neutron.agent.l3 import l3_agent_extensions_manager as ext_manager
 from neutron.agent.l3 import namespaces as n_namespaces
 from neutron.agent.l3 import router_info
@@ -33,7 +32,7 @@ from neutron.conf import common as conf_common
 from neutron.services.provider_configuration import serviceprovider_opts
 from neutron.tests.common import l3_test_common
 from neutron.tests.common import net_helpers
-from neutron.tests.functional import base
+from neutron.tests.functional.agent.l3 import framework
 from neutron_lib import constants
 from neutron_lib.utils import net as n_utils
 from oslo_config import cfg
@@ -291,13 +290,12 @@ class SiteInfoWithHaRouter(SiteInfo):
         return info
 
 
-class TestIPSecBase(base.BaseSudoTestCase):
+class TestIPSecBase(framework.L3AgentTestFramework):
     NESTED_NAMESPACE_SEPARATOR = '@'
 
     def setUp(self):
         super(TestIPSecBase, self).setUp()
         common_config.register_common_config_options()
-        mock.patch('neutron.agent.l3.agent.L3PluginApi').start()
         mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.'
             'IPsecVpnDriverApi').start()
         # avoid report_status running periodically
@@ -318,9 +316,6 @@ class TestIPSecBase(base.BaseSudoTestCase):
         # Can reproduce the exception in the test only
         ip_lib.send_ip_addr_adv_notif = mock.Mock()
 
-        self.conf = self._configure_agent('agent1')
-        self.agent = neutron_l3_agent.L3NATAgentWithStateReport('agent1',
-                                                                self.conf)
         self.vpn_agent = vpn_agent.L3WithVPNaaS(self.conf)
         self.driver = self.vpn_agent.device_drivers[0]
         self.driver.agent_rpc.get_vpn_services_on_host = mock.Mock(
