@@ -9,6 +9,15 @@
       - release-notes-jobs-python3
     check:
       jobs:
+        - openstack-tox-py38:
+            required-projects:
+              - openstack/neutron
+        - openstack-tox-py39:
+            required-projects:
+              - openstack/neutron
+        - openstack-tox-py310:
+            required-projects:
+              - openstack/neutron
         - neutron-vpnaas-functional-sswan
         - neutron-tempest-plugin-vpnaas
         - neutron-tempest-plugin-vpnaas-libreswan-centos:
@@ -17,6 +26,15 @@
             voting: false
     gate:
       jobs:
+        - openstack-tox-py38:
+            required-projects:
+              - openstack/neutron
+        - openstack-tox-py39:
+            required-projects:
+              - openstack/neutron
+        - openstack-tox-py310:
+            required-projects:
+              - openstack/neutron
         - neutron-vpnaas-functional-sswan
         - neutron-tempest-plugin-vpnaas
         # TODO(mlavalle) uncomment following line  when the job is moved to
@@ -27,7 +45,9 @@
         - neutron-vpnaas-rally
     periodic-weekly:
       jobs:
-        - openstack-tox-py39
+        - openstack-tox-py39:
+            required-projects:
+              - openstack/neutron
         - neutron-tempest-plugin-vpnaas
         - neutron-vpnaas-functional-sswan
 
