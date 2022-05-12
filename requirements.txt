@@ -7,7 +7,6 @@
 # process, which may cause wedges in the gate later.
 pbr>=4.0.0 # Apache-2.0
 
-requests>=2.18.0 # Apache-2.0
 Jinja2>=2.10 # BSD License (3 clause)
 netaddr>=0.7.18 # BSD
 SQLAlchemy>=1.3.0 # MIT
