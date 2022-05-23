@@ -14,86 +14,26 @@
 
 import abc
 
-from neutron.api.v2 import resource_helper
-
-from neutron_lib.api import converters
+from neutron_lib.api.definitions import vpn_endpoint_groups
 from neutron_lib.api import extensions
-from neutron_lib.db import constants as db_const
 from neutron_lib.plugins import constants as nconstants
 
-from neutron_vpnaas.services.vpn.common import constants
+from neutron.api.v2 import resource_helper
 
 
-RESOURCE_ATTRIBUTE_MAP = {
-
-    'endpoint_groups': {
-        'id': {'allow_post': False, 'allow_put': False,
-               'validate': {'type:uuid': None},
-               'is_visible': True,
-               'primary_key': True},
-        'tenant_id': {'allow_post': True, 'allow_put': False,
-                      'validate': {
-                          'type:string': db_const.PROJECT_ID_FIELD_SIZE},
-                      'required_by_policy': True,
-                      'is_visible': True},
-        'name': {'allow_post': True, 'allow_put': True,
-                 'validate': {'type:string': db_const.NAME_FIELD_SIZE},
-                 'is_visible': True, 'default': ''},
-        'description': {'allow_post': True, 'allow_put': True,
-                        'validate': {
-                            'type:string': db_const.DESCRIPTION_FIELD_SIZE},
-                        'is_visible': True, 'default': ''},
-        'type': {'allow_post': True, 'allow_put': False,
-                 'validate': {
-                     'type:values': constants.VPN_SUPPORTED_ENDPOINT_TYPES,
-                 },
-                 'is_visible': True},
-        'endpoints': {'allow_post': True, 'allow_put': False,
-                      'convert_to': converters.convert_to_list,
-                      'is_visible': True},
-    },
-}
-
-
-class Vpn_endpoint_groups(extensions.ExtensionDescriptor):
-
-    @classmethod
-    def get_name(cls):
-        return "VPN Endpoint Groups"
-
-    @classmethod
-    def get_alias(cls):
-        return "vpn-endpoint-groups"
-
-    @classmethod
-    def get_description(cls):
-        return "VPN endpoint groups support"
-
-    @classmethod
-    def get_updated(cls):
-        return "2015-08-04T10:00:00-00:00"
+class Vpn_endpoint_groups(extensions.APIExtensionDescriptor):
+    api_definition = vpn_endpoint_groups
 
     @classmethod
     def get_resources(cls):
         plural_mappings = resource_helper.build_plural_mappings(
-            {}, RESOURCE_ATTRIBUTE_MAP)
-        return resource_helper.build_resource_info(plural_mappings,
-                                                   RESOURCE_ATTRIBUTE_MAP,
-                                                   nconstants.VPN,
-                                                   register_quota=True,
-                                                   translate_name=True)
-
-    def get_required_extensions(self):
-        return ["vpnaas"]
-
-    def update_attributes_map(self, attributes):
-        super(Vpn_endpoint_groups, self).update_attributes_map(
-            attributes, extension_attrs_map=RESOURCE_ATTRIBUTE_MAP)
-
-    def get_extended_resources(self, version):
-        if version == "2.0":
-            return RESOURCE_ATTRIBUTE_MAP
-        return {}
+            {}, vpn_endpoint_groups.RESOURCE_ATTRIBUTE_MAP)
+        return resource_helper.build_resource_info(
+            plural_mappings,
+            vpn_endpoint_groups.RESOURCE_ATTRIBUTE_MAP,
+            nconstants.VPN,
+            register_quota=True,
+            translate_name=True)
 
 
 class VPNEndpointGroupsPluginBase(object, metaclass=abc.ABCMeta):

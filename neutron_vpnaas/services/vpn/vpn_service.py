@@ -14,10 +14,9 @@
 #    under the License.
 
 from neutron.services import provider_configuration as provconfig
+from neutron_lib.exceptions import vpn as vpn_exception
 from oslo_log import log as logging
 from oslo_utils import importutils
-
-from neutron_vpnaas.extensions import vpnaas
 
 LOG = logging.getLogger(__name__)
 
@@ -42,6 +41,6 @@ class VPNService(object):
                                                          host))
                 LOG.debug('Loaded VPNaaS device driver: %s', device_driver)
             except ImportError:
-                raise vpnaas.DeviceDriverImportError(
+                raise vpn_exception.DeviceDriverImportError(
                     device_driver=device_driver)
         return drivers

@@ -30,6 +30,7 @@ from neutron.agent.linux import utils as agent_utils
 from neutron_lib.api import validators
 from neutron_lib import constants
 from neutron_lib import context
+from neutron_lib.exceptions import vpn as vpn_exception
 from neutron_lib.plugins import utils as plugin_utils
 from neutron_lib import rpc as n_rpc
 from neutron_lib.utils import file as file_utils
@@ -43,7 +44,6 @@ from oslo_utils import encodeutils
 from oslo_utils import fileutils
 
 from neutron_vpnaas._i18n import _
-from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import device_drivers
 
@@ -610,7 +610,8 @@ class OpenSwanProcess(BaseSwanProcess):
             if not ip_addr:
                 self._record_connection_status(connection_id, constants.ERROR,
                                                force_status_update=True)
-                raise vpnaas.VPNPeerAddressNotResolved(peer_address=address)
+                raise vpn_exception.VPNPeerAddressNotResolved(
+                    peer_address=address)
         else:
             ip_addr = address
         routes = self._execute(['ip', 'route', 'get', ip_addr])

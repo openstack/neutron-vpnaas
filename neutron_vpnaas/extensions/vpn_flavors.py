@@ -13,6 +13,7 @@
 #    under the License.
 #
 
+from neutron_lib.api.definitions import vpn_flavors
 from neutron_lib.api import extensions
 from neutron_lib import exceptions as nexception
 
@@ -27,41 +28,6 @@ class NoProviderFoundForFlavor(nexception.NotFound):
     message = _("No service provider found for flavor %(flavor_id)s")
 
 
-EXTENDED_ATTRIBUTES_2_0 = {
-    'vpnservices': {
-        'flavor_id': {'allow_post': True, 'allow_put': False,
-                      'validate': {'type:uuid_or_none': None},
-                      'is_visible': True, 'default': None}
-    }
-}
-
-
-class Vpn_flavors(extensions.ExtensionDescriptor):
+class Vpn_flavors(extensions.APIExtensionDescriptor):
     """Extension class supporting flavors for vpnservices."""
-
-    @classmethod
-    def get_name(cls):
-        return "VPN Service Flavor Extension"
-
-    @classmethod
-    def get_alias(cls):
-        return 'vpn-flavors'
-
-    @classmethod
-    def get_description(cls):
-        return "Flavor support for vpnservices."
-
-    @classmethod
-    def get_updated(cls):
-        return "2017-04-19T00:00:00-00:00"
-
-    def get_extended_resources(self, version):
-        if version == "2.0":
-            return EXTENDED_ATTRIBUTES_2_0
-        return {}
-
-    def get_required_extensions(self):
-        return ["vpnaas"]
-
-    def get_optional_extensions(self):
-        return ["flavors"]
+    api_definition = vpn_flavors

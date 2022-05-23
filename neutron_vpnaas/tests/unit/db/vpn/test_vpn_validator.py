@@ -19,13 +19,13 @@ from unittest import mock
 from neutron.db import l3_db
 from neutron_lib import context as n_ctx
 from neutron_lib import exceptions as nexception
+from neutron_lib.exceptions import vpn as vpn_exception
 from neutron_lib.plugins import constants as nconstants
 from neutron_lib.plugins import directory
 from oslo_utils import uuidutils
 from sqlalchemy.orm import query
 
 from neutron_vpnaas.db.vpn import vpn_validator
-from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.common import constants as v_constants
 from neutron_vpnaas.tests import base
 
@@ -55,7 +55,7 @@ class TestVpnValidation(base.BaseTestCase):
         """Failure test of service validate, when router missing ext. I/F."""
         self.l3_plugin.get_router.return_value = {}  # No external gateway
         vpnservice = {'router_id': 123, 'subnet_id': 456}
-        self.assertRaises(vpnaas.RouterIsNotExternal,
+        self.assertRaises(vpn_exception.RouterIsNotExternal,
                           self.validator.validate_vpnservice,
                           self.context, vpnservice)
 
@@ -64,7 +64,7 @@ class TestVpnValidation(base.BaseTestCase):
         self.l3_plugin.get_router.return_value = FAKE_ROUTER
         self.core_plugin.get_ports.return_value = None
         vpnservice = {'router_id': FAKE_ROUTER_ID, 'subnet_id': FAKE_SUBNET_ID}
-        self.assertRaises(vpnaas.SubnetIsNotConnectedToRouter,
+        self.assertRaises(vpn_exception.SubnetIsNotConnectedToRouter,
                           self.validator.validate_vpnservice,
                           self.context, vpnservice)
 
@@ -122,7 +122,7 @@ class TestVpnValidation(base.BaseTestCase):
                 raise socket.gaierror()
             mock_getaddr_info.side_effect = getaddr_info_failer
             ipsec_sitecon = {'peer_address': 'fqdn.invalid'}
-            self.assertRaises(vpnaas.VPNPeerAddressNotResolved,
+            self.assertRaises(vpn_exception.VPNPeerAddressNotResolved,
                               self.validator.resolve_peer_address,
                               ipsec_sitecon, self.router)
 
@@ -134,7 +134,7 @@ class TestVpnValidation(base.BaseTestCase):
             self.validator._validate_peer_address(ip_version, self.router)
             if expected_exception:
                 self.fail("No exception raised for invalid peer address")
-        except vpnaas.ExternalNetworkHasNoSubnet:
+        except vpn_exception.ExternalNetworkHasNoSubnet:
             if not expected_exception:
                 self.fail("exception for valid peer address raised")
 
@@ -213,12 +213,14 @@ class TestVpnValidation(base.BaseTestCase):
         """Failure tests of DPD settings for IPSec conn during create."""
         ipsec_sitecon = {'dpd_action': 'hold', 'dpd_interval': 100,
                          'dpd_timeout': 100}
-        self.assertRaises(vpnaas.IPsecSiteConnectionDpdIntervalValueError,
-                          self.validator._check_dpd, ipsec_sitecon)
+        self.assertRaises(
+            vpn_exception.IPsecSiteConnectionDpdIntervalValueError,
+            self.validator._check_dpd, ipsec_sitecon)
         ipsec_sitecon = {'dpd_action': 'hold', 'dpd_interval': 100,
                          'dpd_timeout': 99}
-        self.assertRaises(vpnaas.IPsecSiteConnectionDpdIntervalValueError,
-                          self.validator._check_dpd, ipsec_sitecon)
+        self.assertRaises(
+            vpn_exception.IPsecSiteConnectionDpdIntervalValueError,
+            self.validator._check_dpd, ipsec_sitecon)
 
     def test_bad_mtu_for_ipsec_connection(self):
         """Failure test of invalid MTU values for IPSec conn create/update."""
@@ -226,7 +228,7 @@ class TestVpnValidation(base.BaseTestCase):
         for version, limit in ip_version_limits.items():
             ipsec_sitecon = {'mtu': limit - 1}
             self.assertRaises(
-                vpnaas.IPsecSiteConnectionMtuError,
+                vpn_exception.IPsecSiteConnectionMtuError,
                 self.validator._check_mtu,
                 self.context, ipsec_sitecon['mtu'], version)
 
@@ -254,19 +256,19 @@ class TestVpnValidation(base.BaseTestCase):
         """Fail when mixing types of endpoints in endpoint group."""
         endpoint_group = {'type': v_constants.CIDR_ENDPOINT,
                           'endpoints': ['10.10.10.0/24', _uuid()]}
-        self.assertRaises(vpnaas.InvalidEndpointInEndpointGroup,
+        self.assertRaises(vpn_exception.InvalidEndpointInEndpointGroup,
                           self.validator.validate_endpoint_group,
                           self.context, endpoint_group)
         endpoint_group = {'type': v_constants.SUBNET_ENDPOINT,
                           'endpoints': [_uuid(), '10.10.10.0/24']}
-        self.assertRaises(vpnaas.InvalidEndpointInEndpointGroup,
+        self.assertRaises(vpn_exception.InvalidEndpointInEndpointGroup,
                           self.validator.validate_endpoint_group,
                           self.context, endpoint_group)
 
     def test_missing_endpoints_for_endpoint_group(self):
         endpoint_group = {'type': v_constants.CIDR_ENDPOINT,
                           'endpoints': []}
-        self.assertRaises(vpnaas.MissingEndpointForEndpointGroup,
+        self.assertRaises(vpn_exception.MissingEndpointForEndpointGroup,
                           self.validator.validate_endpoint_group,
                           self.context, endpoint_group)
 
@@ -277,7 +279,7 @@ class TestVpnValidation(base.BaseTestCase):
         """
         endpoint_group = {'type': v_constants.CIDR_ENDPOINT,
                           'endpoints': ['10.10.10.10/24', '20.20.20.1']}
-        self.assertRaises(vpnaas.InvalidEndpointInEndpointGroup,
+        self.assertRaises(vpn_exception.InvalidEndpointInEndpointGroup,
                           self.validator.validate_endpoint_group,
                           self.context, endpoint_group)
 
@@ -287,7 +289,7 @@ class TestVpnValidation(base.BaseTestCase):
             subnet_id=subnet_id)
         endpoint_group = {'type': v_constants.SUBNET_ENDPOINT,
                           'endpoints': [subnet_id]}
-        self.assertRaises(vpnaas.NonExistingSubnetInEndpointGroup,
+        self.assertRaises(vpn_exception.NonExistingSubnetInEndpointGroup,
                           self.validator.validate_endpoint_group,
                           self.context, endpoint_group)
 
@@ -299,7 +301,7 @@ class TestVpnValidation(base.BaseTestCase):
         multiple_subnets = [subnet1, subnet2]
         port_mock = mock.patch.object(self.core_plugin, "get_ports").start()
         port_mock.side_effect = ['dummy info', None]
-        self.assertRaises(vpnaas.SubnetIsNotConnectedToRouter,
+        self.assertRaises(vpn_exception.SubnetIsNotConnectedToRouter,
                           self.validator._check_local_subnets_on_router,
                           self.context, router, multiple_subnets)
 
@@ -323,7 +325,7 @@ class TestVpnValidation(base.BaseTestCase):
         subnet1 = {'ip_version': 6}
         subnet2 = {'ip_version': 4}
         mixed_subnets = [subnet1, subnet2]
-        self.assertRaises(vpnaas.MixedIPVersionsForIPSecEndpoints,
+        self.assertRaises(vpn_exception.MixedIPVersionsForIPSecEndpoints,
                           self.validator._check_local_endpoint_ip_versions,
                           endpoint_group_id, mixed_subnets)
 
@@ -343,13 +345,13 @@ class TestVpnValidation(base.BaseTestCase):
         """Fail when mixed IP versions in peer endpoints."""
         endpoint_group_id = _uuid()
         mixed_cidrs = ['10.10.10.0/24', '2002:1400::/48']
-        self.assertRaises(vpnaas.MixedIPVersionsForIPSecEndpoints,
+        self.assertRaises(vpn_exception.MixedIPVersionsForIPSecEndpoints,
                           self.validator._check_peer_endpoint_ip_versions,
                           endpoint_group_id, mixed_cidrs)
 
     def test_fail_ipsec_conn_locals_and_peers_different_ip_version(self):
         """Ensure catch when local and peer IP versions are not the same."""
-        self.assertRaises(vpnaas.MixedIPVersionsForIPSecConnection,
+        self.assertRaises(vpn_exception.MixedIPVersionsForIPSecConnection,
                           self.validator._validate_compatible_ip_versions,
                           4, 6)
 
@@ -363,28 +365,28 @@ class TestVpnValidation(base.BaseTestCase):
         ipsec_sitecon = {'peer_cidrs': ['10.0.0.0/24'],
                          'local_ep_group_id': 'local-epg-id',
                          'peer_ep_group_id': 'peer-epg-id'}
-        self.assertRaises(vpnaas.PeerCidrsInvalid,
+        self.assertRaises(vpn_exception.PeerCidrsInvalid,
                           self.validator.validate_ipsec_conn_optional_args,
                           ipsec_sitecon, subnet)
 
         ipsec_sitecon = {'peer_cidrs': [],
                          'local_ep_group_id': None,
                          'peer_ep_group_id': 'peer-epg-id'}
-        self.assertRaises(vpnaas.MissingRequiredEndpointGroup,
+        self.assertRaises(vpn_exception.MissingRequiredEndpointGroup,
                           self.validator.validate_ipsec_conn_optional_args,
                           ipsec_sitecon, subnet)
 
         ipsec_sitecon = {'peer_cidrs': [],
                          'local_ep_group_id': 'local-epg-id',
                          'peer_ep_group_id': None}
-        self.assertRaises(vpnaas.MissingRequiredEndpointGroup,
+        self.assertRaises(vpn_exception.MissingRequiredEndpointGroup,
                           self.validator.validate_ipsec_conn_optional_args,
                           ipsec_sitecon, subnet)
 
         ipsec_sitecon = {'peer_cidrs': [],
                          'local_ep_group_id': None,
                          'peer_ep_group_id': None}
-        self.assertRaises(vpnaas.MissingRequiredEndpointGroup,
+        self.assertRaises(vpn_exception.MissingRequiredEndpointGroup,
                           self.validator.validate_ipsec_conn_optional_args,
                           ipsec_sitecon, subnet)
 
@@ -398,28 +400,28 @@ class TestVpnValidation(base.BaseTestCase):
         ipsec_sitecon = {'peer_cidrs': [],
                          'local_ep_group_id': None,
                          'peer_ep_group_id': None}
-        self.assertRaises(vpnaas.MissingPeerCidrs,
+        self.assertRaises(vpn_exception.MissingPeerCidrs,
                           self.validator.validate_ipsec_conn_optional_args,
                           ipsec_sitecon, subnet)
 
         ipsec_sitecon = {'peer_cidrs': ['10.0.0.0/24'],
                          'local_ep_group_id': 'local-epg-id',
                          'peer_ep_group_id': None}
-        self.assertRaises(vpnaas.InvalidEndpointGroup,
+        self.assertRaises(vpn_exception.InvalidEndpointGroup,
                           self.validator.validate_ipsec_conn_optional_args,
                           ipsec_sitecon, subnet)
 
         ipsec_sitecon = {'peer_cidrs': ['10.0.0.0/24'],
                          'local_ep_group_id': None,
                          'peer_ep_group_id': 'peer-epg-id'}
-        self.assertRaises(vpnaas.InvalidEndpointGroup,
+        self.assertRaises(vpn_exception.InvalidEndpointGroup,
                           self.validator.validate_ipsec_conn_optional_args,
                           ipsec_sitecon, subnet)
 
         ipsec_sitecon = {'peer_cidrs': ['10.0.0.0/24'],
                          'local_ep_group_id': 'local-epg-id',
                          'peer_ep_group_id': 'peer-epg-id'}
-        self.assertRaises(vpnaas.InvalidEndpointGroup,
+        self.assertRaises(vpn_exception.InvalidEndpointGroup,
                           self.validator.validate_ipsec_conn_optional_args,
                           ipsec_sitecon, subnet)
 
@@ -452,11 +454,11 @@ class TestVpnValidation(base.BaseTestCase):
 
     def test_fail_ipsec_conn_peer_cidrs_with_invalid_format(self):
         peer_cidrs = ['invalid_cidr']
-        self.assertRaises(vpnaas.IPsecSiteConnectionPeerCidrError,
+        self.assertRaises(vpn_exception.IPsecSiteConnectionPeerCidrError,
                           self.validator._check_peer_cidrs,
                           peer_cidrs)
         peer_cidrs = ['192/24']
-        self.assertRaises(vpnaas.IPsecSiteConnectionPeerCidrError,
+        self.assertRaises(vpn_exception.IPsecSiteConnectionPeerCidrError,
                           self.validator._check_peer_cidrs,
                           peer_cidrs)
 
@@ -464,13 +466,13 @@ class TestVpnValidation(base.BaseTestCase):
         local_epg = {'id': 'should-be-subnets',
                      'type': v_constants.CIDR_ENDPOINT,
                      'endpoints': ['10.10.10.10/24', '20.20.20.20/24']}
-        self.assertRaises(vpnaas.WrongEndpointGroupType,
+        self.assertRaises(vpn_exception.WrongEndpointGroupType,
                           self.validator._get_local_subnets,
                           self.context, local_epg)
         peer_epg = {'id': 'should-be-cidrs',
                     'type': v_constants.SUBNET_ENDPOINT,
                     'endpoints': [_uuid(), _uuid()]}
-        self.assertRaises(vpnaas.WrongEndpointGroupType,
+        self.assertRaises(vpn_exception.WrongEndpointGroupType,
                           self.validator._get_peer_cidrs,
                           peer_epg)
 
@@ -527,6 +529,6 @@ class TestVpnValidation(base.BaseTestCase):
 
     def test_fail_ipsec_conn_peer_cidrs_mixed_ip_version(self):
         mixed_cidrs = ['2002:0a00::/48', '20.20.20.0/24']
-        self.assertRaises(vpnaas.MixedIPVersionsForPeerCidrs,
+        self.assertRaises(vpn_exception.MixedIPVersionsForPeerCidrs,
                           self.validator._check_peer_cidrs_ip_versions,
                           mixed_cidrs)

@@ -16,10 +16,10 @@
 from unittest import mock
 
 from neutron_lib.callbacks import registry
+from neutron_lib.exceptions import vpn as vpn_exception
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
-from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn import agent as vpn_agent
 from neutron_vpnaas.services.vpn import device_drivers
 from neutron_vpnaas.services.vpn import vpn_service
@@ -88,5 +88,5 @@ class TestVirtualPrivateNetworkDeviceDriverLoading(VPNBaseTestCase):
         cfg.CONF.set_override('vpn_device_driver',
                               ['no.such.class'],
                               'vpnagent')
-        self.assertRaises(vpnaas.DeviceDriverImportError,
+        self.assertRaises(vpn_exception.DeviceDriverImportError,
                           self.service.load_device_drivers, 'host')

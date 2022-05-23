@@ -28,10 +28,12 @@ from neutron import extensions as nextensions
 from neutron.scheduler import l3_agent_scheduler
 from neutron.tests.unit.db import test_db_base_plugin_v2 as test_db_plugin
 from neutron.tests.unit.extensions import test_l3 as test_l3_plugin
+from neutron_lib.api.definitions import vpn
 from neutron_lib.callbacks import events
 from neutron_lib import constants as lib_constants
 from neutron_lib import context
 from neutron_lib.exceptions import l3 as l3_exception
+from neutron_lib.exceptions import vpn as vpn_exception
 from neutron_lib.plugins import constants as nconstants
 from neutron_lib.plugins import directory
 from oslo_db import exception as db_exc
@@ -45,7 +47,6 @@ from neutron_vpnaas.services.vpn import plugin as vpn_plugin
 from neutron_vpnaas.tests import base
 
 from neutron_vpnaas import extensions
-from neutron_vpnaas.extensions import vpnaas
 
 DB_CORE_PLUGIN_KLASS = 'neutron.db.db_base_plugin_v2.NeutronDbPluginV2'
 DB_VPN_PLUGIN_KLASS = "neutron_vpnaas.services.vpn.plugin.VPNPlugin"
@@ -71,7 +72,7 @@ class VPNTestMixin(object):
     resource_prefix_map = dict(
         (k.replace('_', '-'),
          "/vpn")
-        for k in vpnaas.RESOURCE_ATTRIBUTE_MAP
+        for k in vpn.RESOURCE_ATTRIBUTE_MAP
     )
 
     def _create_ikepolicy(self, fmt,
@@ -1692,7 +1693,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                 self.router() as router:
             with self.vpnservice(subnet=subnet,
                                  router=router):
-                self.assertRaises(vpnaas.SubnetInUseByVPNService,
+                self.assertRaises(vpn_exception.SubnetInUseByVPNService,
                                   self.plugin.check_subnet_in_use,
                                   context.get_admin_context(),
                                   subnet['subnet']['id'],
@@ -1957,7 +1958,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
             endpoint_group = self.plugin.get_endpoint_group(self.context,
                                                             endpoint_group_id)
             is_found = True
-        except vpnaas.VPNEndpointGroupNotFound:
+        except vpn_exception.VPNEndpointGroupNotFound:
             is_found = False
         except Exception as e:
             self.fail("Unexpected exception getting endpoint group: %s" % e)
@@ -1981,7 +1982,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         self.plugin.delete_endpoint_group(self.context, group_id)
         self.check_endpoint_group_entry(group_id, expected, should_exist=False)
 
-        self.assertRaises(vpnaas.VPNEndpointGroupNotFound,
+        self.assertRaises(vpn_exception.VPNEndpointGroupNotFound,
                           self.plugin.delete_endpoint_group,
                           self.context, group_id)
 
@@ -1998,7 +1999,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
 
     def test_fail_showing_non_existent_endpoint_group(self):
         """Test failure to show non-existent endpoint group."""
-        self.assertRaises(vpnaas.VPNEndpointGroupNotFound,
+        self.assertRaises(vpn_exception.VPNEndpointGroupNotFound,
                           self.plugin.get_endpoint_group,
                           self.context, uuidutils.generate_uuid())
 
@@ -2054,7 +2055,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         """Test fail updating a non-existent group."""
         group_updates = {'endpoint_group': {'name': 'new name'}}
         self.assertRaises(
-            vpnaas.VPNEndpointGroupNotFound,
+            vpn_exception.VPNEndpointGroupNotFound,
             self.plugin.update_endpoint_group,
             self.context, _uuid(), group_updates)
 
@@ -2225,11 +2226,11 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
             {'local_ep_group_id': local_ep_group['id'],
              'peer_ep_group_id': peer_ep_group['id']})
         self.plugin.create_ipsec_site_connection(self.context, info)
-        self.assertRaises(vpnaas.EndpointGroupInUse,
+        self.assertRaises(vpn_exception.EndpointGroupInUse,
                           self.plugin.delete_endpoint_group,
                           self.context,
                           local_ep_group['id'])
-        self.assertRaises(vpnaas.EndpointGroupInUse,
+        self.assertRaises(vpn_exception.EndpointGroupInUse,
                           self.plugin.delete_endpoint_group,
                           self.context,
                           peer_ep_group['id'])
@@ -2248,7 +2249,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         local_subnet = self.create_subnet(overrides=overrides)
         self.create_endpoint_group(group_type='subnet',
                                    endpoints=[local_subnet['id']])
-        self.assertRaises(vpnaas.SubnetInUseByEndpointGroup,
+        self.assertRaises(vpn_exception.SubnetInUseByEndpointGroup,
                           self.plugin.check_subnet_in_use_by_endpoint_group,
                           self.context, local_subnet['id'])
 
@@ -2283,7 +2284,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         self.plugin.create_ipsec_site_connection(self.context,
                                                  ipsec_site_connection)
 
-        self.assertRaises(vpnaas.SubnetInUseByIPsecSiteConnection,
+        self.assertRaises(vpn_exception.SubnetInUseByIPsecSiteConnection,
                           self.plugin.check_subnet_in_use,
                           self.context,
                           private_subnet['id'],

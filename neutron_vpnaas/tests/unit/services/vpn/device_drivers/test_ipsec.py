@@ -26,10 +26,10 @@ from neutron.agent.l3 import legacy_router
 from neutron.agent.linux import iptables_manager
 from neutron.conf.agent.l3 import config as l3_config
 from neutron_lib import constants
+from neutron_lib.exceptions import vpn as vpn_exception
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
-from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.device_drivers import ipsec as openswan_ipsec
 from neutron_vpnaas.services.vpn.device_drivers import libreswan_ipsec
 from neutron_vpnaas.services.vpn.device_drivers import strongswan_ipsec
@@ -1292,7 +1292,7 @@ class TestOpenSwanProcess(IPSecDeviceLegacy):
             {'fake-conn-id': {'status': constants.ERROR,
                               'updated_pending_status': True}})
 
-        self.assertRaises(vpnaas.VPNPeerAddressNotResolved,
+        self.assertRaises(vpn_exception.VPNPeerAddressNotResolved,
                           self.process._get_nexthop, 'foo.peer.addr',
                           'fake-conn-id')
         self.assertEqual(expected_connection_status_dict,
@@ -1302,7 +1302,7 @@ class TestOpenSwanProcess(IPSecDeviceLegacy):
             {'fake-conn-id': {'status': constants.PENDING_CREATE,
                               'updated_pending_status': False}})
 
-        self.assertRaises(vpnaas.VPNPeerAddressNotResolved,
+        self.assertRaises(vpn_exception.VPNPeerAddressNotResolved,
                           self.process._get_nexthop, 'foo.peer.addr',
                           'fake-conn-id')
         self.assertEqual(expected_connection_status_dict,

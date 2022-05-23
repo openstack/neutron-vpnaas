@@ -19,11 +19,11 @@ from neutron.db import l3_db
 from neutron.db import models_v2
 from neutron_lib.api import validators
 from neutron_lib import exceptions as nexception
+from neutron_lib.exceptions import vpn as vpn_exception
 from neutron_lib.plugins import constants as plugin_const
 from neutron_lib.plugins import directory
 
 from neutron_vpnaas._i18n import _
-from neutron_vpnaas.extensions import vpnaas
 from neutron_vpnaas.services.vpn.common import constants
 
 
@@ -56,13 +56,13 @@ class VpnReferenceValidator(object):
     def _check_dpd(self, ipsec_sitecon):
         """Ensure that DPD timeout is greater than DPD interval."""
         if ipsec_sitecon['dpd_timeout'] <= ipsec_sitecon['dpd_interval']:
-            raise vpnaas.IPsecSiteConnectionDpdIntervalValueError(
+            raise vpn_exception.IPsecSiteConnectionDpdIntervalValueError(
                 attr='dpd_timeout')
 
     def _check_mtu(self, context, mtu, ip_version):
         if mtu < VpnReferenceValidator.IP_MIN_MTU[ip_version]:
-            raise vpnaas.IPsecSiteConnectionMtuError(mtu=mtu,
-                                                     version=ip_version)
+            raise vpn_exception.IPsecSiteConnectionMtuError(
+                mtu=mtu, version=ip_version)
 
     def _validate_peer_address(self, ip_version, router):
         # NOTE: peer_address ip version should match with
@@ -75,7 +75,7 @@ class VpnReferenceValidator(object):
             if ip_version == netaddr.IPAddress(addr).version:
                 return
 
-        raise vpnaas.ExternalNetworkHasNoSubnet(
+        raise vpn_exception.ExternalNetworkHasNoSubnet(
             router_id=router.id,
             ip_version="IPv6" if ip_version == 6 else "IPv4")
 
@@ -89,14 +89,15 @@ class VpnReferenceValidator(object):
                 addrinfo = socket.getaddrinfo(address, None)[0]
                 ipsec_sitecon['peer_address'] = addrinfo[-1][0]
             except socket.gaierror:
-                raise vpnaas.VPNPeerAddressNotResolved(peer_address=address)
+                raise vpn_exception.VPNPeerAddressNotResolved(
+                    peer_address=address)
 
         ip_version = netaddr.IPAddress(ipsec_sitecon['peer_address']).version
         self._validate_peer_address(ip_version, router)
 
     def _get_local_subnets(self, context, endpoint_group):
         if endpoint_group['type'] != constants.SUBNET_ENDPOINT:
-            raise vpnaas.WrongEndpointGroupType(
+            raise vpn_exception.WrongEndpointGroupType(
                 group_type=endpoint_group['type'], which=endpoint_group['id'],
                 expected=constants.SUBNET_ENDPOINT)
         subnet_ids = endpoint_group['endpoints']
@@ -105,7 +106,7 @@ class VpnReferenceValidator(object):
 
     def _get_peer_cidrs(self, endpoint_group):
         if endpoint_group['type'] != constants.CIDR_ENDPOINT:
-            raise vpnaas.WrongEndpointGroupType(
+            raise vpn_exception.WrongEndpointGroupType(
                 group_type=endpoint_group['type'], which=endpoint_group['id'],
                 expected=constants.CIDR_ENDPOINT)
         return endpoint_group['endpoints']
@@ -119,7 +120,8 @@ class VpnReferenceValidator(object):
             return local_subnets[0]['ip_version']
         ip_versions = set([subnet['ip_version'] for subnet in local_subnets])
         if len(ip_versions) > 1:
-            raise vpnaas.MixedIPVersionsForIPSecEndpoints(group=group_id)
+            raise vpn_exception.MixedIPVersionsForIPSecEndpoints(
+                group=group_id)
         return ip_versions.pop()
 
     def _check_peer_endpoint_ip_versions(self, group_id, peer_cidrs):
@@ -131,7 +133,8 @@ class VpnReferenceValidator(object):
             return netaddr.IPNetwork(peer_cidrs[0]).version
         ip_versions = set([netaddr.IPNetwork(pc).version for pc in peer_cidrs])
         if len(ip_versions) > 1:
-            raise vpnaas.MixedIPVersionsForIPSecEndpoints(group=group_id)
+            raise vpn_exception.MixedIPVersionsForIPSecEndpoints(
+                group=group_id)
         return ip_versions.pop()
 
     def _check_peer_cidrs(self, peer_cidrs):
@@ -139,7 +142,7 @@ class VpnReferenceValidator(object):
         for peer_cidr in peer_cidrs:
             msg = validators.validate_subnet(peer_cidr)
             if msg:
-                raise vpnaas.IPsecSiteConnectionPeerCidrError(
+                raise vpn_exception.IPsecSiteConnectionPeerCidrError(
                     peer_cidr=peer_cidr)
 
     def _check_peer_cidrs_ip_versions(self, peer_cidrs):
@@ -148,7 +151,7 @@ class VpnReferenceValidator(object):
             return netaddr.IPNetwork(peer_cidrs[0]).version
         ip_versions = set([netaddr.IPNetwork(pc).version for pc in peer_cidrs])
         if len(ip_versions) > 1:
-            raise vpnaas.MixedIPVersionsForPeerCidrs()
+            raise vpn_exception.MixedIPVersionsForPeerCidrs()
         return ip_versions.pop()
 
     def _check_local_subnets_on_router(self, context, router, local_subnets):
@@ -158,7 +161,7 @@ class VpnReferenceValidator(object):
     def _validate_compatible_ip_versions(self, local_ip_version,
                                          peer_ip_version):
         if local_ip_version != peer_ip_version:
-            raise vpnaas.MixedIPVersionsForIPSecConnection()
+            raise vpn_exception.MixedIPVersionsForIPSecConnection()
 
     def validate_ipsec_conn_optional_args(self, ipsec_sitecon, subnet):
         """Ensure that proper combinations of optional args are used.
@@ -175,7 +178,7 @@ class VpnReferenceValidator(object):
         peer_cidrs = ipsec_sitecon.get('peer_cidrs')
         if subnet:
             if not peer_cidrs:
-                raise vpnaas.MissingPeerCidrs()
+                raise vpn_exception.MissingPeerCidrs()
             epgs = []
             if local_epg_id:
                 epgs.append('local')
@@ -184,10 +187,11 @@ class VpnReferenceValidator(object):
             if epgs:
                 which = ' and '.join(epgs)
                 suffix = 's' if len(epgs) > 1 else ''
-                raise vpnaas.InvalidEndpointGroup(which=which, suffix=suffix)
+                raise vpn_exception.InvalidEndpointGroup(which=which,
+                                                         suffix=suffix)
         else:
             if peer_cidrs:
-                raise vpnaas.PeerCidrsInvalid()
+                raise vpn_exception.PeerCidrsInvalid()
             epgs = []
             if not local_epg_id:
                 epgs.append('local')
@@ -196,8 +200,8 @@ class VpnReferenceValidator(object):
             if epgs:
                 which = ' and '.join(epgs)
                 suffix = 's' if len(epgs) > 1 else ''
-                raise vpnaas.MissingRequiredEndpointGroup(which=which,
-                                                          suffix=suffix)
+                raise vpn_exception.MissingRequiredEndpointGroup(
+                    which=which, suffix=suffix)
 
     def assign_sensible_ipsec_sitecon_defaults(self, ipsec_sitecon,
                                                prev_conn=None):
@@ -271,7 +275,7 @@ class VpnReferenceValidator(object):
     def _check_router(self, context, router_id):
         router = self.l3_plugin.get_router(context, router_id)
         if not router.get(l3_db.EXTERNAL_GW_INFO):
-            raise vpnaas.RouterIsNotExternal(router_id=router_id)
+            raise vpn_exception.RouterIsNotExternal(router_id=router_id)
 
     def _check_subnet_id(self, context, router_id, subnet_id):
         ports = self.core_plugin.get_ports(
@@ -280,7 +284,7 @@ class VpnReferenceValidator(object):
                 'fixed_ips': {'subnet_id': [subnet_id]},
                 'device_id': [router_id]})
         if not ports:
-            raise vpnaas.SubnetIsNotConnectedToRouter(
+            raise vpn_exception.SubnetIsNotConnectedToRouter(
                 subnet_id=subnet_id,
                 router_id=router_id)
 
@@ -303,7 +307,7 @@ class VpnReferenceValidator(object):
         for cidr in cidrs:
             msg = validators.validate_subnet(cidr)
             if msg:
-                raise vpnaas.InvalidEndpointInEndpointGroup(
+                raise vpn_exception.InvalidEndpointInEndpointGroup(
                     group_type=constants.CIDR_ENDPOINT, endpoint=cidr,
                     why=_("Invalid CIDR"))
 
@@ -312,13 +316,13 @@ class VpnReferenceValidator(object):
         for subnet_id in subnet_ids:
             msg = validators.validate_uuid(subnet_id)
             if msg:
-                raise vpnaas.InvalidEndpointInEndpointGroup(
+                raise vpn_exception.InvalidEndpointInEndpointGroup(
                     group_type=constants.SUBNET_ENDPOINT, endpoint=subnet_id,
                     why=_('Invalid UUID'))
             try:
                 self.core_plugin.get_subnet(context, subnet_id)
             except nexception.SubnetNotFound:
-                raise vpnaas.NonExistingSubnetInEndpointGroup(
+                raise vpn_exception.NonExistingSubnetInEndpointGroup(
                     subnet=subnet_id)
 
     def validate_endpoint_group(self, context, endpoint_group):
@@ -330,7 +334,8 @@ class VpnReferenceValidator(object):
         """
         endpoints = endpoint_group['endpoints']
         if not endpoints:
-            raise vpnaas.MissingEndpointForEndpointGroup(group=endpoint_group)
+            raise vpn_exception.MissingEndpointForEndpointGroup(
+                group=endpoint_group)
         group_type = endpoint_group['type']
         if group_type == constants.CIDR_ENDPOINT:
             self._validate_cidrs(endpoints)

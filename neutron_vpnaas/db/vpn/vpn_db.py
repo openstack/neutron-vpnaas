@@ -23,6 +23,7 @@ from neutron_lib.db import api as db_api
 from neutron_lib.db import model_query
 from neutron_lib.db import utils as db_utils
 from neutron_lib.exceptions import l3 as l3_exception
+from neutron_lib.exceptions import vpn as vpn_exception
 from neutron_lib.plugins import constants as p_constants
 from neutron_lib.plugins import directory
 from neutron_lib.plugins import utils
@@ -68,17 +69,18 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         except exc.NoResultFound:
             with excutils.save_and_reraise_exception(reraise=False) as ctx:
                 if issubclass(model, vpn_models.IPsecSiteConnection):
-                    raise vpnaas.IPsecSiteConnectionNotFound(
+                    raise vpn_exception.IPsecSiteConnectionNotFound(
                         ipsec_site_conn_id=v_id
                     )
                 elif issubclass(model, vpn_models.IKEPolicy):
-                    raise vpnaas.IKEPolicyNotFound(ikepolicy_id=v_id)
+                    raise vpn_exception.IKEPolicyNotFound(ikepolicy_id=v_id)
                 elif issubclass(model, vpn_models.IPsecPolicy):
-                    raise vpnaas.IPsecPolicyNotFound(ipsecpolicy_id=v_id)
+                    raise vpn_exception.IPsecPolicyNotFound(
+                        ipsecpolicy_id=v_id)
                 elif issubclass(model, vpn_models.VPNService):
-                    raise vpnaas.VPNServiceNotFound(vpnservice_id=v_id)
+                    raise vpn_exception.VPNServiceNotFound(vpnservice_id=v_id)
                 elif issubclass(model, vpn_models.VPNEndpointGroup):
-                    raise vpnaas.VPNEndpointGroupNotFound(
+                    raise vpn_exception.VPNEndpointGroupNotFound(
                         endpoint_group_id=v_id)
                 ctx.reraise = True
         return r
@@ -87,7 +89,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         status = getattr(obj, 'status', None)
         _id = getattr(obj, 'id', None)
         if utils.in_pending_status(status):
-            raise vpnaas.VPNStateInvalidToUpdate(id=_id, state=status)
+            raise vpn_exception.VPNStateInvalidToUpdate(id=_id, state=status)
 
     def _make_ipsec_site_connection_dict(self, ipsec_site_conn, fields=None):
 
@@ -288,7 +290,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         """
         try:
             conn_db = self._get_ipsec_site_connection(context, conn_id)
-        except vpnaas.IPsecSiteConnectionNotFound:
+        except vpn_exception.IPsecSiteConnectionNotFound:
             return
         if not utils.in_pending_status(conn_db.status) or updated_pending:
             conn_db.status = new_status
@@ -344,7 +346,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
             validator.validate_ike_policy(context, ike)
             if context.session.query(vpn_models.IPsecSiteConnection).filter_by(
                     ikepolicy_id=ikepolicy_id).first():
-                raise vpnaas.IKEPolicyInUse(ikepolicy_id=ikepolicy_id)
+                raise vpn_exception.IKEPolicyInUse(ikepolicy_id=ikepolicy_id)
             ike_db = self._get_resource(
                 context, vpn_models.IKEPolicy, ikepolicy_id)
             if ike:
@@ -361,7 +363,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         with db_api.CONTEXT_WRITER.using(context):
             if context.session.query(vpn_models.IPsecSiteConnection).filter_by(
                     ikepolicy_id=ikepolicy_id).first():
-                raise vpnaas.IKEPolicyInUse(ikepolicy_id=ikepolicy_id)
+                raise vpn_exception.IKEPolicyInUse(ikepolicy_id=ikepolicy_id)
             ike_db = self._get_resource(
                 context, vpn_models.IKEPolicy, ikepolicy_id)
             context.session.delete(ike_db)
@@ -426,7 +428,8 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
             validator.validate_ipsec_policy(context, ipsecp)
             if context.session.query(vpn_models.IPsecSiteConnection).filter_by(
                     ipsecpolicy_id=ipsecpolicy_id).first():
-                raise vpnaas.IPsecPolicyInUse(ipsecpolicy_id=ipsecpolicy_id)
+                raise vpn_exception.IPsecPolicyInUse(
+                    ipsecpolicy_id=ipsecpolicy_id)
             ipsecp_db = self._get_resource(
                 context, vpn_models.IPsecPolicy, ipsecpolicy_id)
             if ipsecp:
@@ -443,7 +446,8 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         with db_api.CONTEXT_WRITER.using(context):
             if context.session.query(vpn_models.IPsecSiteConnection).filter_by(
                     ipsecpolicy_id=ipsecpolicy_id).first():
-                raise vpnaas.IPsecPolicyInUse(ipsecpolicy_id=ipsecpolicy_id)
+                raise vpn_exception.IPsecPolicyInUse(
+                    ipsecpolicy_id=ipsecpolicy_id)
             ipsec_db = self._get_resource(
                 context, vpn_models.IPsecPolicy, ipsecpolicy_id)
             context.session.delete(ipsec_db)
@@ -516,7 +520,8 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
             if context.session.query(vpn_models.IPsecSiteConnection).filter_by(
                 vpnservice_id=vpnservice_id
             ).first():
-                raise vpnaas.VPNServiceInUse(vpnservice_id=vpnservice_id)
+                raise vpn_exception.VPNServiceInUse(
+                    vpnservice_id=vpnservice_id)
             vpns_db = self._get_resource(context, vpn_models.VPNService,
                                          vpnservice_id)
             context.session.delete(vpns_db)
@@ -553,7 +558,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                 vpn_models.VPNService).filter_by(
                     subnet_id=subnet_id, router_id=router_id).first()
             if vpnservices:
-                raise vpnaas.SubnetInUseByVPNService(
+                raise vpn_exception.SubnetInUseByVPNService(
                     subnet_id=subnet_id,
                     vpnservice_id=vpnservices['id'])
 
@@ -576,7 +581,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                 vpn_models.VPNService.router_id == router_id)
             connection = query.first()
             if connection:
-                raise vpnaas.SubnetInUseByIPsecSiteConnection(
+                raise vpn_exception.SubnetInUseByIPsecSiteConnection(
                     subnet_id=subnet_id,
                     ipsec_site_connection_id=connection['id'])
 
@@ -592,7 +597,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                      vpn_models.VPNEndpoint.endpoint == subnet_id))
             group = query.first()
             if group:
-                raise vpnaas.SubnetInUseByEndpointGroup(
+                raise vpn_exception.SubnetInUseByEndpointGroup(
                     subnet_id=subnet_id, group_id=group['id'])
 
     def _make_endpoint_group_dict(self, endpoint_group, fields=None):
@@ -661,7 +666,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                 vpn_models.IPsecSiteConnection.peer_ep_group_id == group_id)
         )
         if query.first():
-            raise vpnaas.EndpointGroupInUse(group_id=group_id)
+            raise vpn_exception.EndpointGroupInUse(group_id=group_id)
 
 
 class VPNPluginRpcDbMixin(object):
@@ -703,7 +708,7 @@ class VPNPluginRpcDbMixin(object):
                 try:
                     vpnservice_db = self._get_vpnservice(
                         context, vpnservice['id'])
-                except vpnaas.VPNServiceNotFound:
+                except vpn_exception.VPNServiceNotFound:
                     LOG.warning('vpnservice %s in db is already deleted',
                                 vpnservice['id'])
                     continue
