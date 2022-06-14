@@ -668,6 +668,11 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         if query.first():
             raise vpn_exception.EndpointGroupInUse(group_id=group_id)
 
+    def get_vpnservice_router_id(self, context, vpnservice_id):
+        with db_api.CONTEXT_READER.using(context):
+            vpnservice = self._get_vpnservice(context, vpnservice_id)
+            return vpnservice['router_id']
+
 
 class VPNPluginRpcDbMixin(object):
     def _build_local_subnet_cidr_map(self, context):

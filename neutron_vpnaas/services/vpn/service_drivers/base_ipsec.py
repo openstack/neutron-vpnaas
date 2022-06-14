@@ -112,20 +112,20 @@ class BaseIPsecVPNDriver(service_drivers.VpnDriver, metaclass=abc.ABCMeta):
         pass
 
     def create_ipsec_site_connection(self, context, ipsec_site_connection):
-        vpnservice = self.service_plugin._get_vpnservice(
+        router_id = self.service_plugin.get_vpnservice_router_id(
             context, ipsec_site_connection['vpnservice_id'])
-        self.agent_rpc.vpnservice_updated(context, vpnservice['router_id'])
+        self.agent_rpc.vpnservice_updated(context, router_id)
 
     def update_ipsec_site_connection(
         self, context, old_ipsec_site_connection, ipsec_site_connection):
-        vpnservice = self.service_plugin._get_vpnservice(
+        router_id = self.service_plugin.get_vpnservice_router_id(
             context, ipsec_site_connection['vpnservice_id'])
-        self.agent_rpc.vpnservice_updated(context, vpnservice['router_id'])
+        self.agent_rpc.vpnservice_updated(context, router_id)
 
     def delete_ipsec_site_connection(self, context, ipsec_site_connection):
-        vpnservice = self.service_plugin._get_vpnservice(
+        router_id = self.service_plugin.get_vpnservice_router_id(
             context, ipsec_site_connection['vpnservice_id'])
-        self.agent_rpc.vpnservice_updated(context, vpnservice['router_id'])
+        self.agent_rpc.vpnservice_updated(context, router_id)
 
     def create_ikepolicy(self, context, ikepolicy):
         pass

@@ -98,9 +98,8 @@ class TestIPsecDriver(base.BaseTestCase):
         self.svc_plugin = mock.Mock()
         self.svc_plugin.get_l3_agents_hosting_routers.return_value = [l3_agent]
         self._fake_vpn_router_id = _uuid()
-        self.svc_plugin._get_vpnservice.return_value = {
-            'router_id': self._fake_vpn_router_id
-        }
+        self.svc_plugin.get_vpnservice_router_id.return_value = \
+            self._fake_vpn_router_id
         self.driver = ipsec_driver.IPsecVPNDriver(self.svc_plugin)
         self.validator = ipsec_validator.IpsecVpnValidator(self.driver)
         self.context = n_ctx.get_admin_context()
