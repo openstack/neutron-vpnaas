@@ -7,3 +7,8 @@ tempest>=17.1.0 # Apache-2.0
 testtools>=2.2.0 # MIT
 oslotest>=3.2.0 # Apache-2.0
 stestr>=1.0.0 # Apache-2.0
+
+# This is necessary as pecan dropped this dependency
+# see https://review.opendev.org/c/openstack/neutron/+/848706
+WebTest>=2.0.27 # MIT
+
