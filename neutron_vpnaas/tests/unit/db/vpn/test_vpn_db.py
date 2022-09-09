@@ -32,6 +32,7 @@ from neutron_lib.api.definitions import vpn
 from neutron_lib.callbacks import events
 from neutron_lib import constants as lib_constants
 from neutron_lib import context
+from neutron_lib.db import api as db_api
 from neutron_lib.exceptions import l3 as l3_exception
 from neutron_lib.exceptions import vpn as vpn_exception
 from neutron_lib.plugins import constants as nconstants
@@ -423,7 +424,7 @@ class VPNTestMixin(object):
     def _set_active(self, model, resource_id):
         service_plugin = directory.get_plugin(nconstants.VPN)
         adminContext = context.get_admin_context()
-        with adminContext.session.begin(subtransactions=True):
+        with db_api.CONTEXT_WRITER.using(adminContext):
             resource_db = service_plugin._get_resource(
                 adminContext,
                 model,

@@ -20,6 +20,7 @@ import oslo_messaging
 from neutron.db.models import l3agent
 from neutron.db.models import servicetype
 from neutron_lib import constants as lib_constants
+from neutron_lib.db import api as db_api
 from neutron_lib.plugins import directory
 
 from neutron_vpnaas.db.vpn import vpn_models
@@ -70,6 +71,7 @@ class IPsecVpnDriverCallBack(object):
             self.driver.name)
         return query
 
+    @db_api.CONTEXT_READER
     def get_vpn_services_on_host(self, context, host=None):
         """Returns the vpnservices on the host."""
         vpnservices = self._get_agent_hosting_vpn_services(
