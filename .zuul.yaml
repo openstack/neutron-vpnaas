@@ -47,6 +47,9 @@
         - openstack-tox-py39:
             required-projects:
               - openstack/neutron
+        - openstack-tox-py39-with-oslo-master:
+            required-projects:
+              - openstack/neutron
         - neutron-tempest-plugin-vpnaas
         - neutron-vpnaas-functional-sswan
 
