@@ -368,11 +368,13 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                 context, vpn_models.IKEPolicy, ikepolicy_id)
             context.session.delete(ike_db)
 
+    @db_api.CONTEXT_READER
     def get_ikepolicy(self, context, ikepolicy_id, fields=None):
         ike_db = self._get_resource(
             context, vpn_models.IKEPolicy, ikepolicy_id)
         return self._make_ikepolicy_dict(ike_db, fields)
 
+    @db_api.CONTEXT_READER
     def get_ikepolicies(self, context, filters=None, fields=None):
         return model_query.get_collection(context, vpn_models.IKEPolicy,
                                           self._make_ikepolicy_dict,
@@ -452,11 +454,13 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                 context, vpn_models.IPsecPolicy, ipsecpolicy_id)
             context.session.delete(ipsec_db)
 
+    @db_api.CONTEXT_READER
     def get_ipsecpolicy(self, context, ipsecpolicy_id, fields=None):
         ipsec_db = self._get_resource(
             context, vpn_models.IPsecPolicy, ipsecpolicy_id)
         return self._make_ipsecpolicy_dict(ipsec_db, fields)
 
+    @db_api.CONTEXT_READER
     def get_ipsecpolicies(self, context, filters=None, fields=None):
         return model_query.get_collection(context, vpn_models.IPsecPolicy,
                                           self._make_ipsecpolicy_dict,
@@ -526,15 +530,18 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                                          vpnservice_id)
             context.session.delete(vpns_db)
 
+    @db_api.CONTEXT_READER
     def _get_vpnservice(self, context, vpnservice_id):
         return self._get_resource(context, vpn_models.VPNService,
                                   vpnservice_id)
 
+    @db_api.CONTEXT_READER
     def get_vpnservice(self, context, vpnservice_id, fields=None):
         vpns_db = self._get_resource(context, vpn_models.VPNService,
                                      vpnservice_id)
         return self._make_vpnservice_dict(vpns_db, fields)
 
+    @db_api.CONTEXT_READER
     def get_vpnservices(self, context, filters=None, fields=None):
         return model_query.get_collection(context, vpn_models.VPNService,
                                           self._make_vpnservice_dict,
@@ -648,11 +655,13 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                 context, vpn_models.VPNEndpointGroup, endpoint_group_id)
             context.session.delete(endpoint_group_db)
 
+    @db_api.CONTEXT_READER
     def get_endpoint_group(self, context, endpoint_group_id, fields=None):
         endpoint_group_db = self._get_resource(
             context, vpn_models.VPNEndpointGroup, endpoint_group_id)
         return self._make_endpoint_group_dict(endpoint_group_db, fields)
 
+    @db_api.CONTEXT_READER
     def get_endpoint_groups(self, context, filters=None, fields=None):
         return model_query.get_collection(context, vpn_models.VPNEndpointGroup,
                                           self._make_endpoint_group_dict,

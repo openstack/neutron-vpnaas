@@ -163,6 +163,7 @@ class BaseIPsecVPNDriver(service_drivers.VpnDriver, metaclass=abc.ABCMeta):
                 v6_ip = addr
         return v4_ip, v6_ip
 
+    @db_api.CONTEXT_WRITER
     def create_vpnservice(self, context, vpnservice_dict):
         """Get the gateway IP(s) and save for later use.
 
