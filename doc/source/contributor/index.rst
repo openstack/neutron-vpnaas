@@ -91,6 +91,13 @@ Testing
    Add notes about functional testing, with info on how
    different reference drivers are tested.
 
+Set up VPNaaS for OVN
+---------------------
+.. toctree::
+   :maxdepth: 3
+
+   vpnaas-for-ovn
+
 Module Reference
 ----------------
 .. toctree::
