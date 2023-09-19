@@ -25,6 +25,8 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
 
     Libreswan needs nssdb initialised before running pluto daemon.
     """
+    IPSEC_CONF_NAT_TRAVERSAL = None
+
     # pylint: disable=useless-super-delegation
     def __init__(self, conf, process_id, vpnservice, namespace):
         self._rootwrap_cfg = self._get_rootwrap_config()
@@ -39,7 +41,7 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
         """
         ip_wrapper = ip_lib.IPWrapper(namespace=self.namespace)
         mount_paths = {'/etc': '%s/etc' % self.config_dir,
-                       '/var/run': '%s/var/run' % self.config_dir}
+                       '/run': '%s/var/run' % self.config_dir}
         mount_paths_str = ','.join(
             "%s:%s" % (source, target)
             for source, target in mount_paths.items())
@@ -106,7 +108,7 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
 
     def start_pluto(self):
         cmd = ['pluto',
-               '--use-netkey',
+               '--use-xfrm',
                '--uniqueids']
 
         if self.conf.ipsec.enable_detailed_logging:

@@ -445,6 +445,10 @@ class OpenSwanProcess(BaseSwanProcess):
     (2) ipsec addconn: Adds new ipsec addconn
     (3) ipsec whack:  control interface for IPSEC keying daemon
     """
+    # Derived classes can set IPSEC_CONF_NAT_TRAVERSAL to None to
+    # omit the nat_traversal line in ipsec.conf
+    IPSEC_CONF_NAT_TRAVERSAL = "yes"
+
     def __init__(self, conf, process_id, vpnservice, namespace):
         super(OpenSwanProcess, self).__init__(conf, process_id,
                                               vpnservice, namespace)
@@ -641,7 +645,8 @@ class OpenSwanProcess(BaseSwanProcess):
         virtual_privates = self._virtual_privates(vpnservice)
         return template.render(
             {'vpnservice': vpnservice,
-             'virtual_privates': virtual_privates})
+             'virtual_privates': virtual_privates,
+             'nat_traversal': self.IPSEC_CONF_NAT_TRAVERSAL})
 
     def start_pluto(self):
         cmd = [self.binary,

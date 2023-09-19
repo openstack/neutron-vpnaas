@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The updated VPNaaS driver for libreswan requires libreswan v4.0 or later.
+fixes:
+  - |
+    Fixed the VPNaaS driver for libreswan to be compatible with libreswan v4
+    and dropped support for libreswan v3.x.
