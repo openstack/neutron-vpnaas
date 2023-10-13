@@ -22,6 +22,7 @@ Create Date: 2015-08-20 15:17:09.897944
 """
 
 from alembic import op
+import sqlalchemy as sa
 
 from neutron.db import migration
 
@@ -35,4 +36,7 @@ neutron_milestone = [migration.LIBERTY]
 
 
 def upgrade():
+    insp = sa.inspect(op.get_bind())
+    if 'cisco_csr_identifier_map' not in insp.get_table_names():
+        return
     op.drop_column('cisco_csr_identifier_map', 'tenant_id')

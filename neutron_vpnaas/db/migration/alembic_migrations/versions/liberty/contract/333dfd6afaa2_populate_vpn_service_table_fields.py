@@ -58,6 +58,9 @@ def _migrate_external_ips(engine):
     addresses for an IP version, then only the first one will
     be stored (the same as the reference driver does).
     """
+    insp = sa.inspect(engine)
+    if 'cisco_csr_identifier_map' not in insp.get_table_names():
+        return
     session = sa.orm.Session(bind=engine.connect())
     services = session.query(VPNService).all()
     for service in services:

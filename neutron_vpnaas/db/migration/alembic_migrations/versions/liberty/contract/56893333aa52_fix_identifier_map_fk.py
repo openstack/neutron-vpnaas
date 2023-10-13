@@ -38,6 +38,9 @@ branch_labels = (cli.CONTRACT_BRANCH,)
 
 
 def upgrade():
+    insp = sa.inspect(op.get_bind())
+    if 'cisco_csr_identifier_map' not in insp.get_table_names():
+        return
     # re-size existing data if necessary
     identifier_map = table('cisco_csr_identifier_map',
                            column('ipsec_site_conn_id', sa.String(36)))

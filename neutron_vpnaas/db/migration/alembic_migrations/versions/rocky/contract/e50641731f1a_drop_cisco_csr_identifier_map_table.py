@@ -22,6 +22,8 @@ Create Date: 2018-02-28 10:28:59.846652
 """
 
 from alembic import op
+import sqlalchemy as sa
+
 from neutron.db import migration
 
 # revision identifiers, used by Alembic.
@@ -34,4 +36,7 @@ neutron_milestone = [migration.ROCKY, migration.STEIN,
 
 
 def upgrade():
+    insp = sa.inspect(op.get_bind())
+    if 'cisco_csr_identifier_map' not in insp.get_table_names():
+        return
     op.drop_table('cisco_csr_identifier_map')
