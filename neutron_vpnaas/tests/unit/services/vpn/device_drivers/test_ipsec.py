@@ -111,12 +111,12 @@ FAKE_VPN_SERVICE = {
 }
 
 AUTH_ESP = '''esp
-    # [encryption_algorithm]-[auth_algorithm]-[pfs]
+    # [encryption_algorithm]-[auth_algorithm];[pfs]
     phase2alg=aes128-sha1;modp1536'''
 
 AUTH_AH = '''ah
     # AH protocol does not support encryption
-    # [auth_algorithm]-[pfs]
+    # [auth_algorithm];[pfs]
     phase2alg=sha1;modp1536'''
 
 OPENSWAN_CONNECTION_DETAILS = '''# rightsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
@@ -135,7 +135,7 @@ OPENSWAN_CONNECTION_DETAILS = '''# rightsubnet=networkA/netmaskA, networkB/netma
     ######################
     #ike version
     ikev2=never
-    # [encryption_algorithm]-[auth_algorithm]-[pfs]
+    # [encryption_algorithm]-[auth_algorithm];[pfs]
     ike=aes128-sha1;modp1536
     # [lifetime_value]
     ikelifetime=%(ike_lifetime)ss

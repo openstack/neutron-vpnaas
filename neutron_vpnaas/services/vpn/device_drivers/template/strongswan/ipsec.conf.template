@@ -28,6 +28,8 @@ conn {{ipsec_site_connection.id}}
     {%- endif %}
     {%- if ipsec_site_connection.ipsecpolicy.transform_protocol == "ah" %}
     ah={{ipsec_site_connection.ipsecpolicy.auth_algorithm}}-{{ipsec_site_connection.ipsecpolicy.pfs}}
+    {%- elif 'cm' in ipsec_site_connection.ipsecpolicy.encryption_algorithm %}
+    esp={{ipsec_site_connection.ipsecpolicy.encryption_algorithm}}-{{ipsec_site_connection.ipsecpolicy.pfs}}
     {%- else %}
     esp={{ipsec_site_connection.ipsecpolicy.encryption_algorithm}}-{{ipsec_site_connection.ipsecpolicy.auth_algorithm}}-{{ipsec_site_connection.ipsecpolicy.pfs}}
     {%- endif %}

@@ -24,6 +24,31 @@ from neutron.db import models_v2
 from neutron_vpnaas.services.vpn.common import constants
 
 
+AUTH_ALGORITHM_ENUM_VALUES = [
+    'sha1', 'sha256', 'sha384', 'sha512',
+    'aes-xcbc', 'aes-cmac',
+]
+
+ENCRYPTION_ALGORITHM_ENUM_VALUES = [
+    '3des',
+    'aes-128', 'aes-192', 'aes-256',
+    'aes-128-ctr', 'aes-192-ctr', 'aes-256-ctr',
+    'aes-128-ccm-8', 'aes-192-ccm-8', 'aes-256-ccm-8',
+    'aes-128-ccm-12', 'aes-192-ccm-12', 'aes-256-ccm-12',
+    'aes-128-ccm-16', 'aes-192-ccm-16', 'aes-256-ccm-16',
+    'aes-128-gcm-8', 'aes-192-gcm-8', 'aes-256-gcm-8',
+    'aes-128-gcm-12', 'aes-192-gcm-12', 'aes-256-gcm-12',
+    'aes-128-gcm-16', 'aes-192-gcm-16', 'aes-256-gcm-16',
+]
+
+PFS_ENUM_VALUES = [
+    'group2', 'group5', 'group14', 'group15',
+    'group16', 'group17', 'group18', 'group19', 'group20', 'group21',
+    'group22', 'group23', 'group24', 'group25', 'group26', 'group27',
+    'group28', 'group29', 'group30', 'group31',
+]
+
+
 class IPsecPeerCidr(model_base.BASEV2):
     """Internal representation of a IPsec Peer Cidrs."""
 
@@ -43,12 +68,10 @@ class IPsecPolicy(model_base.BASEV2, model_base.HasId, model_base.HasProject):
     transform_protocol = sa.Column(sa.Enum("esp", "ah", "ah-esp",
                                            name="ipsec_transform_protocols"),
                                    nullable=False)
-    auth_algorithm = sa.Column(sa.Enum("sha1", "sha256",
-                                       "sha384", "sha512",
+    auth_algorithm = sa.Column(sa.Enum(*AUTH_ALGORITHM_ENUM_VALUES,
                                        name="vpn_auth_algorithms"),
                                nullable=False)
-    encryption_algorithm = sa.Column(sa.Enum("3des", "aes-128",
-                                             "aes-256", "aes-192",
+    encryption_algorithm = sa.Column(sa.Enum(*ENCRYPTION_ALGORITHM_ENUM_VALUES,
                                              name="vpn_encrypt_algorithms"),
                                      nullable=False)
     encapsulation_mode = sa.Column(sa.Enum("tunnel", "transport",
@@ -58,8 +81,7 @@ class IPsecPolicy(model_base.BASEV2, model_base.HasId, model_base.HasProject):
                                        name="vpn_lifetime_units"),
                                nullable=False)
     lifetime_value = sa.Column(sa.Integer, nullable=False)
-    pfs = sa.Column(sa.Enum("group2", "group5", "group14",
-                            name="vpn_pfs"), nullable=False)
+    pfs = sa.Column(sa.Enum(*PFS_ENUM_VALUES, name="vpn_pfs"), nullable=False)
 
 
 class IKEPolicy(model_base.BASEV2, model_base.HasId, model_base.HasProject):
@@ -67,12 +89,10 @@ class IKEPolicy(model_base.BASEV2, model_base.HasId, model_base.HasProject):
     __tablename__ = 'ikepolicies'
     name = sa.Column(sa.String(db_const.NAME_FIELD_SIZE))
     description = sa.Column(sa.String(db_const.DESCRIPTION_FIELD_SIZE))
-    auth_algorithm = sa.Column(sa.Enum("sha1", "sha256",
-                                       "sha384", "sha512",
+    auth_algorithm = sa.Column(sa.Enum(*AUTH_ALGORITHM_ENUM_VALUES,
                                        name="vpn_auth_algorithms"),
                                nullable=False)
-    encryption_algorithm = sa.Column(sa.Enum("3des", "aes-128",
-                                             "aes-256", "aes-192",
+    encryption_algorithm = sa.Column(sa.Enum(*ENCRYPTION_ALGORITHM_ENUM_VALUES,
                                              name="vpn_encrypt_algorithms"),
                                      nullable=False)
     phase1_negotiation_mode = sa.Column(sa.Enum("main", 'aggressive',
@@ -84,8 +104,7 @@ class IKEPolicy(model_base.BASEV2, model_base.HasId, model_base.HasProject):
     lifetime_value = sa.Column(sa.Integer, nullable=False)
     ike_version = sa.Column(sa.Enum("v1", "v2", name="ike_versions"),
                             nullable=False)
-    pfs = sa.Column(sa.Enum("group2", "group5", "group14",
-                            name="vpn_pfs"), nullable=False)
+    pfs = sa.Column(sa.Enum(*PFS_ENUM_VALUES, name="vpn_pfs"), nullable=False)
 
 
 class IPsecSiteConnection(model_base.BASEV2, model_base.HasId,

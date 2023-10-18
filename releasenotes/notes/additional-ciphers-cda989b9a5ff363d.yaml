@@ -1,0 +1,8 @@
+---
+prelude: >
+    Support for AES CCM and GCM modes, AES-XCBC, AES-CMAC, and more DH groups
+features:
+  - |
+    Added support for more encryption algorithms (AES CCM and AES GCM modes),
+    authentication algorithms (AES-XCBC, AES-CMAC) and PFS choices
+    (Diffie Hellman groups 15 to 31).

@@ -63,7 +63,7 @@ conn {{ipsec_site_connection.id}}
     ######################
     #ike version
     ikev2={{ipsec_site_connection.ikepolicy.ike_version}}
-    # [encryption_algorithm]-[auth_algorithm]-[pfs]
+    # [encryption_algorithm]-[auth_algorithm];[pfs]
     ike={{ipsec_site_connection.ikepolicy.encryption_algorithm}}-{{ipsec_site_connection.ikepolicy.auth_algorithm}};{{ipsec_site_connection.ikepolicy.pfs}}
     {% if ipsec_site_connection.ikepolicy.phase1_negotiation_mode == "aggressive" -%}
     aggressive=yes
@@ -78,10 +78,13 @@ conn {{ipsec_site_connection.id}}
     phase2={{ipsec_site_connection.ipsecpolicy.transform_protocol}}
     {% if ipsec_site_connection.ipsecpolicy.transform_protocol == "ah" -%}
     # AH protocol does not support encryption
-    # [auth_algorithm]-[pfs]
+    # [auth_algorithm];[pfs]
     phase2alg={{ipsec_site_connection.ipsecpolicy.auth_algorithm}};{{ipsec_site_connection.ipsecpolicy.pfs}}
+    {% elif 'cm' in ipsec_site_connection.ipsecpolicy.encryption_algorithm -%}
+    # [encryption_algorithm];[pfs]
+    phase2alg={{ipsec_site_connection.ipsecpolicy.encryption_algorithm}};{{ipsec_site_connection.ipsecpolicy.pfs}}
     {% else -%}
-    # [encryption_algorithm]-[auth_algorithm]-[pfs]
+    # [encryption_algorithm]-[auth_algorithm];[pfs]
     phase2alg={{ipsec_site_connection.ipsecpolicy.encryption_algorithm}}-{{ipsec_site_connection.ipsecpolicy.auth_algorithm}};{{ipsec_site_connection.ipsecpolicy.pfs}}
     {% endif -%}
     # [encapsulation_mode]

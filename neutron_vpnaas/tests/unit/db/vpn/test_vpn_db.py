@@ -512,6 +512,12 @@ class TestVpnaas(VPNPluginDbTestCase):
         with self.ikepolicy(name=name, description=description) as ikepolicy:
             self._check_policy(ikepolicy['ikepolicy'], keys, lifetime)
 
+    def test_create_ikepolicy_with_every_pfs(self):
+        """Test case to create ikepolicies with different pfs."""
+        name = "ikepolicy1"
+        for group in vpn_models.PFS_ENUM_VALUES:
+            self.ikepolicy(name=name, pfs=group, expected_res_status=201)
+
     def test_create_ikepolicy_with_aggressive_mode(self):
         """Test case to create an ikepolicy with aggressive mode."""
         name = "ikepolicy1"
@@ -744,6 +750,12 @@ class TestVpnaas(VPNPluginDbTestCase):
         with self.ipsecpolicy(name=name,
                               description=description) as ipsecpolicy:
             self._check_policy(ipsecpolicy['ipsecpolicy'], keys, lifetime)
+
+    def test_create_ipsecpolicies_with_every_pfs(self):
+        """Test case to create ipsecpolicies with different pfs."""
+        name = "ipsecpolicy1"
+        for group in vpn_models.PFS_ENUM_VALUES:
+            self.ipsecpolicy(name=name, pfs=group, expected_res_status=201)
 
     def test_delete_ipsecpolicy(self):
         """Test case to delete an ipsecpolicy."""

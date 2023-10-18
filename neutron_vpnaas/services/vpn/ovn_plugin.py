@@ -62,7 +62,8 @@ class VPNOVNPlugin(VPNPluginDb,
     supported_extension_aliases = ["vpnaas",
                                    "vpn-endpoint-groups",
                                    "service-type",
-                                   "vpn-agent-scheduler"]
+                                   "vpn-agent-scheduler",
+                                   "vpn-aes-ctr"]
     path_prefix = "/vpn"
 
 
