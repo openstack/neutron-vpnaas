@@ -35,7 +35,7 @@ Enabling VPNaaS for OVN
       service_provider = VPN:strongswan:neutron_vpnaas.services.vpn.service_drivers.ovn_ipsec.IPsecOvnVPNDriver
 
 #. With OVN there is no L3 agent. Instead a stand-alone VPN agent is installed. There is a new "binary" called
-   ``neutron-ovn-vpn-agent``. Create its configuration file ``/etc/neutron/neutron_ovn_vpn_agent.ini``
+   ``neutron-ovn-vpn-agent``. Create its configuration file ``/etc/neutron/ovn_vpn_agent.ini``
    with the following contents:
 
    .. code-block:: ini

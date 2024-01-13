@@ -55,7 +55,7 @@ function neutron_vpnaas_configure_agent {
 }
 
 function neutron_vpnaas_configure_ovn_agent {
-    cp $NEUTRON_VPNAAS_DIR/etc/neutron_ovn_vpn_agent.ini.sample $OVN_VPNAGENT_CONF
+    cp $NEUTRON_VPNAAS_DIR/etc/ovn_vpn_agent.ini.sample $OVN_VPNAGENT_CONF
 
     iniset $OVN_VPNAGENT_CONF DEFAULT interface_driver openvswitch
     iniset $OVN_VPNAGENT_CONF DEFAULT state_path $DATA_DIR/neutron

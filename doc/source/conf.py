@@ -247,7 +247,7 @@ openstackdocs_bug_tag = 'doc'
 _config_generator_config_files = [
     'vpn_agent.ini',
     'neutron_vpnaas.conf',
-    'neutron_ovn_vpn_agent.ini',
+    'ovn_vpn_agent.ini',
 ]
 
 

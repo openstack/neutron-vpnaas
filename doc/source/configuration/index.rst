@@ -15,7 +15,7 @@ Neutron VPNaaS uses the following configuration files for its various services.
 
    neutron_vpnaas
    l3_agent
-   neutron_ovn_vpn_agent
+   ovn_vpn_agent
 
 The following are sample configuration files for Neutron VPNaaS services and
 utilities. These are generated from code and reflect the current state of code
