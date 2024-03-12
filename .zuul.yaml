@@ -19,10 +19,6 @@
               - openstack/neutron
         - neutron-vpnaas-functional-sswan
         - neutron-tempest-plugin-vpnaas
-        - neutron-tempest-plugin-vpnaas-libreswan-centos:
-            # TODO(mlavalle) switch to voting when this job is moved to Centos
-            # 8
-            voting: false
     gate:
       jobs:
         - openstack-tox-py38:
@@ -36,9 +32,6 @@
               - openstack/neutron
         - neutron-vpnaas-functional-sswan
         - neutron-tempest-plugin-vpnaas
-        # TODO(mlavalle) uncomment following line  when the job is moved to
-        # Centos 8
-        # - neutron-tempest-plugin-vpnaas-libreswan-centos
     experimental:
       jobs:
         - neutron-vpnaas-rally
@@ -49,23 +42,6 @@
               - openstack/neutron
         - neutron-tempest-plugin-vpnaas
         - neutron-vpnaas-functional-sswan
-
-- job:
-    name: neutron-tempest-plugin-vpnaas-libreswan-centos
-    parent: neutron-tempest-plugin-vpnaas
-    nodeset: devstack-single-node-centos-7
-    vars:
-      devstack_localrc:
-        IPSEC_PACKAGE: libreswan
-        USE_PYTHON3: false
-      # VPNaaS 4in6 and 6in4 scenarios would fail after LibreSwan 3.18.
-      # Base node using Libreswan 3.20 on CentOS 7.4.
-      # Refer to https://github.com/libreswan/libreswan/issues/175.
-      devstack_local_conf:
-        test-config:
-          $TEMPEST_CONFIG:
-            neutron_vpnaas_plugin_options:
-              skip_4in6_6in4_tests: true
 
 - job:
     name: neutron-vpnaas-functional-sswan
