@@ -90,9 +90,9 @@ def _make_endpoint_groups(new_groups, new_endpoints):
     """Create endpoint groups and their corresponding endpoints."""
     md = sa.MetaData()
     engine = op.get_bind()
-    sa.Table('vpn_endpoint_groups', md, autoload=True, autoload_with=engine)
+    sa.Table('vpn_endpoint_groups', md, autoload_with=engine)
     op.bulk_insert(md.tables['vpn_endpoint_groups'], new_groups)
-    sa.Table('vpn_endpoints', md, autoload=True, autoload_with=engine)
+    sa.Table('vpn_endpoints', md, autoload_with=engine)
     op.bulk_insert(md.tables['vpn_endpoints'], new_endpoints)
 
 
