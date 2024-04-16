@@ -56,7 +56,7 @@ def execute(cmd):
     cmd = list(map(str, cmd))
     LOG.debug("Running command: %s", cmd)
     env = os.environ.copy()
-    obj = utils.subprocess_popen(cmd, shell=False,
+    obj = utils.subprocess_popen(cmd,
                                  stdin=subprocess.PIPE,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE,
