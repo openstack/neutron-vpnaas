@@ -1,0 +1,47 @@
+---
+default_language_version:
+  # force all unspecified python hooks to run python3
+  python: python3.10
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+        args: ['--fix', 'lf']
+        exclude: '.*\.(svg)$'
+      - id: check-byte-order-marker
+      - id: check-executables-have-shebangs
+      - id: check-merge-conflict
+      - id: debug-statements
+      - id: check-json
+        files: .*\.json$
+      - id: check-yaml
+        files: .*\.(yaml|yml)$
+        exclude: '^(rally-jobs)/.*$'
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.4
+    hooks:
+      - id: remove-tabs
+        exclude: '.*\.(svg)$'
+  - repo: local
+    hooks:
+      - id: flake8
+        name: flake8
+        additional_dependencies:
+          - hacking>=4.0.0,<4.1
+          - flake8-import-order==0.18.1
+          - isort==4.3.21
+        language: python
+        entry: flake8
+        files: '^.*\.py$'
+        exclude: '^(doc|releasenotes|tools)/.*$'
+# todo(slaweq): enable pylint check once all issues in the current code will
+# be solved
+#     - id: pylint
+#       name: pylint
+#       entry: pylint
+#       files: ^neutron_vpnaas/
+#       language: system
+#       types: [python]
+#       args: ['--rcfile=.pylintrc', '--output-format=colorized']
