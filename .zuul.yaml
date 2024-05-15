@@ -18,7 +18,7 @@
             required-projects:
               - openstack/neutron
         - neutron-vpnaas-functional-sswan
-        - neutron-tempest-plugin-vpnaas
+        - neutron-tempest-plugin-vpnaas-2023-2
     gate:
       jobs:
         - openstack-tox-py38:
@@ -31,7 +31,7 @@
             required-projects:
               - openstack/neutron
         - neutron-vpnaas-functional-sswan
-        - neutron-tempest-plugin-vpnaas
+        - neutron-tempest-plugin-vpnaas-2023-2
     experimental:
       jobs:
         - neutron-vpnaas-rally
@@ -43,7 +43,7 @@
         - openstack-tox-py39-with-oslo-master:
             required-projects:
               - openstack/neutron
-        - neutron-tempest-plugin-vpnaas
+        - neutron-tempest-plugin-vpnaas-2023-2
         - neutron-vpnaas-functional-sswan
 
 - job:
@@ -64,7 +64,6 @@
         neutron-vpnaas: https://opendev.org/openstack/neutron-vpnaas
       rally_task: rally-jobs/rally-configs/rally_config_dvr.yaml
     required-projects:
-      - openstack/devstack-gate
       - openstack/neutron
       - openstack/neutron-vpnaas
       - openstack/rally
