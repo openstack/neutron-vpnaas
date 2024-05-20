@@ -1,12 +1,16 @@
 # The format of this file isn't really documented; just use --generate-rcfile
-[MASTER]
+[MAIN]
 # Add <file or directory> to the black list. It should be a base name, not a
 # path. You may set this option multiple times.
-#
-# Note the 'openstack' below is intended to match only
-# neutron.openstack.common.  If we ever have another 'openstack'
-# dirname, then we'll need to expand the ignore features in pylint :/
-ignore=.git,tests,openstack
+ignore=.git,tests
+
+# List of plugins (as comma separated values of python module names) to load,
+# usually to register additional checkers.
+load-plugins=pylint.extensions.no_self_use
+
+# When enabled, pylint would attempt to guess common misconfiguration and emit
+# user-friendly hints instead of false-positive error messages.
+suggestion-mode=yes
 
 [MESSAGES CONTROL]
 # NOTE(gus): This is a long list.  A number of these are important and
@@ -16,69 +20,63 @@ disable=
 # "F" Fatal errors that prevent further processing
  import-error,
 # "I" Informational noise
+ c-extension-no-member,
  locally-disabled,
 # "E" Error for important programming issues (likely bugs)
  access-member-before-definition,
- bad-super-call,
- maybe-no-member,
  no-member,
  no-method-argument,
  no-self-argument,
- not-callable,
- no-value-for-parameter,
- super-on-old-class,
- too-few-format-args,
+ not-an-iterable,
+ possibly-used-before-assignment,
 # "W" Warnings for stylistic problems or minor programming issues
  abstract-method,
- anomalous-backslash-in-string,
- anomalous-unicode-escape-in-string,
  arguments-differ,
  attribute-defined-outside-init,
- bad-builtin,
- bad-indentation,
  broad-except,
- dangerous-default-value,
- deprecated-lambda,
  expression-not-assigned,
  fixme,
  global-statement,
- global-variable-not-assigned,
- logging-not-lazy,
- no-init,
  non-parent-init-called,
- pointless-string-statement,
+ not-callable,
  protected-access,
  redefined-builtin,
  redefined-outer-name,
- redefine-in-handler,
  signature-differs,
- star-args,
  super-init-not-called,
- unnecessary-lambda,
- unnecessary-pass,
  unpacking-non-sequence,
- unreachable,
  unused-argument,
  unused-import,
  unused-variable,
-# TODO(dougwig) - disable nonstandard-exception while we have neutron_lib shims
- nonstandard-exception,
+ useless-super-delegation,
+ unnecessary-pass,
+ raise-missing-from,
+ arguments-renamed,
+ broad-exception-raised,
+ unspecified-encoding,
+ redundant-u-string-prefix,
+ unused-private-member,
 # "C" Coding convention violations
- bad-continuation,
+ consider-iterating-dictionary,
+ consider-using-enumerate,
  invalid-name,
+ len-as-condition,
  missing-docstring,
- old-style-class,
+ singleton-comparison,
  superfluous-parens,
+ ungrouped-imports,
+ wrong-import-order,
+ consider-using-f-string,
+ consider-using-dict-items,
 # "R" Refactor recommendations
- abstract-class-little-used,
- abstract-class-not-used,
- consider-using-set-comprehension,
+ consider-merging-isinstance,
+ consider-using-ternary,
  duplicate-code,
  inconsistent-return-statements,
- interface-not-implemented,
- no-else-raise,
  no-else-return,
  no-self-use,
+ redefined-argument-from-local,
+ simplifiable-if-statement,
  too-few-public-methods,
  too-many-ancestors,
  too-many-arguments,
@@ -86,10 +84,14 @@ disable=
  too-many-instance-attributes,
  too-many-lines,
  too-many-locals,
+ too-many-nested-blocks,
  too-many-public-methods,
  too-many-return-statements,
  too-many-statements,
- useless-object-inheritance
+ consider-using-set-comprehension,
+ useless-object-inheritance,
+ super-with-arguments,
+ use-dict-literal
 
 [BASIC]
 # Variable names can be 1 to 31 characters long, with lowercase and underscores
@@ -99,7 +101,7 @@ variable-rgx=[a-z_][a-z0-9_]{0,30}$
 argument-rgx=[a-z_][a-z0-9_]{1,30}$
 
 # Method names should be at least 3 characters long
-# and be lowecased with underscores
+# and be lowercased with underscores
 method-rgx=([a-z_][a-z0-9_]{2,}|setUp|tearDown)$
 
 # Module names matching neutron-* are ok (files in bin/)
@@ -119,18 +121,22 @@ max-line-length=79
 additional-builtins=_
 
 [CLASSES]
-# List of interface methods to ignore, separated by a comma.
-ignore-iface-methods=
+# List of valid names for the first argument in a class method.
+valid-classmethod-first-arg=cls
+
+# List of valid names for the first argument in a metaclass class method.
+valid-metaclass-classmethod-first-arg=cls
 
 [IMPORTS]
 # Deprecated modules which should not be used, separated by a comma
 deprecated-modules=
-# should use openstack.common.jsonutils
- json
+# should use oslo_serialization.jsonutils
+ json,
+ six
 
 [TYPECHECK]
 # List of module names for which member attributes should not be checked
-ignored-modules=six.moves,_MovedItems
+ignored-modules=_MovedItems
 
 [REPORTS]
 # Tells whether to display a full report or only the messages

@@ -329,8 +329,8 @@ class BaseSwanProcess(object, metaclass=abc.ABCMeta):
         # Disable the process if a vpnservice is disabled or it has no
         # enabled IPSec site connections.
         vpnservice_has_active_ipsec_site_conns = any(
-            [ipsec_site_conn['admin_state_up']
-             for ipsec_site_conn in self.vpnservice['ipsec_site_connections']])
+            ipsec_site_conn['admin_state_up']
+            for ipsec_site_conn in self.vpnservice['ipsec_site_connections'])
         if (not self.vpnservice['admin_state_up'] or
                 not vpnservice_has_active_ipsec_site_conns):
             self.disable()

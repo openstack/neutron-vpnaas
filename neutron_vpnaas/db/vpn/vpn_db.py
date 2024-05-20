@@ -72,14 +72,14 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
                     raise vpn_exception.IPsecSiteConnectionNotFound(
                         ipsec_site_conn_id=v_id
                     )
-                elif issubclass(model, vpn_models.IKEPolicy):
+                if issubclass(model, vpn_models.IKEPolicy):
                     raise vpn_exception.IKEPolicyNotFound(ikepolicy_id=v_id)
-                elif issubclass(model, vpn_models.IPsecPolicy):
+                if issubclass(model, vpn_models.IPsecPolicy):
                     raise vpn_exception.IPsecPolicyNotFound(
                         ipsecpolicy_id=v_id)
-                elif issubclass(model, vpn_models.VPNService):
+                if issubclass(model, vpn_models.VPNService):
                     raise vpn_exception.VPNServiceNotFound(vpnservice_id=v_id)
-                elif issubclass(model, vpn_models.VPNEndpointGroup):
+                if issubclass(model, vpn_models.VPNEndpointGroup):
                     raise vpn_exception.VPNEndpointGroupNotFound(
                         endpoint_group_id=v_id)
                 ctx.reraise = True
