@@ -8,9 +8,6 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - openstack-tox-py38:
-            required-projects:
-              - openstack/neutron
         - openstack-tox-py39:
             required-projects:
               - openstack/neutron
@@ -18,6 +15,9 @@
             required-projects:
               - openstack/neutron
         - openstack-tox-py311:
+            required-projects:
+              - openstack/neutron
+        - openstack-tox-py312:
             required-projects:
               - openstack/neutron
         - openstack-tox-docs:
@@ -28,9 +28,6 @@
         - neutron-tempest-plugin-vpnaas-ovn
     gate:
       jobs:
-        - openstack-tox-py38:
-            required-projects:
-              - openstack/neutron
         - openstack-tox-py39:
             required-projects:
               - openstack/neutron
@@ -55,6 +52,9 @@
         - neutron-vpnaas-openstack-tox-py310-with-sqlalchemy-main
     periodic-weekly:
       jobs:
+        - openstack-tox-py312:
+            required-projects:
+              - openstack/neutron
         - openstack-tox-py311:
             required-projects:
               - openstack/neutron
