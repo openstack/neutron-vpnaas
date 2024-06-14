@@ -84,7 +84,6 @@
         neutron-vpnaas: https://opendev.org/openstack/neutron-vpnaas
       rally_task: rally-jobs/rally-configs/rally_config_dvr.yaml
     required-projects:
-      - openstack/devstack-gate
       - openstack/neutron
       - openstack/neutron-vpnaas
       - openstack/rally
