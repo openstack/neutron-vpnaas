@@ -16,8 +16,8 @@ import abc
 
 from neutron.api import extensions
 from neutron.api.v2 import resource
+from neutron.api import wsgi
 from neutron import policy
-from neutron import wsgi
 from neutron_lib.api import extensions as lib_extensions
 from neutron_lib.api import faults as base
 from neutron_lib import exceptions
