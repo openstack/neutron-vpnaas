@@ -998,10 +998,10 @@ class TestOpenSwanConfigGeneration(BaseIPsecDeviceDriver):
         self.conf.register_opts(openswan_ipsec.openswan_opts, 'openswan')
         self.conf.set_override('state_path', '/tmp')
         self.ipsec_template = self.conf.openswan.ipsec_config_template
-        self.process = openswan_ipsec.OpenSwanProcess(self.conf,
-                                                      'foo-process-id',
-                                                      self.vpnservice,
-                                                      mock.ANY)
+        self.process = ipsec_process(self.conf,
+                                     'foo-process-id',
+                                     self.vpnservice,
+                                     mock.ANY)
 
     def build_ipsec_expected_config_for_test(self, info):
         """Modify OpenSwan ipsec expected config files for test variations."""
@@ -1204,6 +1204,16 @@ class IPsecStrongswanConfigGeneration(BaseIPsecDeviceDriver):
         actual = self.process._gen_config_content(
             self.conf.strongswan.ipsec_secret_template, self.vpnservice)
         self.check_config_file(expected, actual)
+
+
+class TestLibreSwanConfigGeneration(TestOpenSwanConfigGeneration):
+    def setUp(self, driver=libreswan_ipsec.LibreSwanDriver,
+              ipsec_process=libreswan_ipsec.LibreSwanProcess):
+        super().setUp(driver=driver, ipsec_process=ipsec_process)
+
+    def build_ipsec_expected_config_for_test(self, info):
+        expected = super().build_ipsec_expected_config_for_test(info)
+        return expected.replace('    nat_traversal=yes\n', '')
 
 
 class TestOpenSwanProcess(IPSecDeviceLegacy):

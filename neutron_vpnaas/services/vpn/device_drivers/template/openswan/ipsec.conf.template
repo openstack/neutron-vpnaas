@@ -1,6 +1,8 @@
 # Configuration for {{vpnservice.id}}
 config setup
-    nat_traversal=yes
+    {% if nat_traversal is defined and nat_traversal is not none -%}
+    nat_traversal={{nat_traversal}}
+    {% endif -%}
     virtual_private={{virtual_privates}}
 conn %default
     keylife=60m
