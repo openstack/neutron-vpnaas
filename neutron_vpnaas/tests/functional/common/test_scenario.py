@@ -523,8 +523,8 @@ class TestIPSecBase(framework.L3AgentTestFramework):
 
         local_router_id = site1.router.router_id
         peer_router_id = site2.router.router_id
-        self.driver.sync(mock.Mock(), [{'id': local_router_id},
-                                       {'id': peer_router_id}])
+        self.driver.sync(mock.Mock(), [site1.router,
+                                       site2.router])
         self.agent._process_updated_router(site1.router.router)
         self.agent._process_updated_router(site2.router.router)
         self.addCleanup(self.driver._delete_vpn_processes,
@@ -534,8 +534,7 @@ class TestIPSecBase(framework.L3AgentTestFramework):
         """Perform a sync on failover agent associated w/backup router."""
         self.failover_driver.agent_rpc.get_vpn_services_on_host = mock.Mock(
             return_value=[site.vpn_service])
-        self.failover_driver.sync(mock.Mock(),
-                                  [{'id': site.backup_router.router_id}])
+        self.failover_driver.sync(mock.Mock(), [site.router])
 
     def check_ping(self, from_site, to_site, instance=0, success=True):
         if success:

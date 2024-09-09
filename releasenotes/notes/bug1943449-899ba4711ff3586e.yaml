@@ -1,0 +1,11 @@
+---
+prelude: >
+    Due to an change in the IPtables NAT rule format, with the tag "vpnaas"
+    upgrading to this release requires either a machine reboot or a move of
+    all routers from this agent to ensure there is rules of the old format left.
+fixes:
+  - |
+    Reconciling via the sync method has been improved to ensure no
+    `ha_state_change` event was missed.
+    Also all IPtables NAT rules are now tagged "vpnaas" and refreshed on sync
+    to ensure they are current and there are no duplicates.

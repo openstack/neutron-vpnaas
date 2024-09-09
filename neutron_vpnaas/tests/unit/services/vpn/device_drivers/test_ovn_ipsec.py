@@ -197,7 +197,7 @@ class TestOvnStrongSwanDriver(test_ipsec.IPSecDeviceLegacy):
             'transit_gateway_ip': '192.168.1.1',
         }
 
-    def test_iptables_apply(self):
+    def test_ensure_nat_rules(self):
         """Not applicable for OvnIPsecDriver"""
         pass
 
@@ -218,19 +218,11 @@ class TestOvnStrongSwanDriver(test_ipsec.IPSecDeviceLegacy):
         """Not applicable for OvnIPsecDriver"""
         pass
 
-    def test_remove_rule(self):
+    def test_ensure_nat_rules_with_multiple_local_subnets(self):
         """Not applicable for OvnIPsecDriver"""
         pass
 
-    def test_add_nat_rules_with_multiple_local_subnets(self):
-        """Not applicable for OvnIPsecDriver"""
-        pass
-
-    def _test_add_nat_rule(self):
-        """Not applicable for OvnIPsecDriver"""
-        pass
-
-    def test_add_nat_rule(self):
+    def _test_ensure_nat_rules(self):
         """Not applicable for OvnIPsecDriver"""
         pass
 

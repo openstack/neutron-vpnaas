@@ -64,15 +64,20 @@ class VPNAgent(l3_extension.L3AgentExtension):
         if ri is not None:
             for device_driver in self.device_drivers:
                 device_driver.create_router(ri)
-                device_driver.sync(context, [ri.router])
+                device_driver.sync(context, [ri])
         else:
             LOG.debug("Router %s was concurrently deleted while "
                       "creating VPN for it", data['id'])
 
     def update_router(self, context, data):
         """Handles router update event"""
-        for device_driver in self.device_drivers:
-            device_driver.sync(context, [data])
+        ri = self.agent_api.get_router_info(data['id'])
+        if ri is not None:
+            for device_driver in self.device_drivers:
+                device_driver.sync(context, [ri])
+        else:
+            LOG.debug("Router %s was concurrently deleted while "
+                      "updating VPN for it", data['id'])
 
     def delete_router(self, context, data):
         """Handles router delete event"""
