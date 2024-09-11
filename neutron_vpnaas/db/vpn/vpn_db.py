@@ -263,6 +263,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         return self._get_resource(
             context, vpn_models.IPsecSiteConnection, ipsec_site_conn_id)
 
+    @db_api.CONTEXT_READER
     def get_ipsec_site_connection(self, context,
                                   ipsec_site_conn_id, fields=None):
         ipsec_site_conn_db = self._get_ipsec_site_connection(
@@ -270,6 +271,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         return self._make_ipsec_site_connection_dict(
             ipsec_site_conn_db, fields)
 
+    @db_api.CONTEXT_READER
     def get_ipsec_site_connections(self, context, filters=None, fields=None):
         return model_query.get_collection(
             context, vpn_models.IPsecSiteConnection,
