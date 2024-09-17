@@ -24,7 +24,7 @@
             required-projects:
               - openstack/neutron
         - neutron-vpnaas-functional-sswan
-        - neutron-tempest-plugin-vpnaas
+        - neutron-tempest-plugin-vpnaas-2024-2
         - neutron-tempest-plugin-vpnaas-ovn
     gate:
       jobs:
@@ -41,7 +41,7 @@
             required-projects:
               - openstack/neutron
         - neutron-vpnaas-functional-sswan
-        - neutron-tempest-plugin-vpnaas
+        - neutron-tempest-plugin-vpnaas-2024-2
         - neutron-tempest-plugin-vpnaas-ovn
     experimental:
       jobs:
@@ -62,7 +62,7 @@
             required-projects:
               - openstack/neutron
         - neutron-vpnaas-openstack-tox-py310-with-sqlalchemy-main
-        - neutron-tempest-plugin-vpnaas
+        - neutron-tempest-plugin-vpnaas-2024-2
         - neutron-tempest-plugin-vpnaas-ovn
         - neutron-vpnaas-functional-sswan
 
