@@ -104,7 +104,7 @@ function neutron_vpnaas_start_vpnagent {
     NEUTRON_OVN_BIN_DIR=$(get_python_exec_prefix)
     NEUTRON_OVN_VPNAGENT_BINARY="neutron-ovn-vpn-agent"
 
-    run_process q-ovn-vpn-agent "$NEUTRON_OVN_BIN_DIR/$NEUTRON_OVN_VPNAGENT_BINARY --config-file $OVN_VPNAGENT_CONF"
+    run_process q-ovn-vpn-agent "$NEUTRON_OVN_BIN_DIR/$NEUTRON_OVN_VPNAGENT_BINARY --config-file $NEUTRON_CONF --config-file $OVN_VPNAGENT_CONF"
     # Format logging
     setup_logging $OVN_VPNAGENT_CONF
 }
