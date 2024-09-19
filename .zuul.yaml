@@ -49,7 +49,6 @@
         - openstack-tox-py310-with-oslo-master:
             required-projects:
               - openstack/neutron
-        - neutron-vpnaas-openstack-tox-py310-with-sqlalchemy-main
     periodic-weekly:
       jobs:
         - openstack-tox-py312:
@@ -61,7 +60,6 @@
         - openstack-tox-py310-with-oslo-master:
             required-projects:
               - openstack/neutron
-        - neutron-vpnaas-openstack-tox-py310-with-sqlalchemy-main
         - neutron-tempest-plugin-vpnaas
         - neutron-tempest-plugin-vpnaas-ovn
         - neutron-vpnaas-functional-sswan
@@ -93,15 +91,3 @@
       - ^doc/.*$
       - ^neutron_vpnaas/tests/unit/.*$
       - ^releasenotes/.*$
-
-- job:
-    name: neutron-vpnaas-openstack-tox-py310-with-sqlalchemy-main
-    required-projects:
-      - name: github.com/sqlalchemy/sqlalchemy
-        override-checkout: main
-      - name: github.com/sqlalchemy/alembic
-        override-checkout: main
-      - openstack/oslo.db
-      - openstack/neutron
-      - openstack/neutron-lib
-    parent: openstack-tox-py310-with-oslo-master
