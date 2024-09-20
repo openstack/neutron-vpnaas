@@ -12,7 +12,7 @@ IPSEC_PACKAGE=${IPSEC_PACKAGE:-"strongswan"}
 if [[ $Q_AGENT == "ovn" ]]; then
     NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.ovn_ipsec.OvnStrongSwanDriver"}
 else
-    NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec:StrongSwanDriver"}
+    NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.StrongSwanDriver"}
 fi
 
 function _get_service_provider {
