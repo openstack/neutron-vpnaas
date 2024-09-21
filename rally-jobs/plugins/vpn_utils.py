@@ -306,7 +306,7 @@ def assert_server_status(server, **kwargs):
         timeout=kwargs["nova_server_boot_timeout"],
         check_interval=5)
     LOG.debug("SERVER STATUS: %s", server.status)
-    assert('ACTIVE' == server.status), ("THE INSTANCE IS NOT IN ACTIVE STATE")
+    assert ('ACTIVE' == server.status), ("THE INSTANCE IS NOT IN ACTIVE STATE")
 
 
 def get_server_ip(nova_client, server_id, network_suffix):

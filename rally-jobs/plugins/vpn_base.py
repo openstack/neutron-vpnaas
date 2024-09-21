@@ -102,7 +102,7 @@ class VpnBase(rally_base.OpenStackScenario):
                     router["router"]["external_gateway_info"]
                     ["external_fixed_ips"][0]["ip_address"])
 
-            if(kwargs["DVR_flag"]):
+            if kwargs["DVR_flag"]:
                 ns, controller = vpn_utils.wait_for_namespace_creation(
                     "snat-", router["router"]['id'],
                     kwargs['controller_creds'],
@@ -137,7 +137,7 @@ class VpnBase(rally_base.OpenStackScenario):
                 self.keypairs.append(keypair)
                 self.server_private_ips.append(vpn_utils.get_server_ip(
                     self.nova_client, server.id, self.suffixes[x]))
-            if(kwargs["DVR_flag"]):
+            if kwargs["DVR_flag"]:
                 qrouter, compute = vpn_utils.wait_for_namespace_creation(
                     "qrouter-", self.router_ids[x],
                     kwargs['compute_creds'],
@@ -163,8 +163,8 @@ class VpnBase(rally_base.OpenStackScenario):
         LOG.debug("VERIFY ROUTE EXISTS BETWEEN THE ROUTER GATEWAYS")
         for tuple in self.ns_controller_tuples:
             for ip in self.rally_router_gw_ips:
-                assert(vpn_utils.ping_router_gateway(
-                        tuple, ip, self.private_key_file)), (
+                assert vpn_utils.ping_router_gateway(
+                        tuple, ip, self.private_key_file), (
                         "PING TO IP " + ip + " FAILED")
 
     @atomic.action_timer("_create_ike_policy")
@@ -410,7 +410,7 @@ class VpnBase(rally_base.OpenStackScenario):
                 tcpdump_future = e.submit(vpn_utils.start_tcpdump,
                          self.ns_controller_tuples[peer_index],
                          qg_interface, self.private_key_file)
-                if(kwargs["DVR_flag"]):
+                if kwargs["DVR_flag"]:
                     ssh_future = e.submit(
                         vpn_utils.ssh_and_ping_server,
                         self.server_private_ips[local_index],
@@ -426,7 +426,7 @@ class VpnBase(rally_base.OpenStackScenario):
                         self.local_key_files[local_index],
                         self.private_key_file)
 
-            assert(ssh_future.result()), "SSH/Ping failed"
+            assert ssh_future.result(), "SSH/Ping failed"
             for line in tcpdump_future.result():
                 if 'ESP' in line:
                     return True
@@ -437,11 +437,11 @@ class VpnBase(rally_base.OpenStackScenario):
 
         LOG.debug("VERIFY THE VPN CONNECTIVITY")
         with LOCK:
-            assert(self._verify_vpn_connectivity(
-                0, 1, **kwargs)), "VPN CONNECTION FAILED"
+            assert self._verify_vpn_connectivity(
+                0, 1, **kwargs), "VPN CONNECTION FAILED"
         with LOCK:
-            assert(self._verify_vpn_connectivity(
-                1, 0, **kwargs)), "VPN CONNECTION FAILED"
+            assert self._verify_vpn_connectivity(
+                1, 0, **kwargs), "VPN CONNECTION FAILED"
 
     def update_router(self, router_id, admin_state_up=False):
         """Update router's admin_state_up field

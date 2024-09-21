@@ -151,11 +151,11 @@ OPENSWAN_CONNECTION_DETAILS = '''# rightsubnet=networkA/netmaskA, networkB/netma
     # [lifetime_value]
     lifetime=%(life_time)ss
     # lifebytes=100000 if lifetime_units=kilobytes (IKEv2 only)
-'''
+'''  # noqa: E501
 
 IPV4_NEXT_HOP = '''# NOTE: a default route is required for %defaultroute to work...
     leftnexthop=%defaultroute
-    rightnexthop=%defaultroute'''
+    rightnexthop=%defaultroute'''  # noqa: E501
 
 IPV6_NEXT_HOP = '''# To recognize the given IP addresses in this config
     # as IPv6 addresses by pluto whack. Default is ipv4
@@ -310,7 +310,7 @@ PLUTO_MULTIPLE_SUBNETS_ESTABLISHED_STATUS = """000 "%(conn_id1)s/1x1": erouted;\
 newest IPSEC;\n
 000 "%(conn_id2)s/2x1": erouted;\n
 000 #4: "%(conn_id2)s/2x1":500 STATE_QUICK_R2 (IPsec SA established); \
-newest IPSEC;\n""" % {
+newest IPSEC;\n""" % {  # noqa: E501
     'conn_id1': FAKE_IPSEC_SITE_CONNECTION1_ID,
     'conn_id2': FAKE_IPSEC_SITE_CONNECTION2_ID}
 PLUTO_ACTIVE_NO_IPSEC_SA_STATUS = """000 "%(conn_id)s/0x1": erouted;\n
