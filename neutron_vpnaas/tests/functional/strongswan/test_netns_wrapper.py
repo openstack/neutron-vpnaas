@@ -27,7 +27,7 @@ STATUS_PATTERN = re.compile('Command:.*ip.*addr.*show.*Exit code: 0')
 class TestNetnsWrapper(base.BaseSudoTestCase):
 
     def setUp(self):
-        super(TestNetnsWrapper, self).setUp()
+        super().setUp()
         config.setup_logging()
         self.fake_ns = 'func-8f1b728c-6eca-4042-9b6b-6ef66ab9352a'
         self.mount_paths = ('--mount_paths=/etc:/var/lib/neutron'

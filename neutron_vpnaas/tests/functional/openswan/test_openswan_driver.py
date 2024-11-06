@@ -101,9 +101,9 @@ class TestOpenSwanDeviceDriver(test_scenario.TestIPSecBase):
     def test_no_config_change_skip_restart(self):
         """Test when config is not changed, then restart should be skipped"""
         site1 = self.create_site(test_scenario.PUBLIC_NET[4],
-                [self.private_nets[1]])
+                                 [self.private_nets[1]])
         site2 = self.create_site(test_scenario.PUBLIC_NET[5],
-                [self.private_nets[2]])
+                                 [self.private_nets[2]])
 
         self.prepare_ipsec_site_connections(site1, site2)
         self.sync_to_create_ipsec_connections(site1, site2)

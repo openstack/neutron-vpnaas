@@ -41,7 +41,7 @@ IPV6 = 6
 class TestVpnValidation(base.BaseTestCase):
 
     def setUp(self):
-        super(TestVpnValidation, self).setUp()
+        super().setUp()
         self.l3_plugin = mock.Mock()
         self.core_plugin = mock.Mock()
         directory.add_plugin(nconstants.CORE, self.core_plugin)
@@ -430,7 +430,7 @@ class TestVpnValidation(base.BaseTestCase):
         subnet2 = _uuid()
         expected_subnets = [subnet1, subnet2]
         local_epg = {'id': _uuid(),
-                    'type': v_constants.SUBNET_ENDPOINT,
+                     'type': v_constants.SUBNET_ENDPOINT,
                      'endpoints': expected_subnets}
         query_mock = mock.patch.object(query.Query, 'all').start()
         query_mock.return_value = expected_subnets

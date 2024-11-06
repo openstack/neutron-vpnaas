@@ -30,11 +30,11 @@ vpn_agent_opts = [
         default=['neutron_vpnaas.services.vpn.device_drivers.'
                  'ipsec.OpenSwanDriver'],
         sample_default=['neutron_vpnaas.services.vpn.device_drivers.ipsec.'
-                       'OpenSwanDriver, '
-                       'neutron_vpnaas.services.vpn.device_drivers.'
-                       'strongswan_ipsec.StrongSwanDriver, '
-                       'neutron_vpnaas.services.vpn.device_drivers.'
-                       'libreswan_ipsec.LibreSwanDriver'],
+                        'OpenSwanDriver, '
+                        'neutron_vpnaas.services.vpn.device_drivers.'
+                        'strongswan_ipsec.StrongSwanDriver, '
+                        'neutron_vpnaas.services.vpn.device_drivers.'
+                        'libreswan_ipsec.LibreSwanDriver'],
         help=_("The vpn device drivers Neutron will use")),
 ]
 cfg.CONF.register_opts(vpn_agent_opts, 'vpnagent')
@@ -114,5 +114,4 @@ class L3WithVPNaaS(VPNAgent):
             self.conf = conf
         else:
             self.conf = cfg.CONF
-        super(L3WithVPNaaS, self).__init__(
-            host=self.conf.host, conf=self.conf)
+        super().__init__(host=self.conf.host, conf=self.conf)

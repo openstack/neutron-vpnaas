@@ -306,20 +306,20 @@ class BaseOvnIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
         router = self.l3_plugin.get_router(context, router_id)
         old_routes = router.get('routes', [])
 
-        old_cidrs = set([r['destination'] for r in old_routes
-                         if r['nexthop'] == nexthop])
+        old_cidrs = {r['destination'] for r in old_routes
+                     if r['nexthop'] == nexthop}
         new_cidrs = set(
             self.service_plugin.get_peer_cidrs_for_router(context, router_id))
 
         to_remove = old_cidrs - new_cidrs
         if to_remove:
-            self.l3_plugin.remove_extraroutes(context, router_id,
-                self._routes_update(to_remove, nexthop))
+            self.l3_plugin.remove_extraroutes(
+                context, router_id, self._routes_update(to_remove, nexthop))
 
         to_add = new_cidrs - old_cidrs
         if to_add:
-            self.l3_plugin.add_extraroutes(context, router_id,
-                self._routes_update(to_add, nexthop))
+            self.l3_plugin.add_extraroutes(
+                context, router_id, self._routes_update(to_add, nexthop))
 
     def _get_gateway_ips(self, router):
         """Obtain the IPv4 and/or IPv6 GW IP for the router.
@@ -397,13 +397,13 @@ class BaseOvnIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
                                       gateway_update)
         except Exception:
             self._update_gateway(context, gateway['id'],
-                status=lib_constants.ERROR,
-                **gateway_update)
+                                 status=lib_constants.ERROR,
+                                 **gateway_update)
             raise
 
         self._update_gateway(context, gateway['id'],
-            status=lib_constants.ACTIVE,
-            **gateway_update)
+                             status=lib_constants.ACTIVE,
+                             **gateway_update)
 
     def _cleanup(self, context, router_id):
         gw = self.service_plugin.get_vpn_gw_dict_by_router_id(context,

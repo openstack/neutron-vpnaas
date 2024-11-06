@@ -27,7 +27,7 @@ class DummyIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
     """Dummy VPN Service Driver class for IPsec."""
 
     def __init__(self, service_plugin):
-        super(DummyIPsecVPNDriver, self).__init__(
+        super().__init__(
             service_plugin,
             ipsec_validator.IpsecVpnValidator(self))
 

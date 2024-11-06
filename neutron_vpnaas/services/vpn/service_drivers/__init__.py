@@ -26,7 +26,7 @@ from neutron_vpnaas.services.vpn.service_drivers import driver_validator
 LOG = logging.getLogger(__name__)
 
 
-class VpnDriver(object, metaclass=abc.ABCMeta):
+class VpnDriver(metaclass=abc.ABCMeta):
 
     def __init__(self, service_plugin, validator=None):
         self.service_plugin = service_plugin
@@ -70,7 +70,7 @@ class VpnDriver(object, metaclass=abc.ABCMeta):
         pass
 
 
-class BaseIPsecVpnAgentApi(object):
+class BaseIPsecVpnAgentApi:
     """Base class for IPSec API to agent."""
 
     def __init__(self, topic, default_version, driver):

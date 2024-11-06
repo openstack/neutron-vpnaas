@@ -136,7 +136,7 @@ def _get_template(template_file):
     return JINJA_ENV.get_template(template_file)
 
 
-class BaseSwanProcess(object, metaclass=abc.ABCMeta):
+class BaseSwanProcess(metaclass=abc.ABCMeta):
     """Swan Family Process Manager
 
     This class manages start/restart/stop ipsec process.
@@ -452,8 +452,7 @@ class OpenSwanProcess(BaseSwanProcess):
     IPSEC_CONF_NAT_TRAVERSAL = "yes"
 
     def __init__(self, conf, process_id, vpnservice, namespace):
-        super(OpenSwanProcess, self).__init__(conf, process_id,
-                                              vpnservice, namespace)
+        super().__init__(conf, process_id, vpnservice, namespace)
         self.secrets_file = os.path.join(
             self.etc_dir, 'ipsec.secrets')
         self.config_file = os.path.join(
@@ -508,7 +507,7 @@ class OpenSwanProcess(BaseSwanProcess):
             # on throwing to tell us something. If the pid file exists,
             # delve into the process information and check if it matches
             # our expected command line.
-            with open(self.pid_file, 'r') as f:
+            with open(self.pid_file) as f:
                 pid = f.readline().strip()
                 with open('/proc/%s/cmdline' % pid) as cmd_line_file:
                     cmd_line = cmd_line_file.readline()
@@ -525,7 +524,7 @@ class OpenSwanProcess(BaseSwanProcess):
                                   {'pid': pid, 'cmd_line': cmd_line})
                         return True
 
-        except IOError as e:
+        except OSError as e:
             # This is logged as "info" instead of error because it simply
             # means that we couldn't find the files to check on them.
             LOG.info('Unable to find control files on startup for '
@@ -638,7 +637,7 @@ class OpenSwanProcess(BaseSwanProcess):
             nets += ipsec_site_conn['peer_cidrs']
         for net in nets:
             version = netaddr.IPNetwork(net).version
-            virtual_privates.append('%%v%s:%s' % (version, net))
+            virtual_privates.append('%v{}:{}'.format(version, net))
         virtual_privates.sort()
         return ','.join(virtual_privates)
 
@@ -788,7 +787,7 @@ class OpenSwanProcess(BaseSwanProcess):
         self.connection_status = {}
 
 
-class IPsecVpnDriverApi(object):
+class IPsecVpnDriverApi:
     """IPSecVpnDriver RPC api."""
 
     @log_helpers.log_method_call
@@ -838,7 +837,7 @@ class IPsecDriver(device_drivers.DeviceDriver, metaclass=abc.ABCMeta):
         self.conn = n_rpc.Connection()
         self.context = context.get_admin_context_without_session()
         self.topic = topics.IPSEC_AGENT_TOPIC
-        node_topic = '%s.%s' % (self.topic, self.host)
+        node_topic = '{}.{}'.format(self.topic, self.host)
 
         self.processes = {}
         self.routers: ty.Dict[str, ty.Any] = {}

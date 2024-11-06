@@ -311,7 +311,7 @@ class VPNAgentSchedulerDbMixin(
         if router_ids:
             return {'routers':
                     self.l3_plugin.get_routers(context,
-                    filters={'id': router_ids})}
+                                               filters={'id': router_ids})}
         else:
             # Exception will be thrown if the requested agent does not exist.
             self.core_plugin.get_agent(context, agent_id)

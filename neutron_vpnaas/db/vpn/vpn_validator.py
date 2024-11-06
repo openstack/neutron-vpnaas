@@ -27,7 +27,7 @@ from neutron_vpnaas._i18n import _
 from neutron_vpnaas.services.vpn.common import constants
 
 
-class VpnReferenceValidator(object):
+class VpnReferenceValidator:
 
     """
     Baseline validation routines for VPN resources.
@@ -118,7 +118,7 @@ class VpnReferenceValidator(object):
         """
         if len(local_subnets) == 1:
             return local_subnets[0]['ip_version']
-        ip_versions = set([subnet['ip_version'] for subnet in local_subnets])
+        ip_versions = {subnet['ip_version'] for subnet in local_subnets}
         if len(ip_versions) > 1:
             raise vpn_exception.MixedIPVersionsForIPSecEndpoints(
                 group=group_id)
@@ -131,7 +131,7 @@ class VpnReferenceValidator(object):
         """
         if len(peer_cidrs) == 1:
             return netaddr.IPNetwork(peer_cidrs[0]).version
-        ip_versions = set([netaddr.IPNetwork(pc).version for pc in peer_cidrs])
+        ip_versions = {netaddr.IPNetwork(pc).version for pc in peer_cidrs}
         if len(ip_versions) > 1:
             raise vpn_exception.MixedIPVersionsForIPSecEndpoints(
                 group=group_id)
@@ -149,7 +149,7 @@ class VpnReferenceValidator(object):
         """Ensure all CIDRs have the same IP version."""
         if len(peer_cidrs) == 1:
             return netaddr.IPNetwork(peer_cidrs[0]).version
-        ip_versions = set([netaddr.IPNetwork(pc).version for pc in peer_cidrs])
+        ip_versions = {netaddr.IPNetwork(pc).version for pc in peer_cidrs}
         if len(ip_versions) > 1:
             raise vpn_exception.MixedIPVersionsForPeerCidrs()
         return ip_versions.pop()

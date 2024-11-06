@@ -82,8 +82,7 @@ class StrongSwanProcess(ipsec.BaseSwanProcess):
         self._strongswan_piddir = self._get_strongswan_piddir()
         self._rootwrap_cfg = self._get_rootwrap_config()
         LOG.debug("strongswan piddir is '%s'", (self._strongswan_piddir))
-        super(StrongSwanProcess, self).__init__(conf, process_id,
-                                                vpnservice, namespace)
+        super().__init__(conf, process_id, vpnservice, namespace)
 
     def _get_strongswan_piddir(self):
         return utils.execute(
@@ -113,7 +112,7 @@ class StrongSwanProcess(ipsec.BaseSwanProcess):
         ns_wrapper = self.get_ns_wrapper()
         return ip_wrapper.netns.execute(
             [ns_wrapper,
-             '--mount_paths=/etc:%s/etc,%s:%s/var/run' % (
+             '--mount_paths=/etc:{}/etc,{}:{}/var/run'.format(
                  self.config_dir, self._strongswan_piddir, self.config_dir),
              ('--rootwrap_config=%s' % self._rootwrap_cfg
                  if self._rootwrap_cfg else ''),

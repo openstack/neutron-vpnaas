@@ -15,7 +15,7 @@
 import abc
 
 
-class DeviceDriver(object, metaclass=abc.ABCMeta):
+class DeviceDriver(metaclass=abc.ABCMeta):
 
     def __init__(self, agent, host):
         pass

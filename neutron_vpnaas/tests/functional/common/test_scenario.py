@@ -166,9 +166,9 @@ FAKE_ROUTER = {
 }
 
 # It's a long name.
-NON_ASCII_VPNSERVICE_NAME = u'\u9577\u3044\u540d\u524d\u3067\u3059'
+NON_ASCII_VPNSERVICE_NAME = '\u9577\u3044\u540d\u524d\u3067\u3059'
 # I'm doing very well.
-NON_ASCII_PSK = u'\u00e7a va tr\u00e9s bien'
+NON_ASCII_PSK = '\u00e7a va tr\u00e9s bien'
 
 
 def get_ovs_bridge(br_name):
@@ -178,7 +178,7 @@ def get_ovs_bridge(br_name):
 Vm = collections.namedtuple('Vm', ['namespace', 'port_ip'])
 
 
-class SiteInfo(object):
+class SiteInfo:
 
     """Holds info on the router, ports, service, and connection."""
 
@@ -266,16 +266,16 @@ class SiteInfoWithHaRouter(SiteInfo):
         self.failover_host = failover_host
         self.get_ns_name = mock.patch.object(n_namespaces.RouterNamespace,
                                              '_get_ns_name').start()
-        super(SiteInfoWithHaRouter, self).__init__(public_net, private_nets)
+        super().__init__(public_net, private_nets)
 
     def generate_router_info(self):
-        super(SiteInfoWithHaRouter, self).generate_router_info()
+        super().generate_router_info()
         self.info['ha'] = True
         self.info['ha_vr_id'] = 1
         self.info[constants.HA_INTERFACE_KEY] = (
             l3_test_common.get_ha_interface())
         # Mock router namespace name, for when router is created
-        self.get_ns_name.return_value = "qrouter-{0}-{1}".format(
+        self.get_ns_name.return_value = "qrouter-{}-{}".format(
             self.info['id'], self.host)
 
     def generate_backup_router_info(self):
@@ -285,7 +285,7 @@ class SiteInfoWithHaRouter(SiteInfo):
             l3_test_common.get_ha_interface(ip='169.254.192.2',
                                             mac='22:22:22:22:22:22'))
         # Mock router namespace name, for when router is created
-        self.get_ns_name.return_value = "qrouter-{0}-{1}".format(
+        self.get_ns_name.return_value = "qrouter-{}-{}".format(
             info['id'], self.failover_host)
         return info
 
@@ -294,10 +294,10 @@ class TestIPSecBase(framework.L3AgentTestFramework):
     NESTED_NAMESPACE_SEPARATOR = '@'
 
     def setUp(self):
-        super(TestIPSecBase, self).setUp()
+        super().setUp()
         common_config.register_common_config_options()
         mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.'
-            'IPsecVpnDriverApi').start()
+                   'IPsecVpnDriverApi').start()
         # avoid report_status running periodically
         mock.patch('oslo_service.loopingcall.FixedIntervalLoopingCall').start()
         # Both the vpn agents try to use execute_rootwrap_daemon's socket
@@ -368,15 +368,15 @@ class TestIPSecBase(framework.L3AgentTestFramework):
                                                root=temp_dir)
         config.set_override('state_path', temp_dir.path)
         config.set_override('metadata_proxy_socket',
-                          get_temp_file_path('metadata_proxy'))
+                            get_temp_file_path('metadata_proxy'))
         config.set_override('ha_confs_path',
-                          get_temp_file_path('ha_confs'))
+                            get_temp_file_path('ha_confs'))
         config.set_override('external_pids',
-                          get_temp_file_path('external/pids'))
+                            get_temp_file_path('external/pids'))
         config.set_override('host', host)
-        ipsec_config_base_dir = '%s/%s' % (temp_dir.path, 'ipsec')
+        ipsec_config_base_dir = '{}/{}'.format(temp_dir.path, 'ipsec')
         config.set_override('config_base_dir',
-                          ipsec_config_base_dir, group='ipsec')
+                            ipsec_config_base_dir, group='ipsec')
 
         # Assign ip address to br-int port because it is a gateway
         ex_port = ip_lib.IPDevice(br_int.br_name)
@@ -404,7 +404,7 @@ class TestIPSecBase(framework.L3AgentTestFramework):
         def _append_suffix(dev_name):
             # If dev_name = 'xyz123' and the suffix is 'agent2' then the result
             # will be 'xy-nt2'
-            return "{0}-{1}".format(dev_name[:-4], agent.host[-3:])
+            return f"{dev_name[:-4]}-{agent.host[-3:]}"
 
         def get_internal_device_name(port_id):
             return _append_suffix(
@@ -504,16 +504,16 @@ class TestIPSecBase(framework.L3AgentTestFramework):
     def prepare_ipsec_site_connections_sha256(self, site1, site2):
         """Builds info for connections in both directions in prep for sync."""
         site1.prepare_ipsec_conn_info(site2,
-                                    FAKE_IPSEC_CONNECTION_SHA256)
+                                      FAKE_IPSEC_CONNECTION_SHA256)
         site2.prepare_ipsec_conn_info(site1,
-                                    FAKE_IPSEC_CONNECTION_SHA256)
+                                      FAKE_IPSEC_CONNECTION_SHA256)
 
     def prepare_ipsec_site_connections_local_id(self, site1, site2):
         """Builds info for connections in both directions in prep for sync."""
         site1.prepare_ipsec_conn_info(site2, local_id='@site1.com',
-                                    peer_id='@site2.com')
+                                      peer_id='@site2.com')
         site2.prepare_ipsec_conn_info(site1, local_id='@site2.com',
-                                    peer_id='@site1.com')
+                                      peer_id='@site1.com')
 
     def sync_to_create_ipsec_connections(self, site1, site2):
         """Perform a sync, so that connections are created."""

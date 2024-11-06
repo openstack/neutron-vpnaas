@@ -35,7 +35,7 @@ class ASTWalker(compiler.visitor.ASTVisitor):
         compiler.visitor.ASTVisitor.default(self, node, *args)
 
 
-class Visitor(object):
+class Visitor:
 
     def __init__(self, filename, i18n_msg_predicates,
                  msg_format_checkers, debug):

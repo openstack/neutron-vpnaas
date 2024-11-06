@@ -41,7 +41,7 @@ class VpnEndpointGroupsTestCase(base.ExtensionTestCase):
     fmt = 'json'
 
     def setUp(self):
-        super(VpnEndpointGroupsTestCase, self).setUp()
+        super().setUp()
         plural_mappings = {'endpoint_group': 'endpoint-groups'}
         self.setup_extension(
             'neutron_vpnaas.tests.unit.extensions.test_vpn_endpoint_groups.'
