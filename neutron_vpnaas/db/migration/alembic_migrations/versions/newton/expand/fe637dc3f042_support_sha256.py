@@ -21,7 +21,7 @@ Create Date: 2016-04-08 22:33:53.286083
 
 """
 
-from neutron.db import migration
+from alembic import op
 import sqlalchemy as sa
 
 
@@ -33,7 +33,7 @@ new_auth = sa.Enum('sha1', 'sha256', name='vpn_auth_algorithms')
 
 
 def upgrade():
-    migration.alter_enum('ikepolicies', 'auth_algorithm', new_auth,
-                nullable=False, do_drop=False)
-    migration.alter_enum('ipsecpolicies', 'auth_algorithm', new_auth,
-                nullable=False, do_rename=False, do_create=False)
+    op.alter_column('ikepolicies', 'auth_algorithm', type_=new_auth,
+                    nullable=False, do_drop=False)
+    op.alter_column('ipsecpolicies', 'auth_algorithm', type_=new_auth,
+                    nullable=False, do_rename=False, do_create=False)

@@ -25,7 +25,9 @@ EXTERNAL_TABLES = set(external.TABLES) - set(external.VPNAAS_TABLES)
 VERSION_TABLE = 'alembic_version_vpnaas'
 
 
-class _TestModelsMigrationsVPNAAS(test_migrations._TestModelsMigrations):
+class TestModelsMigrationsVPNAAS(test_migrations.TestModelsMigrations,
+                                 testlib_api.MySQLTestCaseMixin,
+                                 testlib_api.SqlTestCaseLight):
 
     def db_sync(self, engine):
         cfg.CONF.set_override(
@@ -48,15 +50,3 @@ class _TestModelsMigrationsVPNAAS(test_migrations._TestModelsMigrations):
         if type_ == 'index' and reflected and name.startswith("idx_autoinc_"):
             return False
         return True
-
-
-class TestModelsMigrationsMysql(testlib_api.MySQLTestCaseMixin,
-                                _TestModelsMigrationsVPNAAS,
-                                testlib_api.SqlTestCaseLight):
-    pass
-
-
-class TestModelsMigrationsPostgresql(testlib_api.PostgreSQLTestCaseMixin,
-                                     _TestModelsMigrationsVPNAAS,
-                                     testlib_api.SqlTestCaseLight):
-    pass
