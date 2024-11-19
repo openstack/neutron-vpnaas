@@ -26,7 +26,7 @@ from neutron.db import l3_agentschedulers_db
 from neutron.db import servicetype_db as sdb
 from neutron import extensions as nextensions
 from neutron.scheduler import l3_agent_scheduler
-from neutron.tests.unit.db import test_db_base_plugin_v2 as test_db_plugin
+from neutron.tests.common import test_db_base_plugin_v2 as test_db_plugin
 from neutron.tests.unit.extensions import test_l3 as test_l3_plugin
 from neutron_lib.api.definitions import vpn
 from neutron_lib.callbacks import events

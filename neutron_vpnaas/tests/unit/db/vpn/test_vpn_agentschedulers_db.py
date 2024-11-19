@@ -19,8 +19,8 @@ from neutron.api import wsgi
 from neutron.common.ovn import constants as ovn_constants
 from neutron import policy
 from neutron.tests.common import helpers
+from neutron.tests.common import test_db_base_plugin_v2 as test_plugin
 from neutron.tests.unit.api import test_extensions
-from neutron.tests.unit.db import test_db_base_plugin_v2 as test_plugin
 from neutron.tests.unit.extensions import test_l3
 from neutron.tests.unit import testlib_api
 from neutron_lib import context
