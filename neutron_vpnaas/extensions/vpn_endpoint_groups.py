@@ -36,7 +36,7 @@ class Vpn_endpoint_groups(extensions.APIExtensionDescriptor):
             translate_name=True)
 
 
-class VPNEndpointGroupsPluginBase(object, metaclass=abc.ABCMeta):
+class VPNEndpointGroupsPluginBase(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def create_endpoint_group(self, context, endpoint_group):

@@ -54,10 +54,10 @@ class FakeSqlQueryObject(dict):
 
     def __init__(self, **entries):
         self.__dict__.update(entries)
-        super(FakeSqlQueryObject, self).__init__(**entries)
+        super().__init__(**entries)
 
 
-class FakeGatewayDB(object):
+class FakeGatewayDB:
     def __init__(self):
         self.gateways_by_router = {}
         self.gateways_by_id = {}

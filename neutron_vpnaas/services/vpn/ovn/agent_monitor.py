@@ -73,7 +73,7 @@ class ChassisVPNAgentWriteEvent(ovsdb_monitor.ChassisAgentEvent):
                                           clear_down=True)
 
 
-class OVNVPNAgentMonitor(object):
+class OVNVPNAgentMonitor:
     def watch_agent_events(self):
         l3_plugin = directory.get_plugin(plugin_constants.L3)
         sb_ovn = l3_plugin._sb_ovn

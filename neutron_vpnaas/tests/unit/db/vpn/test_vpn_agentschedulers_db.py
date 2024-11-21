@@ -44,7 +44,7 @@ VPN_HOSTA = "host-1"
 VPN_HOSTB = "host-2"
 
 
-class VPNAgentSchedulerTestMixIn(object):
+class VPNAgentSchedulerTestMixIn:
     def _request_list(self, path, admin_context=True,
                       expected_code=exc.HTTPOk.code):
         req = self._path_req(path, admin_context=admin_context)
@@ -85,18 +85,18 @@ class VPNAgentSchedulerTestMixIn(object):
     def _list_routers_hosted_by_vpn_agent(self, agent_id,
                                           expected_code=exc.HTTPOk.code,
                                           admin_context=True):
-        path = "/agents/%s/%s.%s" % (agent_id,
-                                     vpn_agentschedulers.VPN_ROUTERS,
-                                     self.fmt)
+        path = "/agents/{}/{}.{}".format(agent_id,
+                                         vpn_agentschedulers.VPN_ROUTERS,
+                                         self.fmt)
         return self._request_list(path, expected_code=expected_code,
                                   admin_context=admin_context)
 
     def _add_router_to_vpn_agent(self, id, router_id,
                                  expected_code=exc.HTTPCreated.code,
                                  admin_context=True):
-        path = "/agents/%s/%s.%s" % (id,
-                                     vpn_agentschedulers.VPN_ROUTERS,
-                                     self.fmt)
+        path = "/agents/{}/{}.{}".format(id,
+                                         vpn_agentschedulers.VPN_ROUTERS,
+                                         self.fmt)
         req = self._path_create_request(path,
                                         {'router_id': router_id},
                                         admin_context=admin_context)
@@ -106,19 +106,19 @@ class VPNAgentSchedulerTestMixIn(object):
     def _list_vpn_agents_hosting_router(self, router_id,
                                         expected_code=exc.HTTPOk.code,
                                         admin_context=True):
-        path = "/routers/%s/%s.%s" % (router_id,
-                                      vpn_agentschedulers.VPN_AGENTS,
-                                      self.fmt)
+        path = "/routers/{}/{}.{}".format(router_id,
+                                          vpn_agentschedulers.VPN_AGENTS,
+                                          self.fmt)
         return self._request_list(path, expected_code=expected_code,
                                   admin_context=admin_context)
 
     def _remove_router_from_vpn_agent(self, id, router_id,
                                       expected_code=exc.HTTPNoContent.code,
                                       admin_context=True):
-        path = "/agents/%s/%s/%s.%s" % (id,
-                                        vpn_agentschedulers.VPN_ROUTERS,
-                                        router_id,
-                                        self.fmt)
+        path = "/agents/{}/{}/{}.{}".format(id,
+                                            vpn_agentschedulers.VPN_ROUTERS,
+                                            router_id,
+                                            self.fmt)
         req = self._path_delete_request(path, admin_context=admin_context)
         res = req.get_response(self.ext_api)
         self.assertEqual(expected_code, res.status_int)

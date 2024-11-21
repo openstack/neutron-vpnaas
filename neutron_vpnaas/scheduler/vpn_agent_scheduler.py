@@ -26,7 +26,7 @@ from neutron_vpnaas.extensions import vpn_agentschedulers
 LOG = logging.getLogger(__name__)
 
 
-class VPNScheduler(object, metaclass=abc.ABCMeta):
+class VPNScheduler(metaclass=abc.ABCMeta):
     @property
     def l3_plugin(self):
         return directory.get_plugin(plugin_constants.L3)
@@ -104,7 +104,7 @@ class VPNScheduler(object, metaclass=abc.ABCMeta):
             LOG.debug('VPN service of router %(router_id)s has already '
                       'been hosted by VPN agent %(agent_id)s',
                       {'router_id': router_id,
-                      'agent_id': chosen_agent})
+                       'agent_id': chosen_agent})
             return chosen_agent
 
         sync_router = self.l3_plugin.get_router(context, router_id)

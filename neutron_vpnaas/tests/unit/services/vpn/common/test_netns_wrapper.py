@@ -22,7 +22,7 @@ from neutron_vpnaas.services.vpn.common import netns_wrapper as nswrap
 class TestNetnsWrapper(base.BaseTestCase):
 
     def setUp(self):
-        super(TestNetnsWrapper, self).setUp()
+        super().setUp()
         patch_methods = ['filter_command',
                          'execute',
                          'setup_conf']

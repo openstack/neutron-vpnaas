@@ -32,7 +32,7 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
     fmt = 'json'
 
     def setUp(self):
-        super(VpnaasExtensionTestCase, self).setUp()
+        super().setUp()
         plural_mappings = {'ipsecpolicy': 'ipsecpolicies',
                            'ikepolicy': 'ikepolicies',
                            'ipsec_site_connection': 'ipsec-site-connections',

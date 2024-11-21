@@ -49,7 +49,7 @@ class NoopDeviceDriver(device_drivers.DeviceDriver):
 class VPNBaseTestCase(base.BaseTestCase):
 
     def setUp(self):
-        super(VPNBaseTestCase, self).setUp()
+        super().setUp()
         self.conf = cfg.CONF
         self.ri_kwargs = {'router': {'id': FAKE_ROUTER_ID, 'ha': False},
                           'agent_conf': self.conf,
@@ -59,7 +59,7 @@ class VPNBaseTestCase(base.BaseTestCase):
 class TestVirtualPrivateNetworkDeviceDriverLoading(VPNBaseTestCase):
 
     def setUp(self):
-        super(TestVirtualPrivateNetworkDeviceDriverLoading, self).setUp()
+        super().setUp()
         cfg.CONF.register_opts(vpn_agent.vpn_agent_opts, 'vpnagent')
         self.agent = mock.Mock()
         self.agent.conf = cfg.CONF

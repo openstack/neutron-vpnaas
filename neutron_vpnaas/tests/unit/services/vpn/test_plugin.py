@@ -60,14 +60,13 @@ class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
         self.driver.validator = driver_validator.VpnDriverValidator(
             self.driver)
         driver_cls.return_value = self.driver
-        super(TestVPNDriverPlugin, self).setUp(
-            vpnaas_plugin=VPN_DRIVER_CLASS)
+        super().setUp(vpnaas_plugin=VPN_DRIVER_CLASS)
         # Note: Context must be created after BaseTestCase.setUp() so that
         # config for policy is set.
         self.adminContext = context.get_admin_context()
 
     def test_create_ipsec_site_connection(self, **extras):
-        super(TestVPNDriverPlugin, self).test_create_ipsec_site_connection()
+        super().test_create_ipsec_site_connection()
         self.driver.create_ipsec_site_connection.assert_called_once_with(
             mock.ANY, mock.ANY)
         self.driver.delete_ipsec_site_connection.assert_called_once_with(
@@ -79,7 +78,7 @@ class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
                    return_value=self.driver).start()
         stm = directory.get_plugin(p_constants.VPN).service_type_manager
         stm.add_resource_association = mock.Mock()
-        super(TestVPNDriverPlugin, self).test_create_vpnservice()
+        super().test_create_vpnservice()
         self.driver.create_vpnservice.assert_called_once_with(
             mock.ANY, mock.ANY)
         stm.add_resource_association.assert_called_once_with(
@@ -88,14 +87,14 @@ class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
     def test_delete_vpnservice(self, **extras):
         stm = directory.get_plugin(p_constants.VPN).service_type_manager
         stm.del_resource_associations = mock.Mock()
-        super(TestVPNDriverPlugin, self).test_delete_vpnservice()
+        super().test_delete_vpnservice()
         self.driver.delete_vpnservice.assert_called_once_with(
             mock.ANY, mock.ANY)
         stm.del_resource_associations.assert_called_once_with(
             mock.ANY, [mock.ANY])
 
     def test_update_vpnservice(self, **extras):
-        super(TestVPNDriverPlugin, self).test_update_vpnservice()
+        super().test_update_vpnservice()
         self.driver.update_vpnservice.assert_called_once_with(
             mock.ANY, mock.ANY, mock.ANY)
 
@@ -181,7 +180,7 @@ class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
 class TestVPNDriverPluginMultipleDrivers(base.BaseTestCase):
 
     def setUp(self):
-        super(TestVPNDriverPluginMultipleDrivers, self).setUp()
+        super().setUp()
         vpnaas_providers = [
             {'service_type': p_constants.VPN,
              'name': 'ipsec',

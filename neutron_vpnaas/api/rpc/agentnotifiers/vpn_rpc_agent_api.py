@@ -23,7 +23,7 @@ from neutron_vpnaas.services.vpn.common import topics
 AGENT_NOTIFY_MAX_ATTEMPTS = 2
 
 
-class VPNAgentNotifyAPI(object):
+class VPNAgentNotifyAPI:
     """API for plugin to notify VPN agent."""
 
     def __init__(self, topic=topics.IPSEC_AGENT_TOPIC):

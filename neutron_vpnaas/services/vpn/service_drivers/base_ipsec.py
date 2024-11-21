@@ -31,7 +31,7 @@ IPSEC = 'ipsec'
 BASE_IPSEC_VERSION = '1.0'
 
 
-class IPsecVpnDriverCallBack(object):
+class IPsecVpnDriverCallBack:
     """Callback for IPSecVpnDriver rpc."""
 
     # history
@@ -40,7 +40,7 @@ class IPsecVpnDriverCallBack(object):
     target = oslo_messaging.Target(version=BASE_IPSEC_VERSION)
 
     def __init__(self, driver):
-        super(IPsecVpnDriverCallBack, self).__init__()
+        super().__init__()
         self.driver = driver
 
     def _get_agent_hosting_vpn_services(self, context, host):
@@ -94,15 +94,14 @@ class IPsecVpnAgentApi(service_drivers.BaseIPsecVpnAgentApi):
 
     # pylint: disable=useless-super-delegation
     def __init__(self, topic, default_version, driver):
-        super(IPsecVpnAgentApi, self).__init__(
-            topic, default_version, driver)
+        super().__init__(topic, default_version, driver)
 
 
 class BaseIPsecVPNDriver(service_drivers.VpnDriver, metaclass=abc.ABCMeta):
     """Base VPN Service Driver class."""
 
     def __init__(self, service_plugin, validator=None):
-        super(BaseIPsecVPNDriver, self).__init__(service_plugin, validator)
+        super().__init__(service_plugin, validator)
         self.create_rpc_conn()
 
     @property
@@ -246,7 +245,8 @@ class BaseIPsecVPNDriver(service_drivers.VpnDriver, metaclass=abc.ABCMeta):
                     peer_cidr.cidr
                     for peer_cidr in ipsec_site_connection.peer_cidrs]
             else:
-                local_cidrs = [local_cidr_map[ep.endpoint]
+                local_cidrs = [
+                    local_cidr_map[ep.endpoint]
                     for ep in ipsec_site_connection.local_ep_group.endpoints]
                 peer_cidrs = [
                     ep.endpoint

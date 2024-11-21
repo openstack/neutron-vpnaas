@@ -13,7 +13,6 @@
 # under the License.
 
 import os
-import socket
 import stat
 import time
 
@@ -54,7 +53,7 @@ def execute_cmd_over_ssh(host, cmd, private_key):
             "AUTHENTICATION EXCEPTION WHEN CONNECTING TO %s", host["ip"], e)
     except paramiko.SSHException as e:
         raise Exception("SSH EXCEPTION WHEN CONNECTING TO %s", host["ip"], e)
-    except socket.error as e:
+    except OSError as e:
         raise Exception("SOCKET ERROR WHEN CONNECTING TO %s", host["ip"], e)
     LOG.debug("CONNECTED TO HOST <%s>", host["ip"])
     try:
@@ -254,7 +253,7 @@ def write_key_to_compute_node(keypair, local_path, remote_path, host,
     try:
         sftp_client = paramiko.SFTPClient.from_transport(transport)
         sftp_client.put(local_path, remote_path)
-    except IOError as e:
+    except OSError as e:
         raise Exception("FILE PATH DOESN'T EXIST", e)
     finally:
         transport.close()
@@ -429,7 +428,7 @@ def get_interfaces(namespace_controller_tuple, private_key):
     namespace, controller = namespace_controller_tuple
     LOG.debug("GET THE INTERFACES BY USING 'ip a' FROM THE NAMESPACE %s",
               namespace)
-    cmd = "sudo ip netns exec {} ip a".format(namespace)
+    cmd = f"sudo ip netns exec {namespace} ip a"
     interfaces = execute_cmd_over_ssh(controller, cmd, private_key)
     LOG.debug("INTERFACES %s", interfaces)
     return interfaces
@@ -621,7 +620,7 @@ def delete_keyfiles(local_key_files, remote_key_files=None,
     if ns_compute_tuples:
         LOG.debug("DELETING RALLY KEY FILES FROM COMPUTE HOSTS")
         for key, ns_comp in zip(remote_key_files, ns_compute_tuples):
-            cmd = "sudo rm -f {}".format(key)
+            cmd = f"sudo rm -f {key}"
             host = ns_comp[1]
             execute_cmd_over_ssh(host, cmd, private_key)
 

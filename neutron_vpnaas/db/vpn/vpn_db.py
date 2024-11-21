@@ -228,9 +228,9 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
             if "peer_cidrs" in ipsec_sitecon:
                 changed_peer_cidrs = True
                 old_peer_cidr_list = ipsec_site_conn_db['peer_cidrs']
-                old_peer_cidr_dict = dict(
-                    (peer_cidr['cidr'], peer_cidr)
-                    for peer_cidr in old_peer_cidr_list)
+                old_peer_cidr_dict = {
+                    peer_cidr['cidr']: peer_cidr
+                    for peer_cidr in old_peer_cidr_list}
                 new_peer_cidr_set = set(ipsec_sitecon["peer_cidrs"])
                 old_peer_cidr_set = set(old_peer_cidr_dict)
 
@@ -615,8 +615,8 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
             query = query.join(
                 vpn_models.VPNEndpoint,
                 sa.and_(vpn_models.VPNEndpoint.endpoint_group_id ==
-                     vpn_models.VPNEndpointGroup.id,
-                     vpn_models.VPNEndpoint.endpoint == subnet_id))
+                        vpn_models.VPNEndpointGroup.id,
+                        vpn_models.VPNEndpoint.endpoint == subnet_id))
             group = query.first()
             if group:
                 raise vpn_exception.SubnetInUseByEndpointGroup(
@@ -714,7 +714,7 @@ class VPNPluginDb(vpnaas.VPNPluginBase,
         return cidrs
 
 
-class VPNPluginRpcDbMixin(object):
+class VPNPluginRpcDbMixin:
     def _build_local_subnet_cidr_map(self, context):
         """Build a dict of all local endpoint subnets, with list of CIDRs."""
         query = context.session.query(models_v2.Subnet.id,

@@ -75,7 +75,8 @@ class TestDeviceManager(base.BaseTestCase):
         self.conf = cfg.CONF
         self.conf.register_opts(common_config.core_opts)
         self.conf.register_opts(agent_config.INTERFACE_DRIVER_OPTS)
-        self.conf.set_override('interface_driver',
+        self.conf.set_override(
+            'interface_driver',
             'neutron_vpnaas.tests.unit.services.vpn.device_drivers'
             '.test_ovn_ipsec.fake_interface_driver')
         self.host = "some-hostname"
@@ -85,7 +86,7 @@ class TestDeviceManager(base.BaseTestCase):
 
     def test_names(self):
         mgr = ovn_ipsec.DeviceManager(self.conf, self.host,
-                        self.plugin, self.context)
+                                      self.plugin, self.context)
         port = {'id': "0df5beb8-4794-4217-acde-e6ce4875a59f"}
         name = mgr.get_interface_name(port, "internal")
         self.assertEqual(name, "vr0df5beb8-479")
@@ -106,7 +107,7 @@ class TestDeviceManager(base.BaseTestCase):
         }
 
         mgr = ovn_ipsec.DeviceManager(self.conf, self.host,
-                        self.plugin, self.context)
+                                      self.plugin, self.context)
 
         with mock.patch.object(ip_lib, 'ensure_device_is_ready') as dev_ready:
             with mock.patch.object(mgr, 'set_default_route') as set_def_route:
@@ -130,7 +131,7 @@ class TestDeviceManager(base.BaseTestCase):
         network_details = {'transit_port': FAKE_TRANSIT_PORT}
 
         mgr = ovn_ipsec.DeviceManager(self.conf, self.host,
-                        self.plugin, self.context)
+                                      self.plugin, self.context)
 
         with mock.patch.object(ip_lib, 'ensure_device_is_ready') as dev_ready:
             dev_ready.return_value = False
@@ -143,7 +144,7 @@ class TestDeviceManager(base.BaseTestCase):
 
     def test_list_routes(self):
         mgr = ovn_ipsec.DeviceManager(self.conf, self.host,
-                self.plugin, self.context)
+                                      self.plugin, self.context)
         mock_ipdev = mock.Mock()
         routes = [
             {'cidr': '192.168.111.0/24', 'via': FAKE_TRANSIT_PORT_IP_ADDRESS}
@@ -181,7 +182,8 @@ class TestOvnStrongSwanDriver(test_ipsec.IPSecDeviceLegacy):
         conf = cfg.CONF
         conf.register_opts(common_config.core_opts)
         conf.register_opts(agent_config.INTERFACE_DRIVER_OPTS)
-        conf.set_override('interface_driver',
+        conf.set_override(
+            'interface_driver',
             'neutron_vpnaas.tests.unit.services.vpn.device_drivers'
             '.test_ovn_ipsec.fake_interface_driver')
 

@@ -80,7 +80,7 @@ class VPNExtGW(model_base.BASEV2, model_base.HasId, model_base.HasProject):
 
 
 @registry.has_registry_receivers
-class VPNExtGWPlugin_db(object):
+class VPNExtGWPlugin_db:
     """DB class to support vpn external ports configuration."""
 
     @property

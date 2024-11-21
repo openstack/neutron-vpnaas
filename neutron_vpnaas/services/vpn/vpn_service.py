@@ -23,7 +23,7 @@ LOG = logging.getLogger(__name__)
 DEVICE_DRIVERS = 'device_drivers'
 
 
-class VPNService(object):
+class VPNService:
     """VPN Service observer."""
 
     def __init__(self, l3_agent):

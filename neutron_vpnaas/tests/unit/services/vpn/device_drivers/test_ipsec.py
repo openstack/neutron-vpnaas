@@ -297,32 +297,33 @@ EXPECTED_IPSEC_STRONGSWAN_SECRET_CONF = '''
 60.0.0.4 60.0.0.6 : PSK 0scGFzc3dvcmQ=
 ''' % FAKE_VPNSERVICE_ID
 
-PLUTO_ACTIVE_STATUS = """000 "%(conn_id)s/0x1": erouted;\n
-000 #4: "%(conn_id)s/0x1":500 STATE_QUICK_R2 (IPsec SA established); \
-newest IPSEC;""" % {
-    'conn_id': FAKE_IPSEC_SITE_CONNECTION2_ID}
-PLUTO_ACTIVE_STATUS_IKEV2 = """000 "%(conn_id)s/0x1": erouted;\n
-000 #4: "%(conn_id)s/0x1":500 STATE_PARENT_R2 (PARENT SA established); \
-newest IPSEC;""" % {
-    'conn_id': FAKE_IPSEC_SITE_CONNECTION2_ID}
-PLUTO_MULTIPLE_SUBNETS_ESTABLISHED_STATUS = """000 "%(conn_id1)s/1x1": erouted;\n
-000 #4: "%(conn_id1)s/1x1":500 STATE_QUICK_R2 (IPsec SA established); \
+PLUTO_ACTIVE_STATUS = """000 "{conn_id}/0x1": erouted;\n
+000 #4: "{conn_id}/0x1":500 STATE_QUICK_R2 (IPsec SA established); \
+newest IPSEC;""".format(
+    conn_id=FAKE_IPSEC_SITE_CONNECTION2_ID)
+PLUTO_ACTIVE_STATUS_IKEV2 = """000 "{conn_id}/0x1": erouted;\n
+000 #4: "{conn_id}/0x1":500 STATE_PARENT_R2 (PARENT SA established); \
+newest IPSEC;""".format(
+    conn_id=FAKE_IPSEC_SITE_CONNECTION2_ID)
+PLUTO_MULTIPLE_SUBNETS_ESTABLISHED_STATUS = """000 "{conn_id1}/1x1": erouted;\n
+000 #4: "{conn_id1}/1x1":500 STATE_QUICK_R2 (IPsec SA established); \
 newest IPSEC;\n
-000 "%(conn_id2)s/2x1": erouted;\n
-000 #4: "%(conn_id2)s/2x1":500 STATE_QUICK_R2 (IPsec SA established); \
-newest IPSEC;\n""" % {  # noqa: E501
-    'conn_id1': FAKE_IPSEC_SITE_CONNECTION1_ID,
-    'conn_id2': FAKE_IPSEC_SITE_CONNECTION2_ID}
-PLUTO_ACTIVE_NO_IPSEC_SA_STATUS = """000 "%(conn_id)s/0x1": erouted;\n
-000 #258: "%(conn_id)s/0x1":500 STATE_MAIN_R2 (sent MR2, expecting MI3);""" % {
+000 "{conn_id2}/2x1": erouted;\n
+000 #4: "{conn_id2}/2x1":500 STATE_QUICK_R2 (IPsec SA established); \
+newest IPSEC;\n""".format(  # noqa: E501
+    conn_id1=FAKE_IPSEC_SITE_CONNECTION1_ID,
+    conn_id2=FAKE_IPSEC_SITE_CONNECTION2_ID)
+PLUTO_ACTIVE_NO_IPSEC_SA_STATUS = """000 "{conn_id}/0x1": erouted;\n
+000 #258: "{conn_id}/0x1":500 STATE_MAIN_R2
+(sent MR2, expecting MI3);""".format(
+    conn_id=FAKE_IPSEC_SITE_CONNECTION2_ID)
+PLUTO_DOWN_STATUS = "000 \"%(conn_id)s/0x1\": unrouted;" % {
     'conn_id': FAKE_IPSEC_SITE_CONNECTION2_ID}
-PLUTO_DOWN_STATUS = "000 \"%(conn_id)s/0x1\": unrouted;" % {'conn_id':
-                    FAKE_IPSEC_SITE_CONNECTION2_ID}
 
-CHARON_ACTIVE_STATUS = "%(conn_id)s{1}:  INSTALLED, TUNNEL" % {'conn_id':
-                       FAKE_IPSEC_SITE_CONNECTION2_ID}
-CHARON_DOWN_STATUS = "%(conn_id)s{1}:  ROUTED, TUNNEL" % {'conn_id':
-                     FAKE_IPSEC_SITE_CONNECTION2_ID}
+CHARON_ACTIVE_STATUS = "%(conn_id)s{1}:  INSTALLED, TUNNEL" % {
+    'conn_id': FAKE_IPSEC_SITE_CONNECTION2_ID}
+CHARON_DOWN_STATUS = "%(conn_id)s{1}:  ROUTED, TUNNEL" % {
+    'conn_id': FAKE_IPSEC_SITE_CONNECTION2_ID}
 
 NOT_RUNNING_STATUS = "Command: ['ipsec', 'status'] Exit code: 3 Stdout:"
 
@@ -331,7 +332,7 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
     def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
               ipsec_process=openswan_ipsec.OpenSwanProcess,
               vpnservice=FAKE_VPN_SERVICE):
-        super(BaseIPsecDeviceDriver, self).setUp()
+        super().setUp()
         for klass in [
             'neutron_lib.rpc.Connection',
             'oslo_service.loopingcall.FixedIntervalLoopingCall'
@@ -431,13 +432,13 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
 
     def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
               ipsec_process=openswan_ipsec.OpenSwanProcess):
-        super(IPSecDeviceLegacy, self).setUp(driver, ipsec_process)
+        super().setUp(driver, ipsec_process)
         self._make_router_info_for_test()
 
     def _make_router_info_for_test(self):
         self.router_info = legacy_router.LegacyRouter(router_id=FAKE_ROUTER_ID,
-                                                 agent=self.agent,
-                                                 **self.ri_kwargs)
+                                                      agent=self.agent,
+                                                      **self.ri_kwargs)
         self.router_info.router['distributed'] = False
         self.router_info.iptables_manager.ipv4['nat'] = self.iptables
         self.router_info.iptables_manager.apply = self.apply_mock
@@ -646,7 +647,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         router_id_no_vpn = _uuid()
         vpn_service_router_id = _uuid()
         with mock.patch.object(self.driver,
-            'destroy_process') as (fake_destroy_process):
+                               'destroy_process') as (fake_destroy_process):
             self.driver._delete_vpn_processes([router_id_no_vpn],
                                               [vpn_service_router_id])
             fake_destroy_process.assert_has_calls(
@@ -655,7 +656,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         # test that _delete_vpn_processes doesn't delete the
         # the valid vpn processes
         with mock.patch.object(self.driver,
-            'destroy_process') as fake_destroy_process:
+                               'destroy_process') as fake_destroy_process:
             self.driver._delete_vpn_processes([vpn_service_router_id],
                                               [vpn_service_router_id])
             self.assertFalse(fake_destroy_process.called)
@@ -832,7 +833,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
                          ipsec_site_conn[connection_id]['status'])
 
     def _test_status_handling_for_ike_v2_active_connection(self,
-            active_status):
+                                                           active_status):
         """Test status handling for active connection."""
         router_id = self.router_info.router_id
         connection_id = FAKE_IPSEC_SITE_CONNECTION2_ID
@@ -903,15 +904,15 @@ class IPSecDeviceDVR(BaseIPsecDeviceDriver):
 
     def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
               ipsec_process=openswan_ipsec.OpenSwanProcess):
-        super(IPSecDeviceDVR, self).setUp(driver, ipsec_process)
+        super().setUp(driver, ipsec_process)
         mock.patch.object(dvr_snat_ns.SnatNamespace, 'create').start()
         self._make_dvr_edge_router_info_for_test()
 
     def _make_dvr_edge_router_info_for_test(self):
         router_info = dvr_edge_router.DvrEdgeRouter(mock.sentinel.agent,
-                                               mock.sentinel.myhost,
-                                               FAKE_ROUTER_ID,
-                                               **self.ri_kwargs)
+                                                    mock.sentinel.myhost,
+                                                    FAKE_ROUTER_ID,
+                                                    **self.ri_kwargs)
         router_info.router['distributed'] = True
         router_info.snat_namespace = dvr_snat_ns.SnatNamespace(
             router_info.router['id'],
@@ -936,7 +937,7 @@ class IPSecDeviceDVR(BaseIPsecDeviceDriver):
         self.driver._cleanup_stale_vpn_processes = mock.Mock()
         sync_router_ids = [fake_vpn_service['router_id']]
         with mock.patch.object(self.driver,
-                'get_process_status_cache') as process_status:
+                               'get_process_status_cache') as process_status:
             self.driver.sync(context, [self.driver.routers[FAKE_ROUTER_ID]])
             self.driver._sync_vpn_processes.assert_called_once_with(
                 [fake_vpn_service], sync_router_ids)
@@ -972,8 +973,7 @@ class TestOpenSwanConfigGeneration(BaseIPsecDeviceDriver):
 
     def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
               ipsec_process=openswan_ipsec.OpenSwanProcess):
-        super(TestOpenSwanConfigGeneration, self).setUp(
-            driver, ipsec_process, vpnservice=FAKE_VPN_SERVICE)
+        super().setUp(driver, ipsec_process, vpnservice=FAKE_VPN_SERVICE)
         self.conf.register_opts(openswan_ipsec.openswan_opts, 'openswan')
         self.conf.set_override('state_path', '/tmp')
         self.ipsec_template = self.conf.openswan.ipsec_config_template
@@ -985,13 +985,14 @@ class TestOpenSwanConfigGeneration(BaseIPsecDeviceDriver):
     def build_ipsec_expected_config_for_test(self, info):
         """Modify OpenSwan ipsec expected config files for test variations."""
         auth_mode = info.get('ipsec_auth', AUTH_ESP)
-        conn_details = OPENSWAN_CONNECTION_DETAILS % {'auth_mode': auth_mode,
-                'dpd_action': 'hold',
-                'dpd_delay': 30,
-                'dpd_timeout': 120,
-                'ike_lifetime': 3600,
-                'life_time': 3600,
-                'encapsulation_mode': 'tunnel'}
+        conn_details = OPENSWAN_CONNECTION_DETAILS % {
+            'auth_mode': auth_mode,
+            'dpd_action': 'hold',
+            'dpd_delay': 30,
+            'dpd_timeout': 120,
+            'ike_lifetime': 3600,
+            'life_time': 3600,
+            'encapsulation_mode': 'tunnel'}
         virtual_privates = []
         # Convert local CIDRs into assignment strings. IF more than one,
         # pluralize the attribute name and enclose in brackets.
@@ -1004,14 +1005,14 @@ class TestOpenSwanConfigGeneration(BaseIPsecDeviceDriver):
                 local_cidrs.append("=%s" % cidr[0])
             for net in cidr:
                 version = netaddr.IPNetwork(net).version
-                virtual_privates.append('%%v%s:%s' % (version, net))
+                virtual_privates.append('%v{}:{}'.format(version, net))
         # Convert peer CIDRs into space separated strings
         cidrs = info.get('peer_cidrs', [['20.0.0.0/24', '30.0.0.0/24'],
                                         ['40.0.0.0/24', '50.0.0.0/24']])
         for cidr in cidrs:
             for net in cidr:
                 version = netaddr.IPNetwork(net).version
-                virtual_privates.append('%%v%s:%s' % (version, net))
+                virtual_privates.append('%v{}:{}'.format(version, net))
         peer_cidrs = [' '.join(cidr) for cidr in cidrs]
         local_ip = info.get('local', '60.0.0.4')
         local_id = info.get('local_id')
@@ -1097,10 +1098,10 @@ class IPsecStrongswanConfigGeneration(BaseIPsecDeviceDriver):
 
     def setUp(self, driver=strongswan_ipsec.StrongSwanDriver,
               ipsec_process=strongswan_ipsec.StrongSwanProcess):
-        super(IPsecStrongswanConfigGeneration, self).setUp(
+        super().setUp(
             driver, ipsec_process, vpnservice=FAKE_VPN_SERVICE)
         self.conf.register_opts(strongswan_ipsec.strongswan_opts,
-            'strongswan')
+                                'strongswan')
         self.conf.set_override('state_path', '/tmp')
         self.ipsec_template = self.conf.strongswan.ipsec_config_template
         self.process = strongswan_ipsec.StrongSwanProcess(self.conf,
@@ -1203,7 +1204,7 @@ class TestOpenSwanProcess(IPSecDeviceLegacy):
 
     def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
               ipsec_process=openswan_ipsec.OpenSwanProcess):
-        super(TestOpenSwanProcess, self).setUp(driver, ipsec_process)
+        super().setUp(driver, ipsec_process)
         self.conf.register_opts(openswan_ipsec.openswan_opts,
                                 'openswan')
         self.conf.set_override('state_path', '/tmp')
@@ -1414,7 +1415,7 @@ class TestOpenSwanProcess(IPSecDeviceLegacy):
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.open',
                 create=True,
-                side_effect=[io.StringIO(u'invalid'),
+                side_effect=[io.StringIO('invalid'),
                              IOError])
     def test_process_running_bogus_pid(self, mock_open, mock_exists):
         with mock.patch.object(openswan_ipsec.LOG, 'error'):
@@ -1425,7 +1426,7 @@ class TestOpenSwanProcess(IPSecDeviceLegacy):
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.open',
                 create=True,
-                side_effect=[io.StringIO(u'134'), io.StringIO(u'')])
+                side_effect=[io.StringIO('134'), io.StringIO('')])
     def test_process_running_no_cmdline(self, mock_open, mock_exists):
         with mock.patch.object(openswan_ipsec.LOG, 'error') as log_mock:
             self.assertFalse(self.process._process_running())
@@ -1435,7 +1436,7 @@ class TestOpenSwanProcess(IPSecDeviceLegacy):
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.open',
                 create=True,
-                side_effect=[io.StringIO(u'134'), io.StringIO(u'ps ax')])
+                side_effect=[io.StringIO('134'), io.StringIO('ps ax')])
     def test_process_running_cmdline_mismatch(self, mock_open, mock_exists):
         with mock.patch.object(openswan_ipsec.LOG, 'error') as log_mock:
             self.assertFalse(self.process._process_running())
@@ -1445,8 +1446,8 @@ class TestOpenSwanProcess(IPSecDeviceLegacy):
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.open',
                 create=True,
-                side_effect=[io.StringIO(u'134'),
-                             io.StringIO(u'/usr/libexec/ipsec/pluto -ctlbase'
+                side_effect=[io.StringIO('134'),
+                             io.StringIO('/usr/libexec/ipsec/pluto -ctlbase'
                                          '/some/foo/path')])
     def test_process_running_cmdline_match(self, mock_open, mock_exists):
         self.process.pid_path = '/some/foo/path'
@@ -1491,13 +1492,13 @@ class TestOpenSwanProcess(IPSecDeviceLegacy):
 class TestLibreSwanProcess(base.BaseTestCase):
 
     def setUp(self):
-        super(TestLibreSwanProcess, self).setUp()
+        super().setUp()
         self.vpnservice = copy.deepcopy(FAKE_VPN_SERVICE)
 
         self.ipsec_process = libreswan_ipsec.LibreSwanProcess(cfg.CONF,
-                                                       'foo-process-id',
-                                                       self.vpnservice,
-                                                       mock.ANY)
+                                                              'foo-process-id',
+                                                              self.vpnservice,
+                                                              mock.ANY)
 
     @mock.patch('os.path.exists', return_value=True)
     def test_ensure_configs_on_restart(self, exists_mock):
@@ -1595,10 +1596,9 @@ class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
 
     def setUp(self, driver=strongswan_ipsec.StrongSwanDriver,
               ipsec_process=strongswan_ipsec.StrongSwanProcess):
-        super(IPsecStrongswanDeviceDriverLegacy, self).setUp(driver,
-                                                       ipsec_process)
+        super().setUp(driver, ipsec_process)
         self.conf.register_opts(strongswan_ipsec.strongswan_opts,
-            'strongswan')
+                                'strongswan')
         self.conf.set_override('state_path', '/tmp')
         self.driver.agent_rpc.get_vpn_services_on_host.return_value = [
             self.vpnservice]
@@ -1625,5 +1625,4 @@ class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
 class IPsecStrongswanDeviceDriverDVR(IPSecDeviceDVR):
     def setUp(self, driver=strongswan_ipsec.StrongSwanDriver,
               ipsec_process=strongswan_ipsec.StrongSwanProcess):
-        super(IPsecStrongswanDeviceDriverDVR, self).setUp(driver,
-                                                          ipsec_process)
+        super().setUp(driver, ipsec_process)

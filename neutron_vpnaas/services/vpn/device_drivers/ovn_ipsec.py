@@ -38,7 +38,7 @@ PORT_PREFIXES = {
 LOG = logging.getLogger(__name__)
 
 
-class DeviceManager(object):
+class DeviceManager:
     """Device Manager for ports in qvpn-xx namespace.
     It is a veth pair, one side in qvpn and the other
     side is attached to ovs.
@@ -143,7 +143,7 @@ class DeviceManager(object):
             subnet_id = fixed_ip['subnet_id']
             subnet = self.plugin.get_subnet_info(subnet_id)
             net = netaddr.IPNetwork(subnet['cidr'])
-            ip_cidr = '%s/%s' % (fixed_ip['ip_address'], net.prefixlen)
+            ip_cidr = '{}/{}'.format(fixed_ip['ip_address'], net.prefixlen)
             ip_cidrs.append(ip_cidr)
             subnets.append(subnet)
         self.driver.init_l3(interface_name, ip_cidrs,
@@ -172,14 +172,14 @@ class DeviceManager(object):
 
         ip_cidrs = []
         for fixed_ip in vpn_port['fixed_ips']:
-            ip_cidr = '%s/%s' % (fixed_ip['ip_address'], 28)
+            ip_cidr = '{}/{}'.format(fixed_ip['ip_address'], 28)
             ip_cidrs.append(ip_cidr)
         self.driver.init_l3(interface_name, ip_cidrs,
                             namespace=ns_name)
         return interface_name
 
 
-class NamespaceManager(object):
+class NamespaceManager:
     def __init__(self, use_ipv6=False):
         self.ip_wrapper_root = ip_lib.IPWrapper()
         self.use_ipv6 = use_ipv6

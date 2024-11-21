@@ -14,7 +14,7 @@
 #
 
 
-class VpnDriverValidator(object):
+class VpnDriverValidator:
     """Driver-specific validation routines for VPN resources."""
 
     def __init__(self, driver):

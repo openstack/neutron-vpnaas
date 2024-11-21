@@ -49,13 +49,13 @@ class FakeSqlQueryObject(dict):
 
     def __init__(self, **entries):
         self.__dict__.update(entries)
-        super(FakeSqlQueryObject, self).__init__(**entries)
+        super().__init__(**entries)
 
 
 class TestValidatorSelection(base.BaseTestCase):
 
     def setUp(self):
-        super(TestValidatorSelection, self).setUp()
+        super().setUp()
         vpnaas_provider = [{
             'service_type': constants.VPN,
             'name': 'vpnaas',
@@ -86,7 +86,7 @@ class TestValidatorSelection(base.BaseTestCase):
 
 class TestIPsecDriver(base.BaseTestCase):
     def setUp(self):
-        super(TestIPsecDriver, self).setUp()
+        super().setUp()
         mock.patch('neutron_lib.rpc.Connection').start()
 
         l3_agent = mock.Mock()
@@ -383,9 +383,9 @@ class TestIPsecDriver(base.BaseTestCase):
                            'local_endpoints': ['local-sn1', 'local-sn2']}
 
         expected_cidrs = {'peers': ['2002:5000:0000::/48',
-                                   '2002:5a00:0000::/48'],
+                                    '2002:5a00:0000::/48'],
                           'locals': ['2002:0a00:0000::/48',
-                                    '2002:1400:0000::/48'],
+                                     '2002:1400:0000::/48'],
                           'vers': 6}
         fake_service = self.prepare_dummy_query_objects(endpoint_groups)
         expected_dict = self.build_expected_dict_for_endpoints(expected_cidrs)

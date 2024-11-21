@@ -63,7 +63,7 @@ class VPNAgentOvnSbIdl(ovsdb_monitor.OvnIdl):
         return impl_idl_ovn.OvsdbSbOvnIdl(conn)
 
 
-class VPNAgentOvsIdl(object):
+class VPNAgentOvsIdl:
 
     def start(self):
         connection_string = config.cfg.CONF.ovs.ovsdb_connection
