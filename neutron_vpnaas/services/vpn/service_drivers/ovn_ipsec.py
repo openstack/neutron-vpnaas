@@ -37,7 +37,6 @@ from neutron_vpnaas.db.vpn import vpn_agentschedulers_db as agent_db
 from neutron_vpnaas.db.vpn.vpn_ext_gw_db import RouterIsNotVPNExternal
 from neutron_vpnaas.db.vpn import vpn_models
 from neutron_vpnaas.extensions import vpnaas
-from neutron_vpnaas.services.vpn.common import constants as v_constants
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn.service_drivers import base_ipsec
 
@@ -204,7 +203,7 @@ class BaseOvnIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
             'network_id': network['id'],
             'fixed_ips': [fixed_ip],
             'device_id': subnet['id'],
-            'device_owner': v_constants.DEVICE_OWNER_TRANSIT_NETWORK,
+            'device_owner': lib_constants.DEVICE_OWNER_VPN_TRANSIT_NETWORK,
             'admin_state_up': True,
             portbindings.HOST_ID: agent_host,
             'name': self.get_vpn_namespace_port_name(router_id)
@@ -262,7 +261,7 @@ class BaseOvnIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
                      'network_id': network_id,
                      'fixed_ips': lib_constants.ATTR_NOT_SPECIFIED,
                      'device_id': router_id,
-                     'device_owner': v_constants.DEVICE_OWNER_VPN_ROUTER_GW,
+                     'device_owner': lib_constants.DEVICE_OWNER_VPN_ROUTER_GW,
                      'admin_state_up': True,
                      portbindings.HOST_ID: agent_host,
                      'name': self.get_vpn_gw_port_name(router_id)}

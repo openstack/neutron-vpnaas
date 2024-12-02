@@ -13,8 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from neutron_lib import constants
-
 # Endpoint group types
 SUBNET_ENDPOINT = 'subnet'
 CIDR_ENDPOINT = 'cidr'
@@ -34,12 +32,6 @@ VPN_SUPPORTED_ENDPOINT_TYPES = [
 ]
 
 AGENT_TYPE_VPN = "VPN Agent"
-
-DEVICE_OWNER_VPN_ROUTER_GW = constants.DEVICE_OWNER_NETWORK_PREFIX + \
-                             "vpn_router_gateway"
-
-DEVICE_OWNER_TRANSIT_NETWORK = constants.DEVICE_OWNER_NETWORK_PREFIX + \
-                               "vpn_namespace"
 
 OVN_AGENT_VPN_SB_CFG_KEY = 'neutron:ovn-vpnagent-sb-cfg'
 OVN_AGENT_VPN_DESC_KEY = 'neutron:description-vpnagent'
