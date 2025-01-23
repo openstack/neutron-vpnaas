@@ -26,6 +26,7 @@ from neutron_vpnaas.db.vpn.vpn_db import VPNPluginDb
 from neutron_vpnaas.db.vpn import vpn_ext_gw_db
 from neutron_vpnaas.services.vpn.common import constants
 from neutron_vpnaas.services.vpn.ovn import agent_monitor
+from neutron_vpnaas.services.vpn.ovn import maintenance
 from neutron_vpnaas.services.vpn.plugin import VPNDriverPlugin
 
 
@@ -42,7 +43,6 @@ class VPNOVNPlugin(VPNPluginDb,
     def __init__(self):
         self.vpn_scheduler = importutils.import_object(
             cfg.CONF.vpn_scheduler_driver)
-        self.add_periodic_vpn_agent_status_check()
         self.agent_notifiers[constants.AGENT_TYPE_VPN] = \
             nfy_api.VPNAgentNotifyAPI()
         super().__init__()
@@ -58,6 +58,11 @@ class VPNOVNPlugin(VPNPluginDb,
 
     def vpn_router_agent_binding_changed(self, context, router_id, host):
         pass
+
+    def ovn_maintenance_periodics(self, ovn_client):
+        if cfg.CONF.allow_automatic_vpnagent_failover:
+            return [maintenance.VPNOVNMaintenancePeriodics(self, ovn_client)]
+        return []
 
     supported_extension_aliases = ["vpnaas",
                                    "vpn-endpoint-groups",

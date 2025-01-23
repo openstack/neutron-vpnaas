@@ -80,6 +80,10 @@ class OVNVPNAgentMonitor:
         sb_ovn = l3_plugin._sb_ovn
         if sb_ovn:
             idl = sb_ovn.ovsdb_connection.idl
-            if isinstance(idl, ovsdb_monitor.OvnSbIdl):
+            if isinstance(idl, (ovsdb_monitor.OvnSbIdl,
+                                ovsdb_monitor.BaseOvnSbIdl)):
+                # In ChassisVPNAgentWriteEvent driver is unused;
+                # AgentCache update does not need the mech driver.
+                # Pass None as the driver argument.
                 idl.notify_handler.watch_event(
-                    ChassisVPNAgentWriteEvent(idl.driver))
+                    ChassisVPNAgentWriteEvent(None))

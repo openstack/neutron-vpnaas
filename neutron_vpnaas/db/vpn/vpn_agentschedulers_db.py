@@ -14,10 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import random
-
 from neutron.extensions import router_availability_zone as router_az
-from neutron import worker as neutron_worker
 from neutron_lib import context as ncontext
 from neutron_lib.db import api as db_api
 from neutron_lib.db import model_base
@@ -81,22 +78,6 @@ class VPNAgentSchedulerDbMixin(
     @property
     def core_plugin(self):
         return directory.get_plugin()
-
-    def add_periodic_vpn_agent_status_check(self):
-        if not cfg.CONF.allow_automatic_vpnagent_failover:
-            LOG.info("Skipping periodic VPN agent status check because "
-                     "automatic rescheduling is disabled.")
-            return
-
-        interval = max(cfg.CONF.agent_down_time // 2, 1)
-        # add random initial delay to allow agents to check in after the
-        # neutron server first starts. random to offset multiple servers
-        initial_delay = random.randint(interval, interval * 2)
-
-        check_worker = neutron_worker.PeriodicWorker(
-            self.reschedule_vpnservices_from_down_agents,
-            interval, initial_delay)
-        self.add_worker(check_worker)
 
     def reschedule_vpnservices_from_down_agents(self):
         """Reschedule VPN services from down VPN agents.
