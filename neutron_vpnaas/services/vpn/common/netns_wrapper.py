@@ -16,11 +16,10 @@
 import configparser as ConfigParser
 import errno
 import os
+import subprocess
 import sys
 
-from eventlet.green import subprocess
 from neutron.common import config
-from neutron.common import utils
 from neutron_lib.utils import helpers
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -56,27 +55,26 @@ def execute(cmd):
     cmd = list(map(str, cmd))
     LOG.debug("Running command: %s", cmd)
     env = os.environ.copy()
-    obj = utils.subprocess_popen(cmd,
-                                 stdin=subprocess.PIPE,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 env=env)
-
-    _stdout, _stderr = obj.communicate()
-    _stdout = helpers.safe_decode_utf8(_stdout)
-    _stderr = helpers.safe_decode_utf8(_stderr)
-    msg = ('Command: %(cmd)s Exit code: %(returncode)s '
-           'Stdout: %(stdout)s Stderr: %(stderr)s' %
-           {'cmd': cmd,
-            'returncode': obj.returncode,
-            'stdout': _stdout,
-            'stderr': _stderr})
-    LOG.debug(msg)
-    obj.stdin.close()
-    # Pass the output to calling process
-    sys.stdout.write(msg)
-    sys.stdout.flush()
-    return obj.returncode
+    with subprocess.Popen(cmd,
+                          stdin=subprocess.PIPE,
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE,
+                          close_fds=True, env=env) as obj:
+        _stdout, _stderr = obj.communicate()
+        _stdout = helpers.safe_decode_utf8(_stdout)
+        _stderr = helpers.safe_decode_utf8(_stderr)
+        msg = ('Command: %(cmd)s Exit code: %(returncode)s '
+            'Stdout: %(stdout)s Stderr: %(stderr)s' %
+            {'cmd': cmd,
+                'returncode': obj.returncode,
+                'stdout': _stdout,
+                'stderr': _stderr})
+        LOG.debug(msg)
+        obj.stdin.close()
+        # Pass the output to calling process
+        sys.stdout.write(msg)
+        sys.stdout.flush()
+        return obj.returncode
 
 
 def filter_command(command, rootwrap_config):
