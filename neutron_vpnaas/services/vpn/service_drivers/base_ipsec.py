@@ -71,7 +71,7 @@ class IPsecVpnDriverCallBack(object):
             self.driver.name)
         return query
 
-    @db_api.CONTEXT_READER
+    @db_api.CONTEXT_WRITER
     def get_vpn_services_on_host(self, context, host=None):
         """Returns the vpnservices on the host."""
         vpnservices = self._get_agent_hosting_vpn_services(
