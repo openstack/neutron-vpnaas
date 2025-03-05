@@ -24,6 +24,7 @@ from neutron.tests.unit.extensions import test_l3
 from neutron.tests.unit import testlib_api
 from neutron import wsgi
 from neutron_lib import context
+from neutron_lib.db import api as db_api
 from neutron_lib import exceptions as n_exc
 from neutron_lib.plugins import constants as plugin_constants
 from neutron_lib.plugins import directory
@@ -329,6 +330,46 @@ class VPNAgentSchedulerTestCase(VPNAgentSchedulerTestCaseBase):
 
         self.assertEqual(VPN_HOSTA, host_before)
         self.assertEqual(VPN_HOSTB, host_after)
+
+    def test_router_reschedule_with_write_db_wrap(self):
+        self._register_agent_states()
+        agent_a = self.service_plugin.get_vpn_agent_on_host(
+            self.adminContext, VPN_HOSTA)
+
+        with self.vpnservice() as service:
+            # schedule the vpn routers to agent A
+            with db_api.CONTEXT_WRITER.using(self.adminContext):
+                self.service_plugin.auto_schedule_routers(
+                    self.adminContext, agent_a)
+            ctxt_mock = mock.MagicMock()
+            call_mock = mock.MagicMock(
+                side_effect=[oslo_messaging.MessagingTimeout, None])
+            ctxt_mock.call = call_mock
+            self.client_mock.prepare = mock.MagicMock(return_value=ctxt_mock)
+            self._take_down_agent_and_run_reschedule(VPN_HOSTA)
+            self.assertEqual(2, call_mock.call_count)
+            # make sure vpn service was rescheduled even when first attempt
+            # failed to notify VPN agent
+            router_id = service['vpnservice']['router_id']
+            host = self._get_agent_host_by_router(router_id)
+
+            vpn_agents = self._list_vpn_agents_hosting_router(router_id)
+            self.assertEqual(1, len(vpn_agents['agents']))
+            self.assertEqual(VPN_HOSTB, host)
+
+    def test_router_reschedule_with_read_db_wrap(self):
+        self._register_agent_states()
+        agent_a = self.service_plugin.get_vpn_agent_on_host(
+            self.adminContext, VPN_HOSTA)
+
+        with self.vpnservice():
+            # schedule the vpn routers to agent A
+            with db_api.CONTEXT_READER.using(self.adminContext):
+                self.assertRaises(
+                    TypeError,
+                    self.service_plugin.auto_schedule_routers,
+                    self.adminContext,
+                    agent_a)
 
     def test_router_reschedule_succeeded_after_failed_notification(self):
         self._register_agent_states()
