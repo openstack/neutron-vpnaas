@@ -130,9 +130,12 @@ class TestOvnIPsecDriver(base.BaseTestCase):
             router_id=FAKE_ROUTER_ID,
             router=self._fake_router
         )
+        self.svc_plugin.get_vpn_agent_on_host.return_value = {'id': FAKE_HOST}
         self.svc_plugin.get_vpnservice.return_value = FAKE_VPNSERVICE_1
         self.svc_plugin.get_vpnservice_router_id.return_value = FAKE_ROUTER_ID
         self.driver = ipsec_driver.IPsecOvnVPNDriver(self.svc_plugin)
+        self.driver.make_vpnservice_dict = mock.Mock(
+            return_value={'id': FAKE_HOST})
         self.validator = ipsec_validator.IpsecVpnValidator(self.driver)
         self.context = n_ctx.get_admin_context()
 
@@ -304,3 +307,51 @@ class TestOvnIPsecDriver(base.BaseTestCase):
             [FAKE_VPN_CONNECTION_1],
             expected_add, expected_remove
         )
+
+
+class TestOvnIPsecCallBackDriver(base.BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        vpn_agent = {'host': FAKE_HOST}
+        self.core_plugin = mock.Mock()
+        self.core_plugin.get_vpn_agents_hosting_routers.return_value = \
+            [vpn_agent]
+
+        directory.add_plugin(constants.CORE, self.core_plugin)
+        self._fake_router = FakeSqlQueryObject(
+            id=FAKE_ROUTER_ID,
+            gw_port=FakeSqlQueryObject(network_id=_uuid())
+        )
+        self.svc_plugin = mock.Mock()
+        self.svc_plugin.get_vpn_agents_hosting_routers.return_value = \
+            [vpn_agent]
+        self.svc_plugin.schedule_router.return_value = vpn_agent
+        self.svc_plugin._get_vpnservice.return_value = FakeSqlQueryObject(
+            router_id=FAKE_ROUTER_ID,
+            router=self._fake_router
+        )
+        self.svc_plugin.get_vpn_agent_on_host.return_value = {'id': FAKE_HOST}
+        self.svc_plugin.get_vpnservice.return_value = FAKE_VPNSERVICE_1
+        self.svc_plugin.get_vpnservice_router_id.return_value = FAKE_ROUTER_ID
+        self.driver = ipsec_driver.IPsecOvnVPNDriver(self.svc_plugin)
+        self.driver.make_vpnservice_dict = mock.Mock(
+            return_value={'id': FAKE_HOST})
+
+    def test_get_vpn_services_on_host(self):
+        with mock.patch('neutron_lib.context.get_admin_context') as get_ctx:
+            mock_ctx = mock.Mock()
+            mock_ctx.session.query().join().join().filter.return_value = [
+                {'id': FAKE_HOST}]
+            get_ctx.return_value = mock_ctx
+            context = n_ctx.get_admin_context()
+            driver_callback = ipsec_driver.IPsecVpnOvnDriverCallBack(
+                self.driver)
+            self.assertEqual(
+                [{'id': FAKE_HOST}],
+                driver_callback.get_vpn_services_on_host(
+                    context, FAKE_HOST)
+            )
+            self.svc_plugin.get_vpn_agent_on_host.assert_called_once_with(
+                mock.ANY, FAKE_HOST)
+            self.svc_plugin.auto_schedule_routers.assert_called_once_with(
+                mock.ANY, {'id': FAKE_HOST})
