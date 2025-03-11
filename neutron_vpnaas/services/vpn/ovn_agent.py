@@ -41,6 +41,7 @@ VPN_AGENT_OPTS = [
 OVS_OPTS = [
     cfg.StrOpt('ovsdb_connection',
                default='unix:/usr/local/var/run/openvswitch/db.sock',
+               regex=r'^(tcp|ssl|unix):.+',
                help=_('The connection string for the native OVSDB backend.\n'
                       'Use tcp:IP:PORT for TCP connection.\n'
                       'Use unix:FILE for unix domain socket connection.')),
