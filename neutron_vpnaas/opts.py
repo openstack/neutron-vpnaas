@@ -13,6 +13,7 @@
 import neutron.conf.plugins.ml2.drivers.ovn.ovn_conf
 import neutron.services.provider_configuration
 
+from neutron_vpnaas.db.vpn import vpn_agentschedulers_db
 import neutron_vpnaas.services.vpn.agent
 import neutron_vpnaas.services.vpn.device_drivers.ipsec
 import neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec
@@ -54,5 +55,7 @@ def list_ovn_agent_opts():
 def list_opts():
     return [
         ('service_providers',
-         neutron.services.provider_configuration.serviceprovider_opts)
+         neutron.services.provider_configuration.serviceprovider_opts),
+        ('',
+         vpn_agentschedulers_db.VPN_AGENTS_SCHEDULER_OPTS)
     ]
