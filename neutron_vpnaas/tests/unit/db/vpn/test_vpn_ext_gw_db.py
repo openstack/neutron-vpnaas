@@ -24,7 +24,6 @@ from neutron_lib import context
 from neutron_lib.plugins import constants as nconstants
 from neutron_lib.plugins import directory
 from neutron_vpnaas.db.vpn.vpn_ext_gw_db import VPNExtGWPlugin_db
-from neutron_vpnaas.services.vpn.common import constants as v_constants
 from neutron_vpnaas.tests import base
 from neutron_vpnaas.tests.unit.db.vpn import test_vpn_db
 
@@ -82,15 +81,15 @@ class TestVPNExtGw(VPNOVNPluginDbTestCase):
 
     def test_prevent_vpn_port_deletion_gw_port(self):
         self._test_prevent_vpn_port_deletion(
-            v_constants.DEVICE_OWNER_VPN_ROUTER_GW, 'gw_port_id')
+            lib_constants.DEVICE_OWNER_VPN_ROUTER_GW, 'gw_port_id')
 
     def test_prevent_vpn_port_deletion_transit_port(self):
         self._test_prevent_vpn_port_deletion(
-            v_constants.DEVICE_OWNER_TRANSIT_NETWORK, 'transit_port_id')
+            lib_constants.DEVICE_OWNER_VPN_TRANSIT_NETWORK, 'transit_port_id')
 
     def test_prevent_vpn_port_deletion_other_device_owner(self):
         plugin = directory.get_plugin(nconstants.VPN)
-        device_owner = v_constants.DEVICE_OWNER_TRANSIT_NETWORK
+        device_owner = lib_constants.DEVICE_OWNER_VPN_TRANSIT_NETWORK
         with self.router() as router, \
                 self.port(device_owner=device_owner) as transit_port, \
                 self.port(device_owner='other-device-owner') as other_port:
@@ -157,7 +156,7 @@ class TestVPNExtGwDB(base.NeutronDbPluginV2TestCase,
             'mac_address': lib_constants.ATTR_NOT_SPECIFIED,
             'admin_state_up': True,
             'device_id': router['id'],
-            'device_owner': v_constants.DEVICE_OWNER_VPN_ROUTER_GW,
+            'device_owner': lib_constants.DEVICE_OWNER_VPN_ROUTER_GW,
             'name': ''
         }}
         return self.core_plugin.create_port(self.context, port)

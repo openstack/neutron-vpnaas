@@ -33,7 +33,6 @@ from sqlalchemy import orm
 from sqlalchemy.orm import exc
 
 from neutron_vpnaas._i18n import _
-from neutron_vpnaas.services.vpn.common import constants as v_constants
 
 
 LOG = logging.getLogger(__name__)
@@ -125,8 +124,8 @@ class VPNExtGWPlugin_db:
             return
 
         port_id_column = {
-            v_constants.DEVICE_OWNER_VPN_ROUTER_GW: VPNExtGW.gw_port_id,
-            v_constants.DEVICE_OWNER_TRANSIT_NETWORK:
+            lib_constants.DEVICE_OWNER_VPN_ROUTER_GW: VPNExtGW.gw_port_id,
+            lib_constants.DEVICE_OWNER_VPN_TRANSIT_NETWORK:
                 VPNExtGW.transit_port_id,
         }.get(port['device_owner'])
 
