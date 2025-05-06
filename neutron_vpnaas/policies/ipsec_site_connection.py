@@ -10,50 +10,73 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 
+from neutron.conf.policies import base as neutron_base
+from neutron_lib import policy as base
 from oslo_policy import policy
 
-from neutron_lib import policy as base
-
+DEPRECATED_REASON = """
+The VPaaS API now supports Secure RBAC default roles for ipsec site
+connections.
+"""
 
 rules = [
     policy.DocumentedRuleDefault(
-        'create_ipsec_site_connection',
-        base.RULE_ANY,
-        'Create an IPsec site connection',
-        [
+        name='create_ipsec_site_connection',
+        check_str=neutron_base.ADMIN_OR_PROJECT_MEMBER,
+        scope_types=['project'],
+        description='Create an IPsec site connection',
+        operations=[
             {
                 'method': 'POST',
                 'path': '/vpn/ipsec-site-connections',
             },
-        ]
+        ],
+        deprecated_rule=policy.DeprecatedRule(
+            name='create_ipsec_site_connection',
+            check_str=base.RULE_ANY,
+            deprecated_reason=DEPRECATED_REASON,
+            deprecated_since='2025.2')
     ),
     policy.DocumentedRuleDefault(
-        'update_ipsec_site_connection',
-        base.RULE_ADMIN_OR_OWNER,
-        'Update an IPsec site connection',
-        [
+        name='update_ipsec_site_connection',
+        check_str=neutron_base.ADMIN_OR_PROJECT_MEMBER,
+        scope_types=['project'],
+        description='Update an IPsec site connection',
+        operations=[
             {
                 'method': 'PUT',
                 'path': '/vpn/ipsec-site-connections/{id}',
             },
-        ]
+        ],
+        deprecated_rule=policy.DeprecatedRule(
+            name='update_ipsec_site_connection',
+            check_str=base.RULE_ADMIN_OR_OWNER,
+            deprecated_reason=DEPRECATED_REASON,
+            deprecated_since='2025.2')
     ),
     policy.DocumentedRuleDefault(
-        'delete_ipsec_site_connection',
-        base.RULE_ADMIN_OR_OWNER,
-        'Delete an IPsec site connection',
-        [
+        name='delete_ipsec_site_connection',
+        check_str=neutron_base.ADMIN_OR_PROJECT_MEMBER,
+        scope_types=['project'],
+        description='Delete an IPsec site connection',
+        operations=[
             {
                 'method': 'DELETE',
                 'path': '/vpn/ipsec-site-connections/{id}',
             },
-        ]
+        ],
+        deprecated_rule=policy.DeprecatedRule(
+            name='delete_ipsec_site_connection',
+            check_str=base.RULE_ADMIN_OR_OWNER,
+            deprecated_reason=DEPRECATED_REASON,
+            deprecated_since='2025.2')
     ),
     policy.DocumentedRuleDefault(
-        'get_ipsec_site_connection',
-        base.RULE_ADMIN_OR_OWNER,
-        'Get IPsec site connections',
-        [
+        name='get_ipsec_site_connection',
+        check_str=neutron_base.ADMIN_OR_PROJECT_MEMBER,
+        scope_types=['project'],
+        description='Get IPsec site connections',
+        operations=[
             {
                 'method': 'GET',
                 'path': '/vpn/ipsec-site-connections',
@@ -62,7 +85,12 @@ rules = [
                 'method': 'GET',
                 'path': '/vpn/ipsec-site-connections/{id}',
             },
-        ]
+        ],
+        deprecated_rule=policy.DeprecatedRule(
+            name='get_ipsec_site_connection',
+            check_str=base.RULE_ADMIN_OR_OWNER,
+            deprecated_reason=DEPRECATED_REASON,
+            deprecated_since='2025.2')
     ),
 ]
 

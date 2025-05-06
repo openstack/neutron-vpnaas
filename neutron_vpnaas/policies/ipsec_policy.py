@@ -10,50 +10,72 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 
+from neutron.conf.policies import base as neutron_base
+from neutron_lib import policy as base
 from oslo_policy import policy
 
-from neutron_lib import policy as base
-
+DEPRECATED_REASON = """
+The VPaaS API now supports Secure RBAC default roles for ipsec policies.
+"""
 
 rules = [
     policy.DocumentedRuleDefault(
-        'create_ipsecpolicy',
-        base.RULE_ANY,
-        'Create an IPsec policy',
-        [
+        name='create_ipsecpolicy',
+        check_str=neutron_base.ADMIN_OR_PROJECT_MEMBER,
+        scope_types=['project'],
+        description='Create an IPsec policy',
+        operations=[
             {
                 'method': 'POST',
                 'path': '/vpn/ipsecpolicies',
             },
-        ]
+        ],
+        deprecated_rule=policy.DeprecatedRule(
+            name='create_ipsecpolicy',
+            check_str=base.RULE_ANY,
+            deprecated_reason=DEPRECATED_REASON,
+            deprecated_since='2025.2')
     ),
     policy.DocumentedRuleDefault(
-        'update_ipsecpolicy',
-        base.RULE_ADMIN_OR_OWNER,
-        'Update an IPsec policy',
-        [
+        name='update_ipsecpolicy',
+        check_str=neutron_base.ADMIN_OR_PROJECT_MEMBER,
+        scope_types=['project'],
+        description='Update an IPsec policy',
+        operations=[
             {
                 'method': 'PUT',
                 'path': '/vpn/ipsecpolicies/{id}',
             },
-        ]
+        ],
+        deprecated_rule=policy.DeprecatedRule(
+            name='update_ipsecpolicy',
+            check_str=base.RULE_ADMIN_OR_OWNER,
+            deprecated_reason=DEPRECATED_REASON,
+            deprecated_since='2025.2')
     ),
     policy.DocumentedRuleDefault(
-        'delete_ipsecpolicy',
-        base.RULE_ADMIN_OR_OWNER,
-        'Delete an IPsec policy',
-        [
+        name='delete_ipsecpolicy',
+        check_str=neutron_base.ADMIN_OR_PROJECT_MEMBER,
+        scope_types=['project'],
+        description='Delete an IPsec policy',
+        operations=[
             {
                 'method': 'DELETE',
                 'path': '/vpn/ipsecpolicies/{id}',
             },
-        ]
+        ],
+        deprecated_rule=policy.DeprecatedRule(
+            name='delete_ipsecpolicy',
+            check_str=base.RULE_ADMIN_OR_OWNER,
+            deprecated_reason=DEPRECATED_REASON,
+            deprecated_since='2025.2')
     ),
     policy.DocumentedRuleDefault(
-        'get_ipsecpolicy',
-        base.RULE_ADMIN_OR_OWNER,
-        'Get IPsec policies',
-        [
+        name='get_ipsecpolicy',
+        check_str=neutron_base.ADMIN_OR_PROJECT_MEMBER,
+        scope_types=['project'],
+        description='Get IPsec policies',
+        operations=[
             {
                 'method': 'GET',
                 'path': '/vpn/ipsecpolicies',
@@ -62,7 +84,12 @@ rules = [
                 'method': 'GET',
                 'path': '/vpn/ipsecpolicies/{id}',
             },
-        ]
+        ],
+        deprecated_rule=policy.DeprecatedRule(
+            name='get_ipsecpolicy',
+            check_str=base.RULE_ADMIN_OR_OWNER,
+            deprecated_reason=DEPRECATED_REASON,
+            deprecated_since='2025.2')
     ),
 ]
 

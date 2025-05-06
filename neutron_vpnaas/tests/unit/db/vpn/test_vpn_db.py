@@ -563,7 +563,8 @@ class TestVpnaas(VPNPluginDbTestCase):
         with self.ikepolicy(name=name, description=description) as ikepolicy:
             req = self.new_show_request('ikepolicies',
                                         ikepolicy['ikepolicy']['id'],
-                                        fmt=self.fmt)
+                                        fmt=self.fmt,
+                                        as_admin=True)
             res = self.deserialize(self.fmt, req.get_response(self.ext_api))
             self._check_policy(res['ikepolicy'], keys, lifetime)
 
@@ -582,7 +583,7 @@ class TestVpnaas(VPNPluginDbTestCase):
             'value': 3600}
         with self.ikepolicy(name=name) as ikepolicy:
             keys.append(('id', ikepolicy['ikepolicy']['id']))
-            req = self.new_list_request('ikepolicies')
+            req = self.new_list_request('ikepolicies', as_admin=True)
             res = self.deserialize(self.fmt, req.get_response(self.ext_api))
             self.assertEqual(len(res), 1)
             for k, v in keys:
@@ -599,7 +600,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                                                     ikepolicy2,
                                                     ikepolicy1),
                                       [('name', 'desc')],
-                                      'ikepolicies')
+                                      'ikepolicies',
+                                      as_admin=True)
 
     def test_list_ikepolicies_with_pagination_emulated(self):
         """Test case to list all ikepolicies with pagination."""
@@ -611,7 +613,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                                              ikepolicy2,
                                              ikepolicy3),
                                             ('name', 'asc'), 2, 2,
-                                            'ikepolicies')
+                                            'ikepolicies',
+                                            as_admin=True)
 
     def test_list_ikepolicies_with_pagination_reverse_emulated(self):
         """Test case to list all ikepolicies with reverse pagination."""
@@ -623,7 +626,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                                                      ikepolicy2,
                                                      ikepolicy3),
                                                     ('name', 'asc'), 2, 2,
-                                                    'ikepolicies')
+                                                    'ikepolicies',
+                                                    as_admin=True)
 
     def test_update_ikepolicy(self):
         """Test case to update an ikepolicy."""
@@ -781,7 +785,8 @@ class TestVpnaas(VPNPluginDbTestCase):
         with self.ipsecpolicy(name=name) as ipsecpolicy:
             req = self.new_show_request('ipsecpolicies',
                                         ipsecpolicy['ipsecpolicy']['id'],
-                                        fmt=self.fmt)
+                                        fmt=self.fmt,
+                                        as_admin=True)
             res = self.deserialize(self.fmt, req.get_response(self.ext_api))
             self._check_policy(res['ipsecpolicy'], keys, lifetime)
 
@@ -800,7 +805,7 @@ class TestVpnaas(VPNPluginDbTestCase):
             'value': 3600}
         with self.ipsecpolicy(name=name) as ipsecpolicy:
             keys.append(('id', ipsecpolicy['ipsecpolicy']['id']))
-            req = self.new_list_request('ipsecpolicies')
+            req = self.new_list_request('ipsecpolicies', as_admin=True)
             res = self.deserialize(self.fmt, req.get_response(self.ext_api))
             self.assertEqual(len(res), 1)
             self._check_policy(res['ipsecpolicies'][0], keys, lifetime)
@@ -814,7 +819,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                                                       ipsecpolicy2,
                                                       ipsecpolicy1),
                                       [('name', 'desc')],
-                                      'ipsecpolicies')
+                                      'ipsecpolicies',
+                                      as_admin=True)
 
     def test_list_ipsecpolicies_with_pagination_emulated(self):
         """Test case to list all ipsecpolicies with pagination."""
@@ -826,7 +832,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                                              ipsecpolicy2,
                                              ipsecpolicy3),
                                             ('name', 'asc'), 2, 2,
-                                            'ipsecpolicies')
+                                            'ipsecpolicies',
+                                            as_admin=True)
 
     def test_list_ipsecpolicies_with_pagination_reverse_emulated(self):
         """Test case to list all ipsecpolicies with reverse pagination."""
@@ -838,7 +845,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                                                      ipsecpolicy2,
                                                      ipsecpolicy3),
                                                     ('name', 'asc'), 2, 2,
-                                                    'ipsecpolicies')
+                                                    'ipsecpolicies',
+                                                    as_admin=True)
 
     def test_update_ipsecpolicy(self):
         """Test case to update an ipsecpolicy."""
@@ -1099,7 +1107,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                 ('status', 'PENDING_CREATE')]
         with self.vpnservice(name=name) as vpnservice:
             req = self.new_show_request('vpnservices',
-                                        vpnservice['vpnservice']['id'])
+                                        vpnservice['vpnservice']['id'],
+                                        as_admin=True)
             res = self.deserialize(self.fmt, req.get_response(self.ext_api))
             for k, v in keys:
                 self.assertEqual(res['vpnservice'][k], v)
@@ -1114,7 +1123,7 @@ class TestVpnaas(VPNPluginDbTestCase):
         with self.vpnservice(name=name) as vpnservice:
             keys.append(('subnet_id', vpnservice['vpnservice']['subnet_id']))
             keys.append(('router_id', vpnservice['vpnservice']['router_id']))
-            req = self.new_list_request('vpnservices')
+            req = self.new_list_request('vpnservices', as_admin=True)
             res = self.deserialize(self.fmt, req.get_response(self.ext_api))
             self.assertEqual(len(res), 1)
             for k, v in keys:
@@ -1146,7 +1155,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                     self._test_list_with_sort('vpnservice', (vpnservice3,
                                                              vpnservice2,
                                                              vpnservice1),
-                                              [('name', 'desc')])
+                                              [('name', 'desc')],
+                                              as_admin=True)
 
     def test_list_vpnservice_with_pagination_emulated(self):
         """Test case to list all vpnservices with pagination."""
@@ -1175,7 +1185,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                                                     (vpnservice1,
                                                      vpnservice2,
                                                      vpnservice3),
-                                                    ('name', 'asc'), 2, 2)
+                                                    ('name', 'asc'), 2, 2,
+                                                    as_admin=True)
 
     def test_list_vpnservice_with_pagination_reverse_emulated(self):
         """Test case to list all vpnservices with reverse pagination."""
@@ -1205,7 +1216,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                                                              vpnservice2,
                                                              vpnservice3),
                                                             ('name', 'asc'),
-                                                            2, 2)
+                                                            2, 2,
+                                                            as_admin=True)
 
     def test_create_ipsec_site_connection_with_invalid_values(self):
         """Test case to create an ipsec_site_connection with invalid values."""
@@ -1476,7 +1488,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                         'ipsec-site-connections',
                         ipsec_site_connection[
                             'ipsec_site_connection']['id'],
-                        fmt=self.fmt
+                        fmt=self.fmt,
+                        as_admin=True
                     )
                     res = self.deserialize(
                         self.fmt,
@@ -1506,7 +1519,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                                                        ) as conn3:
                         self._test_list_with_sort('ipsec-site-connection',
                                                   (conn3, conn2, conn1),
-                                                  [('name', 'desc')])
+                                                  [('name', 'desc')],
+                                                  as_admin=True)
 
     def test_list_ipsec_site_connections_with_pagination_emulated(self):
         """Test case to list all ipsec_site_connections with pagination."""
@@ -1527,7 +1541,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                         self._test_list_with_pagination(
                             'ipsec-site-connection',
                             (conn1, conn2, conn3),
-                            ('name', 'asc'), 2, 2)
+                            ('name', 'asc'), 2, 2,
+                            as_admin=True)
 
     def test_list_ipsec_site_conns_with_pagination_reverse_emulated(self):
         """Test to list all ipsec_site_connections with reverse pagination."""
@@ -1548,7 +1563,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                         self._test_list_with_pagination_reverse(
                             'ipsec-site-connection',
                             (conn1, conn2, conn3),
-                            ('name', 'asc'), 2, 2
+                            ('name', 'asc'), 2, 2,
+                            as_admin=True
                         )
 
     def test_create_vpn(self):
@@ -1585,7 +1601,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                 vpnservice_req = self.new_show_request(
                     'vpnservices',
                     vpnservice_id,
-                    fmt=self.fmt)
+                    fmt=self.fmt,
+                    as_admin=True)
                 vpnservice_updated = self.deserialize(
                     self.fmt,
                     vpnservice_req.get_response(self.ext_api)
@@ -1596,7 +1613,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                 )
                 ikepolicy_req = self.new_show_request('ikepolicies',
                                                       ikepolicy_id,
-                                                      fmt=self.fmt)
+                                                      fmt=self.fmt,
+                                                      as_admin=True)
                 ikepolicy_res = self.deserialize(
                     self.fmt,
                     ikepolicy_req.get_response(self.ext_api)
@@ -1607,7 +1625,8 @@ class TestVpnaas(VPNPluginDbTestCase):
                 ipsecpolicy_req = self.new_show_request(
                     'ipsecpolicies',
                     ipsecpolicy_id,
-                    fmt=self.fmt)
+                    fmt=self.fmt,
+                    as_admin=True)
                 ipsecpolicy_res = self.deserialize(
                     self.fmt,
                     ipsecpolicy_req.get_response(self.ext_api)
