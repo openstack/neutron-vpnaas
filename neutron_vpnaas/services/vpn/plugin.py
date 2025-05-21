@@ -32,7 +32,7 @@ LOG = logging.getLogger(__name__)
 def add_provider_configuration(type_manager, service_type):
     type_manager.add_provider_configuration(
         service_type,
-        pconf.ProviderConfiguration('neutron_vpnaas'))
+        pconf.ProviderConfiguration('neutron_vpnaas', service_type))
 
 
 class VPNPlugin(vpn_db.VPNPluginDb):
