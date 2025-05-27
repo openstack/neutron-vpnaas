@@ -8,7 +8,7 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - openstack-tox-py39:
+        - openstack-tox-py310:
             required-projects:
               - openstack/neutron
         - openstack-tox-py312:
@@ -22,7 +22,7 @@
         - neutron-tempest-plugin-vpnaas-ovn
     gate:
       jobs:
-        - openstack-tox-py39:
+        - openstack-tox-py310:
             required-projects:
               - openstack/neutron
         - openstack-tox-py312:

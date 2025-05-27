@@ -181,6 +181,7 @@ class TestStrongSwanScenario(test_scenario.TestIPSecBase):
                               'vpnagent')
         self.agent = neutron_l3_agent.L3NATAgentWithStateReport('agent1',
                                                                 self.conf)
+        self.agent.init_host()
         self.vpn_agent = vpn_agent.L3WithVPNaaS(self.conf)
         vpn_service = mock.Mock()
         vpn_service.conf = self.conf
