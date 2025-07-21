@@ -52,8 +52,10 @@ class IPsecVpnDriverCallBack:
         # right agent to deploy the vpn service. In the
         # case of distributed the vpn service should reside
         # only on a dvr_snat node.
-        agent_mode = agent_conf.get('agent_mode', 'legacy')
-        if not agent.admin_state_up or agent_mode == 'dvr':
+        agent_mode = agent_conf.get(
+            'agent_mode', lib_constants.L3_AGENT_MODE_LEGACY)
+        if (not agent.admin_state_up or
+                agent_mode == lib_constants.L3_AGENT_MODE_DVR):
             return []
         query = context.session.query(vpn_models.VPNService)
         query = query.join(vpn_models.IPsecSiteConnection)
