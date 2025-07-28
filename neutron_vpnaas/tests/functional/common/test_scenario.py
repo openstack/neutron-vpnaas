@@ -306,16 +306,6 @@ class TestIPSecBase(framework.L3AgentTestFramework):
         # root_helper_daemon and instead use root_helper
         # https://bugs.launchpad.net/neutron/+bug/1482622
         cfg.CONF.set_override('root_helper_daemon', None, group='AGENT')
-
-        # Mock the method below because it causes Exception:
-        #   RuntimeError: Second simultaneous read on fileno 5 detected.
-        #   Unless you really know what you're doing, make sure that only
-        #   one greenthread can read any particular socket.  Consider using
-        #   a pools.Pool. If you do know what you're doing and want to disable
-        #   this error, call eventlet.debug.hub_prevent_multiple_readers(False)
-        # Can reproduce the exception in the test only
-        ip_lib.send_ip_addr_adv_notif = mock.Mock()
-
         self.vpn_agent = vpn_agent.L3WithVPNaaS(self.conf)
         self.driver = self.vpn_agent.device_drivers[0]
         self.driver.agent_rpc.get_vpn_services_on_host = mock.Mock(

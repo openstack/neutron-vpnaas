@@ -17,6 +17,7 @@ import difflib
 import io
 import os
 import socket
+import time
 from unittest import mock
 
 import netaddr
@@ -1343,7 +1344,7 @@ class TestOpenSwanProcess(IPSecDeviceLegacy):
                 return_value=False)
     @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
                 'ipsec.OpenSwanProcess._cleanup_control_files')
-    @mock.patch('eventlet.sleep')
+    @mock.patch.object(time, 'sleep')
     def test_restart_process_not_running(self, sleep_mock, cleanup_mock,
                                          query_mock, hop_mock):
         self.process.restart()
@@ -1362,7 +1363,7 @@ class TestOpenSwanProcess(IPSecDeviceLegacy):
                 return_value=True)
     @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
                 'ipsec.OpenSwanProcess._cleanup_control_files')
-    @mock.patch('eventlet.sleep')
+    @mock.patch.object(time, 'sleep')
     def test_restart_process_doesnt_stop(self, sleep_mock, cleanup_mock,
                                          query_mock, hop_mock):
         self.process.restart()
@@ -1384,7 +1385,7 @@ class TestOpenSwanProcess(IPSecDeviceLegacy):
                 side_effect=[True, True, False, False])
     @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
                 'ipsec.OpenSwanProcess._cleanup_control_files')
-    @mock.patch('eventlet.sleep')
+    @mock.patch.object(time, 'sleep')
     def test_restart_process_retry_until_stop(self, sleep_mock, cleanup_mock,
                                               query_mock, hop_mock):
         self.process.restart()
