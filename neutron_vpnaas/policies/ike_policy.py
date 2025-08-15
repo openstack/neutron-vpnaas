@@ -10,50 +10,72 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 
+from neutron.conf.policies import base as neutron_base
+from neutron_lib import policy as base
 from oslo_policy import policy
 
-from neutron_lib import policy as base
-
+DEPRECATED_REASON = """
+The VPaaS API now supports Secure RBAC default roles for ike policies.
+"""
 
 rules = [
     policy.DocumentedRuleDefault(
-        'create_ikepolicy',
-        base.RULE_ANY,
-        'Create an IKE policy',
-        [
+        name='create_ikepolicy',
+        check_str=neutron_base.ADMIN_OR_PROJECT_MEMBER,
+        scope_types=['project'],
+        description='Create an IKE policy',
+        operations=[
             {
                 'method': 'POST',
                 'path': '/vpn/ikepolicies',
             },
-        ]
+        ],
+        deprecated_rule=policy.DeprecatedRule(
+            name='create_ikepolicy',
+            check_str=base.RULE_ANY,
+            deprecated_reason=DEPRECATED_REASON,
+            deprecated_since='2025.2')
     ),
     policy.DocumentedRuleDefault(
-        'update_ikepolicy',
-        base.RULE_ADMIN_OR_OWNER,
-        'Update an IKE policy',
-        [
+        name='update_ikepolicy',
+        check_str=neutron_base.ADMIN_OR_PROJECT_MEMBER,
+        scope_types=['project'],
+        description='Update an IKE policy',
+        operations=[
             {
                 'method': 'PUT',
                 'path': '/vpn/ikepolicies/{id}',
             },
-        ]
+        ],
+        deprecated_rule=policy.DeprecatedRule(
+            name='update_ikepolicy',
+            check_str=base.RULE_ADMIN_OR_OWNER,
+            deprecated_reason=DEPRECATED_REASON,
+            deprecated_since='2025.2')
     ),
     policy.DocumentedRuleDefault(
-        'delete_ikepolicy',
-        base.RULE_ADMIN_OR_OWNER,
-        'Delete an IKE policy',
-        [
+        name='delete_ikepolicy',
+        check_str=neutron_base.ADMIN_OR_PROJECT_MEMBER,
+        scope_types=['project'],
+        description='Delete an IKE policy',
+        operations=[
             {
                 'method': 'DELETE',
                 'path': '/vpn/ikepolicies/{id}',
             },
-        ]
+        ],
+        deprecated_rule=policy.DeprecatedRule(
+            name='delete_ikepolicy',
+            check_str=base.RULE_ADMIN_OR_OWNER,
+            deprecated_reason=DEPRECATED_REASON,
+            deprecated_since='2025.2')
     ),
     policy.DocumentedRuleDefault(
-        'get_ikepolicy',
-        base.RULE_ADMIN_OR_OWNER,
-        'Get IKE policyies',
-        [
+        name='get_ikepolicy',
+        check_str=neutron_base.ADMIN_OR_PROJECT_MEMBER,
+        scope_types=['project'],
+        description='Get IKE policyies',
+        operations=[
             {
                 'method': 'GET',
                 'path': '/vpn/ikepolicies',
@@ -62,7 +84,12 @@ rules = [
                 'method': 'GET',
                 'path': '/vpn/ikepolicies/{id}',
             },
-        ]
+        ],
+        deprecated_rule=policy.DeprecatedRule(
+            name='get_ikepolicy',
+            check_str=base.RULE_ADMIN_OR_OWNER,
+            deprecated_reason=DEPRECATED_REASON,
+            deprecated_since='2025.2')
     ),
 ]
 

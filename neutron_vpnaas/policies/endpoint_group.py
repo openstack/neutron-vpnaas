@@ -10,50 +10,72 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 
+from neutron.conf.policies import base as neutron_base
+from neutron_lib import policy as base
 from oslo_policy import policy
 
-from neutron_lib import policy as base
-
+DEPRECATED_REASON = """
+The VPaaS API now supports Secure RBAC default roles for endpoint groups.
+"""
 
 rules = [
     policy.DocumentedRuleDefault(
-        'create_endpoint_group',
-        base.RULE_ANY,
-        'Create a VPN endpoint group',
-        [
+        name='create_endpoint_group',
+        check_str=neutron_base.ADMIN_OR_PROJECT_MEMBER,
+        scope_types=['project'],
+        description='Create a VPN endpoint group',
+        operations=[
             {
                 'method': 'POST',
                 'path': '/vpn/endpoint-groups',
             },
-        ]
+        ],
+        deprecated_rule=policy.DeprecatedRule(
+            name='create_endpoint_group',
+            check_str=base.RULE_ANY,
+            deprecated_reason=DEPRECATED_REASON,
+            deprecated_since='2025.2')
     ),
     policy.DocumentedRuleDefault(
-        'update_endpoint_group',
-        base.RULE_ADMIN_OR_OWNER,
-        'Update a VPN endpoint group',
-        [
+        name='update_endpoint_group',
+        check_str=neutron_base.ADMIN_OR_PROJECT_MEMBER,
+        scope_types=['project'],
+        description='Update a VPN endpoint group',
+        operations=[
             {
                 'method': 'PUT',
                 'path': '/vpn/endpoint-groups/{id}',
             },
-        ]
+        ],
+        deprecated_rule=policy.DeprecatedRule(
+            name='update_endpoint_group',
+            check_str=base.RULE_ADMIN_OR_OWNER,
+            deprecated_reason=DEPRECATED_REASON,
+            deprecated_since='2025.2')
     ),
     policy.DocumentedRuleDefault(
-        'delete_endpoint_group',
-        base.RULE_ADMIN_OR_OWNER,
-        'Delete a VPN endpoint group',
-        [
+        name='delete_endpoint_group',
+        check_str=neutron_base.ADMIN_OR_PROJECT_MEMBER,
+        scope_types=['project'],
+        description='Delete a VPN endpoint group',
+        operations=[
             {
                 'method': 'DELETE',
                 'path': '/vpn/endpoint-groups/{id}',
             },
-        ]
+        ],
+        deprecated_rule=policy.DeprecatedRule(
+            name='delete_endpoint_group',
+            check_str=base.RULE_ADMIN_OR_OWNER,
+            deprecated_reason=DEPRECATED_REASON,
+            deprecated_since='2025.2')
     ),
     policy.DocumentedRuleDefault(
-        'get_endpoint_group',
-        base.RULE_ADMIN_OR_OWNER,
-        'Get VPN endpoint groups',
-        [
+        name='get_endpoint_group',
+        check_str=neutron_base.ADMIN_OR_PROJECT_MEMBER,
+        scope_types=['project'],
+        description='Get VPN endpoint groups',
+        operations=[
             {
                 'method': 'GET',
                 'path': '/vpn/endpoint-groups',
@@ -62,7 +84,12 @@ rules = [
                 'method': 'GET',
                 'path': '/vpn/endpoint-groups/{id}',
             },
-        ]
+        ],
+        deprecated_rule=policy.DeprecatedRule(
+            name='get_endpoint_group',
+            check_str=base.RULE_ADMIN_OR_OWNER,
+            deprecated_reason=DEPRECATED_REASON,
+            deprecated_since='2025.2')
     ),
 ]
 
