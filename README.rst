@@ -1,5 +1,10 @@
-Welcome!
-========
+==============
+Neutron VPNaaS
+==============
+
+.. image:: https://governance.openstack.org/tc/badges/neutron-vpnaas.svg
+
+.. Change things from this point on
 
 This package contains the code for the Neutron VPN as a Service
 (VPNaaS) service. This includes third-party drivers. This package
@@ -13,13 +18,7 @@ site for asking for help, and filing bugs. We use a single Launchpad
 page for all Neutron projects.
 
 Code is available on opendev.org at:
-https://opendev.org/openstack/neutron-vpnaas.
+https://opendev.org/openstack/neutron-vpnaas
 
 Please refer to Neutron documentation for more information:
 `Neutron README.rst <https://opendev.org/openstack/neutron/src/branch/master/README.rst>`_
-
-Team and repository tags
-========================
-
-.. image:: https://governance.openstack.org/tc/badges/neutron-vpnaas.svg
-    :target: https://governance.openstack.org/tc/reference/tags/index.html
