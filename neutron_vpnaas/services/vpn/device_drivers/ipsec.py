@@ -21,9 +21,9 @@ import re
 import shutil
 import socket
 import sys
+import time
 import typing as ty
 
-import eventlet
 import jinja2
 import netaddr
 from neutron.agent.l3.router_info import RouterInfo
@@ -603,7 +603,7 @@ class OpenSwanProcess(BaseSwanProcess):
             if not self._process_running():
                 self._cleanup_control_files()
                 break
-            eventlet.sleep(wait_interval)
+            time.sleep(wait_interval)
             wait_interval *= cfg.CONF.pluto.shutdown_check_back_off
         else:
             LOG.warning('Server appears to still be running, restart '
