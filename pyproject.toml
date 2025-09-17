@@ -1,3 +1,72 @@
 [build-system]
-requires = ["pbr>=6.0.0", "setuptools>=64.0.0", "wheel>0.32.0"]
+requires = ["pbr>=6.1.1"]
 build-backend = "pbr.build"
+
+[project]
+name = "neutron-vpnaas"
+description = "OpenStack Networking VPN as a Service"
+authors = [
+    {name = "OpenStack", email = "openstack-discuss@lists.openstack.org"},
+]
+readme = {file = "README.rst", content-type = "text/x-rst"}
+license = {text = "Apache-2.0"}
+dynamic = ["version", "dependencies"]
+requires-python = ">=3.10"
+classifiers = [
+  "Environment :: OpenStack",
+  "Intended Audience :: Information Technology",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: Implementation :: CPython",
+]
+
+[project.urls]
+Homepage = "https://docs.openstack.org/neutron-vpnaas/latest/"
+Repository = "https://opendev.org/openstack/neutron-vpnaas"
+
+[tool.setuptools]
+packages = [
+    "neutron_vpnaas"
+]
+
+[tool.setuptools.data-files]
+"etc/neutron/rootwrap.d" = [
+    "etc/neutron/rootwrap.d/vpnaas.filters",
+]
+
+[project.entry-points."oslo.config.opts"]
+"neutron.vpnaas" = "neutron_vpnaas.opts:list_opts"
+"neutron.vpnaas.agent" = "neutron_vpnaas.opts:list_agent_opts"
+"neutron.vpnaas.ovn_agent" = "neutron_vpnaas.opts:list_ovn_agent_opts"
+
+[project.entry-points."console_scripts"]
+neutron-vpn-netns-wrapper = "neutron_vpnaas.services.vpn.common.netns_wrapper:main"
+neutron-ovn-vpn-agent = "neutron_vpnaas.cmd.ovn_agent:main"
+
+[project.entry-points."neutron.agent.l3.extensions"]
+vpnaas = "neutron_vpnaas.services.vpn.agent:L3WithVPNaaS"
+
+[project.entry-points."device_drivers"]
+"neutron.services.vpn.device_drivers.ipsec.OpenSwanDriver" = "neutron_vpnaas.services.vpn.device_drivers.ipsec:OpenSwanDriver"
+
+[project.entry-points."neutron.db.alembic_migrations"]
+neutron-vpnaas = "neutron_vpnaas.db.migration:alembic_migrations"
+
+[project.entry-points."neutron.service_plugins"]
+vpnaas = "neutron_vpnaas.services.vpn.plugin:VPNDriverPlugin"
+ovn-vpnaas = "neutron_vpnaas.services.vpn.ovn_plugin:VPNOVNDriverPlugin"
+"neutron.services.vpn.plugin.VPNDriverPlugin" = "neutron_vpnaas.services.vpn.plugin:VPNDriverPlugin"
+
+[project.entry-points."oslo.policy.policies"]
+neutron-vpnaas = "neutron_vpnaas.policies:list_rules"
+
+[project.entry-points."neutron.policies"]
+neutron-vpnaas = "neutron_vpnaas.policies:list_rules"
