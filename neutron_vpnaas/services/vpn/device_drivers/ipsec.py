@@ -1137,7 +1137,7 @@ class IPsecDriver(device_drivers.DeviceDriver, metaclass=abc.ABCMeta):
             if isinstance(ri, RouterInfo):
                 router_id = ri.router_id if ri.router_id else None
             elif isinstance(ri, dict):
-                router_id = ri.get("router_id")
+                router_id = ri.get("id")
             else:
                 router_id = None
 
