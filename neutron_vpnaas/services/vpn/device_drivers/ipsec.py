@@ -1088,7 +1088,11 @@ class IPsecDriver(device_drivers.DeviceDriver, metaclass=abc.ABCMeta):
             # NOTE(mnaser): It's not necessary to check status for processes
             #               of a backup L3 agent
             router = self.routers.get(process_id)
-            if router and router.router['ha'] and router.ha_state == 'backup':
+            if (router and
+                isinstance(router, RouterInfo) and
+                router.router['ha'] and
+                router.ha_state == 'backup'
+                ):
                 LOG.debug("%s router in backup state, skipping", process_id)
                 continue
             if not self.should_be_reported(context, process):
