@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The required dialect map has been added to allow for usage of the
+    new AEAD ciphers with Libreswan.
