@@ -25,8 +25,41 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
     """
     IPSEC_CONF_NAT_TRAVERSAL = None
 
+    DIALECT_MAP = dict(ipsec.BaseSwanProcess.DIALECT_MAP)
+
     # pylint: disable=useless-super-delegation
     def __init__(self, conf, process_id, vpnservice, namespace):
+        dialect_map_update = {
+            # ENCR_AES_CTR
+            'aes-128-ctr': 'aes_ctr128',
+            'aes-192-ctr': 'aes_ctr192',
+            'aes-256-ctr': 'aes_ctr256',
+            # ENCR_AES_CCM_8
+            'aes-128-ccm-8': 'aes_ccm_a128',
+            'aes-192-ccm-8': 'aes_ccm_a192',
+            'aes-256-ccm-8': 'aes_ccm_a256',
+            # ENCR_AES_CCM_12
+            'aes-128-ccm-12': 'aes_ccm_b128',
+            'aes-192-ccm-12': 'aes_ccm_b192',
+            'aes-256-ccm-12': 'aes_ccm_b256',
+            # ENCR_AES_CCM_16
+            'aes-128-ccm-16': 'aes_ccm_c128',
+            'aes-192-ccm-16': 'aes_ccm_c192',
+            'aes-256-ccm-16': 'aes_ccm_c256',
+            # ENCR_AES_GCM_8
+            'aes-128-gcm-8': 'aes_gcm_a128',
+            'aes-192-gcm-8': 'aes_gcm_a192',
+            'aes-256-gcm-8': 'aes_gcm_a256',
+            # ENCR_AES_GCM_12
+            'aes-128-gcm-12': 'aes_gcm_b128',
+            'aes-192-gcm-12': 'aes_gcm_b192',
+            'aes-256-gcm-12': 'aes_gcm_b256',
+            # ENCR_AES_GCM_16
+            'aes-128-gcm-16': 'aes_gcm_c128',
+            'aes-192-gcm-16': 'aes_gcm_c192',
+            'aes-256-gcm-16': 'aes_gcm_c256'
+        }
+        self.DIALECT_MAP.update(dialect_map_update)
         self._rootwrap_cfg = self._get_rootwrap_config()
         super().__init__(conf, process_id, vpnservice, namespace)
 
