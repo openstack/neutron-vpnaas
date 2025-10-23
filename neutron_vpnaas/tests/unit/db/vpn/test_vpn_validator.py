@@ -293,6 +293,14 @@ class TestVpnValidation(base.BaseTestCase):
                           self.validator.validate_endpoint_group,
                           self.context, endpoint_group)
 
+    def test_fail_on_endpoints_not_unique(self):
+        ep_cidrs = ["10.10.10.0/24", "20.20.20.0/24", "10.10.10.0/24"]
+        endpoint_group = {'type': v_constants.CIDR_ENDPOINT,
+                          'endpoints': ep_cidrs}
+        self.assertRaises(vpn_exception.InvalidEndpointInEndpointGroup,
+                          self.validator.validate_endpoint_group,
+                          self.context, endpoint_group)
+
     def test_fail_subnets_not_on_same_router_for_endpoint_group(self):
         """Detect when local endpoints not on the same router."""
         subnet1 = {'id': _uuid(), 'ip_version': 4}
