@@ -47,7 +47,7 @@ packages = [
 "neutron.vpnaas.agent" = "neutron_vpnaas.opts:list_agent_opts"
 "neutron.vpnaas.ovn_agent" = "neutron_vpnaas.opts:list_ovn_agent_opts"
 
-[project.entry-points."console_scripts"]
+[project.scripts]
 neutron-vpn-netns-wrapper = "neutron_vpnaas.services.vpn.common.netns_wrapper:main"
 neutron-ovn-vpn-agent = "neutron_vpnaas.cmd.ovn_agent:main"
 
