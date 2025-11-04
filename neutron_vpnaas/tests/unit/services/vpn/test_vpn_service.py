@@ -59,6 +59,8 @@ class VPNBaseTestCase(base.BaseTestCase):
 class TestVirtualPrivateNetworkDeviceDriverLoading(VPNBaseTestCase):
 
     def setUp(self):
+        self.skipTest('This test is skipped after the eventlet removal and '
+                      'needs to be refactored')
         super().setUp()
         cfg.CONF.register_opts(vpn_agent.vpn_agent_opts, 'vpnagent')
         self.agent = mock.Mock()

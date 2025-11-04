@@ -12,9 +12,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from neutron_vpnaas.tests.functional.common import test_ovn
+from neutron_vpnaas.tests.functional.common import ovn_base
 
 
-class TestOvnOpenSwan(test_ovn.TestOvnVPNAgentBase):
+class TestOvnOpenSwan(ovn_base.TestOvnVPNAgentBase):
     VPN_DEVICE_DRIVER = ('neutron_vpnaas.services.vpn.device_drivers.'
                          'ovn_ipsec.OvnOpenSwanDriver')

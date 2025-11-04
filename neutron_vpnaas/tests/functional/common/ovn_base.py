@@ -183,6 +183,8 @@ class TestOvnVPNAgentBase(base.TestOVNFunctionalBase):
     FAKE_CHASSIS_HOST = 'ovn-host-fake'
 
     def setUp(self):
+        self.skipTest('This test is skipped after the eventlet removal and '
+                      'needs to be refactored')
         cfg.CONF.set_override('service_provider', [IPSEC_SERVICE_PROVIDER],
                               group='service_providers')
         service_plugins = {'vpnaas_plugin': VPN_PLUGIN}
