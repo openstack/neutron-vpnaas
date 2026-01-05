@@ -97,7 +97,7 @@ class VPNTestMixin:
                     'value': lifetime_value},
                 'ike_version': ike_version,
                 'pfs': pfs,
-                'tenant_id': self._tenant_id
+                'tenant_id': self._project_id
                 }}
         if kwargs.get('description') is not None:
             data['ikepolicy']['description'] = kwargs['description']
@@ -160,7 +160,7 @@ class VPNTestMixin:
                                 'lifetime': {'units': lifetime_units,
                                              'value': lifetime_value},
                                 'pfs': pfs,
-                                'tenant_id': self._tenant_id}}
+                                'tenant_id': self._project_id}}
         if kwargs.get('description') is not None:
             data['ipsecpolicy']['description'] = kwargs['description']
         ipsecpolicy_req = self.new_create_request('ipsecpolicies', data, fmt)
@@ -204,7 +204,7 @@ class VPNTestMixin:
                            admin_state_up,
                            router_id, subnet_id,
                            expected_res_status=None, **kwargs):
-        tenant_id = kwargs.get('tenant_id', self._tenant_id)
+        tenant_id = kwargs.get('tenant_id', self._project_id)
         data = {'vpnservice': {'name': name,
                                'subnet_id': subnet_id,
                                'router_id': router_id,
@@ -323,7 +323,7 @@ class VPNTestMixin:
                                       'ikepolicy_id': ikepolicy_id,
                                       'ipsecpolicy_id': ipsecpolicy_id,
                                       'admin_state_up': admin_state_up,
-                                      'tenant_id': self._tenant_id,
+                                      'tenant_id': self._project_id,
                                       'local_ep_group_id': local_ep_group_id,
                                       'peer_ep_group_id': peer_ep_group_id}
         }
@@ -505,7 +505,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                 ('phase1_negotiation_mode', 'main'),
                 ('ike_version', 'v1'),
                 ('pfs', 'group5'),
-                ('tenant_id', self._tenant_id)]
+                ('tenant_id', self._project_id)]
         lifetime = {
             'units': 'seconds',
             'value': 3600}
@@ -530,7 +530,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                 ('phase1_negotiation_mode', 'aggressive'),
                 ('ike_version', 'v1'),
                 ('pfs', 'group5'),
-                ('tenant_id', self._tenant_id)]
+                ('tenant_id', self._project_id)]
         lifetime = {
             'units': 'seconds',
             'value': 3600}
@@ -556,7 +556,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                 ('phase1_negotiation_mode', 'main'),
                 ('ike_version', 'v1'),
                 ('pfs', 'group5'),
-                ('tenant_id', self._tenant_id)]
+                ('tenant_id', self._project_id)]
         lifetime = {
             'units': 'seconds',
             'value': 3600}
@@ -577,7 +577,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                 ('phase1_negotiation_mode', 'main'),
                 ('ike_version', 'v1'),
                 ('pfs', 'group5'),
-                ('tenant_id', self._tenant_id)]
+                ('tenant_id', self._project_id)]
         lifetime = {
             'units': 'seconds',
             'value': 3600}
@@ -638,7 +638,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                 ('phase1_negotiation_mode', 'main'),
                 ('ike_version', 'v1'),
                 ('pfs', 'group5'),
-                ('tenant_id', self._tenant_id),
+                ('tenant_id', self._project_id),
                 ('lifetime', {'units': 'seconds',
                               'value': 60})]
         with self.ikepolicy(name=name) as ikepolicy:
@@ -661,7 +661,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                 ('phase1_negotiation_mode', 'aggressive'),
                 ('ike_version', 'v1'),
                 ('pfs', 'group5'),
-                ('tenant_id', self._tenant_id),
+                ('tenant_id', self._project_id),
                 ('lifetime', {'units': 'seconds',
                               'value': 60})]
         with self.ikepolicy(name=name) as ikepolicy:
@@ -747,7 +747,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                 ('encapsulation_mode', 'tunnel'),
                 ('transform_protocol', 'esp'),
                 ('pfs', 'group5'),
-                ('tenant_id', self._tenant_id)]
+                ('tenant_id', self._project_id)]
         lifetime = {
             'units': 'seconds',
             'value': 3600}
@@ -778,7 +778,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                 ('encapsulation_mode', 'tunnel'),
                 ('transform_protocol', 'esp'),
                 ('pfs', 'group5'),
-                ('tenant_id', self._tenant_id)]
+                ('tenant_id', self._project_id)]
         lifetime = {
             'units': 'seconds',
             'value': 3600}
@@ -799,7 +799,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                 ('encapsulation_mode', 'tunnel'),
                 ('transform_protocol', 'esp'),
                 ('pfs', 'group5'),
-                ('tenant_id', self._tenant_id)]
+                ('tenant_id', self._project_id)]
         lifetime = {
             'units': 'seconds',
             'value': 3600}
@@ -857,7 +857,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                 ('encapsulation_mode', 'tunnel'),
                 ('transform_protocol', 'esp'),
                 ('pfs', 'group5'),
-                ('tenant_id', self._tenant_id),
+                ('tenant_id', self._project_id),
                 ('lifetime', {'units': 'seconds',
                               'value': 60})]
         with self.ipsecpolicy(name=name) as ipsecpolicy:
@@ -948,7 +948,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                     'description': 'my-vpn-service',
                     'admin_state_up': True,
                     'status': 'PENDING_CREATE',
-                    'tenant_id': self._tenant_id, }
+                    'tenant_id': self._project_id, }
 
         expected.update(extras)
         with self.subnet(cidr='10.2.0.0/24') as subnet:
@@ -1259,7 +1259,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                 'peer_cidrs': ['192.168.2.0/24', '192.168.3.0/24'],
                 'initiator': 'bi-directional',
                 'mtu': 1500,
-                'tenant_id': self._tenant_id,
+                'tenant_id': self._project_id,
                 'psk': 'abcd',
                 'status': 'PENDING_CREATE',
                 'admin_state_up': True}
@@ -1366,7 +1366,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                 'peer_cidrs': ['192.168.2.0/24', '192.168.3.0/24'],
                 'initiator': 'bi-directional',
                 'mtu': 1500,
-                'tenant_id': self._tenant_id,
+                'tenant_id': self._project_id,
                 'psk': 'abcd',
                 'status': 'ACTIVE',
                 'admin_state_up': True,
@@ -1449,7 +1449,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                 'peer_cidrs': ['192.168.2.0/24', '192.168.3.0/24'],
                 'initiator': 'bi-directional',
                 'mtu': 1500,
-                'tenant_id': self._tenant_id,
+                'tenant_id': self._project_id,
                 'psk': 'abcd',
                 'status': 'PENDING_CREATE',
                 'admin_state_up': True}
@@ -2171,7 +2171,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
                                           'ikepolicy_id': ike_policy_id,
                                           'ipsecpolicy_id': ipsec_policy_id,
                                           'admin_state_up': True,
-                                          'tenant_id': self._tenant_id,
+                                          'tenant_id': self._project_id,
                                           'local_ep_group_id': None,
                                           'peer_ep_group_id': None}}
 

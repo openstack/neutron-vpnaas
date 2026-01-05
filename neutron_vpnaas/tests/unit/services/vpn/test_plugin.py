@@ -116,7 +116,7 @@ class TestVPNDriverPlugin(test_db_vpnaas.TestVpnaas,
                 'dpd_action': 'hold',
                 'dpd_interval': 40,
                 'dpd_timeout': 120,
-                'tenant_id': self._tenant_id,
+                'tenant_id': self._project_id,
                 'psk': 'abcd',
                 'status': 'PENDING_CREATE',
                 'admin_state_up': True}
