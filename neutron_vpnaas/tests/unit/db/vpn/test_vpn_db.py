@@ -1751,7 +1751,7 @@ class NeutronResourcesMixin:
     def create_network(self, overrides=None):
         """Create database entry for network."""
         network_info = {'network': {'name': 'my-net',
-                                    'tenant_id': self.tenant_id,
+                                    'project_id': self.project_id,
                                     'admin_state_up': True,
                                     'shared': False}}
         if overrides:
@@ -1761,7 +1761,7 @@ class NeutronResourcesMixin:
     def create_subnet(self, overrides=None):
         """Create database entry for subnet."""
         subnet_info = {'subnet': {'name': 'my-subnet',
-                                  'tenant_id': self.tenant_id,
+                                  'project_id': self.project_id,
                                   'ip_version': 4,
                                   'enable_dhcp': True,
                                   'dns_nameservers': None,
@@ -1776,7 +1776,7 @@ class NeutronResourcesMixin:
         router_info = {
             'router': {
                 'name': 'my-router',
-                'tenant_id': self.tenant_id,
+                'tenant_id': self.project_id,
                 'admin_state_up': True,
             }
         }
@@ -1796,7 +1796,7 @@ class NeutronResourcesMixin:
     def create_router_port_for_subnet(self, router, subnet):
         """Creates port on router for subnet specified."""
         port = {'port': {
-            'tenant_id': self.tenant_id,
+            'project_id': self.project_id,
             'network_id': subnet['network_id'],
             'fixed_ips': [
                 {'ip_address': subnet['gateway_ip'],
@@ -1850,12 +1850,12 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
 
         # Create VPN database instance
         self.plugin = vpn_db.VPNPluginDb()
-        self.tenant_id = _uuid()
+        self.project_id = _uuid()
         self.context = context.get_admin_context()
 
     def prepare_service_info(self, private_subnet, router):
         subnet_id = private_subnet['id'] if private_subnet else None
-        return {'vpnservice': {'tenant_id': self.tenant_id,
+        return {'vpnservice': {'tenant_id': self.project_id,
                                'name': 'my-service',
                                'description': 'new service',
                                'subnet_id': subnet_id,
@@ -1910,7 +1910,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         self.assertDictSupersetOf(expected, mod_service)
 
     def prepare_endpoint_info(self, group_type, endpoints):
-        return {'endpoint_group': {'tenant_id': self.tenant_id,
+        return {'endpoint_group': {'tenant_id': self.project_id,
                                    'name': 'my endpoint group',
                                    'description': 'my description',
                                    'type': group_type,
@@ -2090,7 +2090,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
             self.context, _uuid(), group_updates)
 
     def prepare_ike_policy_info(self):
-        return {'ikepolicy': {'tenant_id': self.tenant_id,
+        return {'ikepolicy': {'tenant_id': self.project_id,
                               'name': 'ike policy',
                               'description': 'my ike policy',
                               'auth_algorithm': 'sha1',
@@ -2108,7 +2108,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         self.assertDictSupersetOf(expected, new_ike_policy)
 
     def prepare_ipsec_policy_info(self):
-        return {'ipsecpolicy': {'tenant_id': self.tenant_id,
+        return {'ipsecpolicy': {'tenant_id': self.project_id,
                                 'name': 'ipsec policy',
                                 'description': 'my ipsec policy',
                                 'auth_algorithm': 'sha1',

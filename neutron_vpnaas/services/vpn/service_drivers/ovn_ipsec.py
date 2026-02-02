@@ -166,11 +166,11 @@ class BaseOvnIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
     def get_transit_subnet_name(self, router_id):
         return TRANSIT_SUBNET_PREFIX + router_id
 
-    def make_transit_network(self, router_id, tenant_id, agent_host,
+    def make_transit_network(self, router_id, project_id, agent_host,
                              gateway_update):
         context = nctx.get_admin_context()
         network_data = {
-            'tenant_id': HIDDEN_PROJECT_ID,
+            'project_id': HIDDEN_PROJECT_ID,
             'name': self.get_transit_network_name(router_id),
             'admin_state_up': True,
             'shared': False,
@@ -179,10 +179,10 @@ class BaseOvnIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
                                          {'network': network_data})
         gateway_update['transit_network_id'] = network['id']
 
-        # The subnet tenant_id must be of the user, otherwise updating the
+        # The subnet project_id must be of the user, otherwise updating the
         # router by the user may fail (it needs access to all subnets)
         subnet_data = {
-            'tenant_id': tenant_id,
+            'project_id': project_id,
             'name': self.get_transit_subnet_name(router_id),
             'gateway_ip': VPN_TRANSIT_LIP,
             'cidr': VPN_TRANSIT_CIDR,
@@ -199,7 +199,7 @@ class BaseOvnIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
 
         fixed_ip = {'subnet_id': subnet['id'], 'ip_address': VPN_TRANSIT_RIP}
         port_data = {
-            'tenant_id': HIDDEN_PROJECT_ID,
+            'project_id': HIDDEN_PROJECT_ID,
             'network_id': network['id'],
             'fixed_ips': [fixed_ip],
             'device_id': subnet['id'],
@@ -257,7 +257,7 @@ class BaseOvnIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
 
     def make_gw_port(self, router_id, network_id, agent_host, gateway_update):
         context = nctx.get_admin_context()
-        port_data = {'tenant_id': HIDDEN_PROJECT_ID,
+        port_data = {'project_id': HIDDEN_PROJECT_ID,
                      'network_id': network_id,
                      'fixed_ips': lib_constants.ATTR_NOT_SPECIFIED,
                      'device_id': router_id,
