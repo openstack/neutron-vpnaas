@@ -81,7 +81,7 @@ class OvnSiteInfo:
         router_data = {
             'name': 'r%d' % self.index,
             'admin_state_up': True,
-            'tenant_id': self.parent._tenant_id,
+            'project_id': self.parent._tenant_id,
             'external_gateway_info': {
                 'enable_snat': True,
                 'network_id': self.ext_net['id'],
