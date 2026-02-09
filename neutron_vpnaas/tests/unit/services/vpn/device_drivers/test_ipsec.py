@@ -24,9 +24,11 @@ import netaddr
 from neutron.agent.l3 import dvr_edge_router
 from neutron.agent.l3 import dvr_snat_ns
 from neutron.agent.l3 import legacy_router
+from neutron.agent.l3 import router_info as l3_router_info
 from neutron.agent.linux import iptables_manager
 from neutron.conf.agent.l3 import config as l3_config
 from neutron_lib import constants
+from neutron_lib import context
 from neutron_lib.exceptions import vpn as vpn_exception
 from oslo_config import cfg
 from oslo_utils import uuidutils
@@ -354,6 +356,7 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
         self.iptables = mock.Mock()
         self.apply_mock = mock.Mock()
         self.vpnservice = copy.deepcopy(vpnservice)
+        self.context = context.get_admin_context()
         ipsec_process._get_strongswan_piddir = mock.Mock(
             return_value="/var/run")
 
@@ -587,6 +590,41 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
             self.driver._sync_vpn_processes([new_vpnservice], router_id)
             self._test_ensure_nat_rules()
             self.driver.processes[router_id].update.assert_called_once_with()
+
+    def test__sync_with_dict_and_router_info(self):
+        """Verify sync handles mixed router_information types correctly."""
+
+        router_id_1 = 'router_1'
+        router_id_2 = 'router_2'
+
+        # A proper RouterInfo object
+        router_info_1 = mock.Mock(spec=l3_router_info.RouterInfo)
+        router_info_1.router_id = router_id_1
+
+        # A dictionary, as sometimes received via RPC
+        router_info_2_dict = {'id': router_id_2}
+
+        router_information = [router_info_1, router_info_2_dict]
+
+        self.driver.agent_rpc.get_vpn_services_on_host.return_value = []
+        self.driver._sync_vpn_processes = mock.Mock()
+        self.driver._delete_vpn_processes = mock.Mock()
+        self.driver._cleanup_stale_vpn_processes = mock.Mock()
+        self.driver.report_status = mock.Mock()
+
+        self.driver.sync(self.context, router_information)
+
+        self.assertIn(router_id_1, self.driver.routers)
+        self.assertEqual(router_info_1, self.driver.routers[router_id_1])
+
+        self.assertNotIn(router_id_2, self.driver.routers)
+
+        self.driver._sync_vpn_processes.assert_called_once()
+        _vpn_services, sync_router_ids = \
+            self.driver._sync_vpn_processes.call_args[0]
+        self.assertIn(router_id_1, sync_router_ids)
+        self.assertIn(router_id_2, sync_router_ids)
+        self.assertEqual(2, len(sync_router_ids))
 
     def test_ensure_nat_rules_with_multiple_local_subnets(self):
         """Ensure that add nat rule combinations are correct."""

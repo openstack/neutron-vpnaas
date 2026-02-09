@@ -1138,18 +1138,16 @@ class IPsecDriver(device_drivers.DeviceDriver, metaclass=abc.ABCMeta):
 
         for ri in router_information:
             # Update our router_info with the updated one
+            router_id = None
             if isinstance(ri, RouterInfo):
-                router_id = ri.router_id if ri.router_id else None
+                if ri.router_id:
+                    router_id = ri.router_id
+                    self.routers[router_id] = ri
             elif isinstance(ri, dict):
                 router_id = ri.get("id")
-            else:
-                router_id = None
 
-            if not router_id:
-                continue
-
-            self.routers[router_id] = ri
-            sync_router_ids.append(router_id)
+            if router_id:
+                sync_router_ids.append(router_id)
 
         self._sync_vpn_processes(vpnservices, sync_router_ids)
         self._delete_vpn_processes(sync_router_ids, router_ids)
