@@ -30,7 +30,7 @@ repos:
         name: flake8
         additional_dependencies:
           - hacking>=6.1.0,<6.2.0
-          - flake8-import-order>=0.18.0,<0.19.0
+          - flake8-import-order>=0.19.0
           - isort==4.3.21
         language: python
         entry: flake8
