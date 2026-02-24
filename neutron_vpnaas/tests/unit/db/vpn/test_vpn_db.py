@@ -1776,7 +1776,7 @@ class NeutronResourcesMixin:
         router_info = {
             'router': {
                 'name': 'my-router',
-                'tenant_id': self.project_id,
+                'project_id': self.project_id,
                 'admin_state_up': True,
             }
         }
