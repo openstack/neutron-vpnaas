@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Creating an endpoint group with duplicate endpoints will now immediately fail
+    with an error message presented to the user instead of hanging for multiple
+    minutes and failing with an internal server error.

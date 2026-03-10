@@ -336,11 +336,23 @@ class VpnReferenceValidator:
         if not endpoints:
             raise vpn_exception.MissingEndpointForEndpointGroup(
                 group=endpoint_group)
+
+        self._check_endpoints_unique(endpoint_group)
+
         group_type = endpoint_group['type']
         if group_type == constants.CIDR_ENDPOINT:
             self._validate_cidrs(endpoints)
         elif group_type == constants.SUBNET_ENDPOINT:
             self._validate_subnets(context, endpoints)
+
+    def _check_endpoints_unique(self, endpoint_group):
+        seen_endpoints = []
+        for endpoint in endpoint_group['endpoints']:
+            if endpoint in seen_endpoints:
+                raise vpn_exception.InvalidEndpointInEndpointGroup(
+                    group_type=endpoint_group['type'], endpoint=endpoint,
+                    why=_('Endpoints have to be unique'))
+            seen_endpoints.append(endpoint)
 
     def validate_ike_policy(self, context, ike_policy):
         """Reference implementation of validation for IKE Policy.
