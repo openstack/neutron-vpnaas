@@ -36,13 +36,13 @@ FAKE_IPSEC_SITE_CONNECTION2_ID = _uuid()
 FAKE_IKE_POLICY = {
     'ike_version': 'v1',
     'encryption_algorithm': 'aes-128',
-    'auth_algorithm': 'sha1',
+    'auth_algorithm': 'sha256',
     'pfs': 'group5'
 }
 
 FAKE_IPSEC_POLICY = {
     'encryption_algorithm': 'aes-128',
-    'auth_algorithm': 'sha1',
+    'auth_algorithm': 'sha256',
     'pfs': 'group5'
 }
 
@@ -89,14 +89,14 @@ DESIRED_CONN_STATUS = {FAKE_IPSEC_SITE_CONNECTION1_ID:
 FAKE_IKE_POLICY2 = {
     'ike_version': 'v1',
     'encryption_algorithm': 'aes-256',
-    'auth_algorithm': 'sha1',
+    'auth_algorithm': 'sha256',
     'pfs': 'group2',
     'lifetime_value': 1800
 }
 
 FAKE_IPSEC_POLICY2 = {
     'encryption_algorithm': 'aes-256',
-    'auth_algorithm': 'sha1',
+    'auth_algorithm': 'sha256',
     'pfs': 'group2',
     'transform_protocol': 'esp',
     'lifetime_value': 1800,

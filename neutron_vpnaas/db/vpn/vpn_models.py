@@ -25,12 +25,11 @@ from neutron_vpnaas.services.vpn.common import constants
 
 
 AUTH_ALGORITHM_ENUM_VALUES = [
-    'sha1', 'sha256', 'sha384', 'sha512',
+    'sha256', 'sha384', 'sha512',
     'aes-xcbc', 'aes-cmac',
 ]
 
 ENCRYPTION_ALGORITHM_ENUM_VALUES = [
-    '3des',
     'aes-128', 'aes-192', 'aes-256',
     'aes-128-ctr', 'aes-192-ctr', 'aes-256-ctr',
     'aes-128-ccm-8', 'aes-192-ccm-8', 'aes-256-ccm-8',

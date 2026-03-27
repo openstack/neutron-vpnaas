@@ -78,7 +78,7 @@ class VPNTestMixin:
 
     def _create_ikepolicy(self, fmt,
                           name='ikepolicy1',
-                          auth_algorithm='sha1',
+                          auth_algorithm='sha256',
                           encryption_algorithm='aes-128',
                           phase1_negotiation_mode='main',
                           lifetime_units='seconds',
@@ -112,7 +112,7 @@ class VPNTestMixin:
     @contextlib.contextmanager
     def ikepolicy(self, fmt=None,
                   name='ikepolicy1',
-                  auth_algorithm='sha1',
+                  auth_algorithm='sha256',
                   encryption_algorithm='aes-128',
                   phase1_negotiation_mode='main',
                   lifetime_units='seconds',
@@ -142,7 +142,7 @@ class VPNTestMixin:
 
     def _create_ipsecpolicy(self, fmt,
                             name='ipsecpolicy1',
-                            auth_algorithm='sha1',
+                            auth_algorithm='sha256',
                             encryption_algorithm='aes-128',
                             encapsulation_mode='tunnel',
                             transform_protocol='esp',
@@ -173,7 +173,7 @@ class VPNTestMixin:
     @contextlib.contextmanager
     def ipsecpolicy(self, fmt=None,
                     name='ipsecpolicy1',
-                    auth_algorithm='sha1',
+                    auth_algorithm='sha256',
                     encryption_algorithm='aes-128',
                     encapsulation_mode='tunnel',
                     transform_protocol='esp',
@@ -500,7 +500,7 @@ class TestVpnaas(VPNPluginDbTestCase):
         description = 'ipsec-ikepolicy'
         keys = [('name', name),
                 ('description', 'ipsec-ikepolicy'),
-                ('auth_algorithm', 'sha1'),
+                ('auth_algorithm', 'sha256'),
                 ('encryption_algorithm', 'aes-128'),
                 ('phase1_negotiation_mode', 'main'),
                 ('ike_version', 'v1'),
@@ -525,7 +525,7 @@ class TestVpnaas(VPNPluginDbTestCase):
         mode = 'aggressive'
         keys = [('name', name),
                 ('description', 'ipsec-ikepolicy'),
-                ('auth_algorithm', 'sha1'),
+                ('auth_algorithm', 'sha256'),
                 ('encryption_algorithm', 'aes-128'),
                 ('phase1_negotiation_mode', 'aggressive'),
                 ('ike_version', 'v1'),
@@ -551,7 +551,7 @@ class TestVpnaas(VPNPluginDbTestCase):
         name = "ikepolicy1"
         description = 'ipsec-ikepolicy'
         keys = [('name', name),
-                ('auth_algorithm', 'sha1'),
+                ('auth_algorithm', 'sha256'),
                 ('encryption_algorithm', 'aes-128'),
                 ('phase1_negotiation_mode', 'main'),
                 ('ike_version', 'v1'),
@@ -572,7 +572,7 @@ class TestVpnaas(VPNPluginDbTestCase):
         """Test case to list all ikepolicies."""
         name = "ikepolicy_list"
         keys = [('name', name),
-                ('auth_algorithm', 'sha1'),
+                ('auth_algorithm', 'sha256'),
                 ('encryption_algorithm', 'aes-128'),
                 ('phase1_negotiation_mode', 'main'),
                 ('ike_version', 'v1'),
@@ -633,7 +633,7 @@ class TestVpnaas(VPNPluginDbTestCase):
         """Test case to update an ikepolicy."""
         name = "new_ikepolicy1"
         keys = [('name', name),
-                ('auth_algorithm', 'sha1'),
+                ('auth_algorithm', 'sha256'),
                 ('encryption_algorithm', 'aes-128'),
                 ('phase1_negotiation_mode', 'main'),
                 ('ike_version', 'v1'),
@@ -656,7 +656,7 @@ class TestVpnaas(VPNPluginDbTestCase):
         """Test case to update an ikepolicy with aggressive mode."""
         name = "new_ikepolicy1"
         keys = [('name', name),
-                ('auth_algorithm', 'sha1'),
+                ('auth_algorithm', 'sha256'),
                 ('encryption_algorithm', 'aes-128'),
                 ('phase1_negotiation_mode', 'aggressive'),
                 ('ike_version', 'v1'),
@@ -681,7 +681,7 @@ class TestVpnaas(VPNPluginDbTestCase):
         name = 'ikepolicy1'
         self._create_ikepolicy(name=name,
                                fmt=self.fmt,
-                               auth_algorithm='md5',
+                               auth_algorithm='invalid',
                                expected_res_status=400)
         self._create_ikepolicy(name=name,
                                fmt=self.fmt,
@@ -689,7 +689,7 @@ class TestVpnaas(VPNPluginDbTestCase):
                                expected_res_status=400)
         self._create_ikepolicy(name=name,
                                fmt=self.fmt,
-                               encryption_algorithm='des',
+                               encryption_algorithm='invalid',
                                expected_res_status=400)
         self._create_ikepolicy(name=name,
                                fmt=self.fmt,
@@ -742,7 +742,7 @@ class TestVpnaas(VPNPluginDbTestCase):
         description = 'my-ipsecpolicy'
         keys = [('name', name),
                 ('description', 'my-ipsecpolicy'),
-                ('auth_algorithm', 'sha1'),
+                ('auth_algorithm', 'sha256'),
                 ('encryption_algorithm', 'aes-128'),
                 ('encapsulation_mode', 'tunnel'),
                 ('transform_protocol', 'esp'),
@@ -773,7 +773,7 @@ class TestVpnaas(VPNPluginDbTestCase):
         """Test case to show or get an ipsecpolicy."""
         name = "ipsecpolicy1"
         keys = [('name', name),
-                ('auth_algorithm', 'sha1'),
+                ('auth_algorithm', 'sha256'),
                 ('encryption_algorithm', 'aes-128'),
                 ('encapsulation_mode', 'tunnel'),
                 ('transform_protocol', 'esp'),
@@ -794,7 +794,7 @@ class TestVpnaas(VPNPluginDbTestCase):
         """Test case to list all ipsecpolicies."""
         name = "ipsecpolicy_list"
         keys = [('name', name),
-                ('auth_algorithm', 'sha1'),
+                ('auth_algorithm', 'sha256'),
                 ('encryption_algorithm', 'aes-128'),
                 ('encapsulation_mode', 'tunnel'),
                 ('transform_protocol', 'esp'),
@@ -852,7 +852,7 @@ class TestVpnaas(VPNPluginDbTestCase):
         """Test case to update an ipsecpolicy."""
         name = "new_ipsecpolicy1"
         keys = [('name', name),
-                ('auth_algorithm', 'sha1'),
+                ('auth_algorithm', 'sha256'),
                 ('encryption_algorithm', 'aes-128'),
                 ('encapsulation_mode', 'tunnel'),
                 ('transform_protocol', 'esp'),
@@ -894,14 +894,14 @@ class TestVpnaas(VPNPluginDbTestCase):
 
         self._create_ipsecpolicy(
             fmt=self.fmt,
-            name=name, auth_algorithm='md5', expected_res_status=400)
+            name=name, auth_algorithm='invalid', expected_res_status=400)
         self._create_ipsecpolicy(
             fmt=self.fmt,
             name=name, auth_algorithm=100, expected_res_status=400)
 
         self._create_ipsecpolicy(
             fmt=self.fmt,
-            name=name, encryption_algorithm='des', expected_res_status=400)
+            name=name, encryption_algorithm='invalid', expected_res_status=400)
         self._create_ipsecpolicy(
             fmt=self.fmt,
             name=name, encryption_algorithm=200, expected_res_status=400)
@@ -2093,7 +2093,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         return {'ikepolicy': {'tenant_id': self.project_id,
                               'name': 'ike policy',
                               'description': 'my ike policy',
-                              'auth_algorithm': 'sha1',
+                              'auth_algorithm': 'sha256',
                               'encryption_algorithm': 'aes-128',
                               'phase1_negotiation_mode': 'main',
                               'lifetime': {'units': 'seconds', 'value': 3600},
@@ -2111,7 +2111,7 @@ class TestVpnDatabase(base.NeutronDbPluginV2TestCase, NeutronResourcesMixin):
         return {'ipsecpolicy': {'tenant_id': self.project_id,
                                 'name': 'ipsec policy',
                                 'description': 'my ipsec policy',
-                                'auth_algorithm': 'sha1',
+                                'auth_algorithm': 'sha256',
                                 'encryption_algorithm': 'aes-128',
                                 'encapsulation_mode': 'tunnel',
                                 'transform_protocol': 'esp',

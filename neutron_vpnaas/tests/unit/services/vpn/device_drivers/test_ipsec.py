@@ -51,14 +51,14 @@ FAKE_IPSEC_SITE_CONNECTION2_ID = _uuid()
 FAKE_IKE_POLICY = {
     'ike_version': 'v1',
     'encryption_algorithm': 'aes-128',
-    'auth_algorithm': 'sha1',
+    'auth_algorithm': 'sha256',
     'pfs': 'group5',
     'lifetime_value': 3600
 }
 
 FAKE_IPSEC_POLICY = {
     'encryption_algorithm': 'aes-128',
-    'auth_algorithm': 'sha1',
+    'auth_algorithm': 'sha256',
     'pfs': 'group5',
     'transform_protocol': 'esp',
     'lifetime_value': 3600,
@@ -115,12 +115,12 @@ FAKE_VPN_SERVICE = {
 
 AUTH_ESP = '''esp
     # [encryption_algorithm]-[auth_algorithm];[pfs]
-    phase2alg=aes128-sha1;modp1536'''
+    phase2alg=aes128-sha256;modp1536'''
 
 AUTH_AH = '''ah
     # AH protocol does not support encryption
     # [auth_algorithm];[pfs]
-    phase2alg=sha1;modp1536'''
+    phase2alg=sha256;modp1536'''
 
 OPENSWAN_CONNECTION_DETAILS = '''# rightsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
     # [mtu]
@@ -139,7 +139,7 @@ OPENSWAN_CONNECTION_DETAILS = '''# rightsubnet=networkA/netmaskA, networkB/netma
     #ike version
     ikev2=never
     # [encryption_algorithm]-[auth_algorithm];[pfs]
-    ike=aes128-sha1;modp1536
+    ike=aes128-sha256;modp1536
     # [lifetime_value]
     ikelifetime=%(ike_lifetime)ss
     # NOTE: it looks lifetime_units=kilobytes can't be enforced \
@@ -223,9 +223,9 @@ conn %(conn1_id)s
     %(conn_details)s
 """
 
-STRONGSWAN_AUTH_ESP = 'esp=aes128-sha1-modp1536'
+STRONGSWAN_AUTH_ESP = 'esp=aes128-sha256-modp1536'
 
-STRONGSWAN_AUTH_AH = 'ah=sha1-modp1536'
+STRONGSWAN_AUTH_AH = 'ah=sha256-modp1536'
 
 EXPECTED_IPSEC_OPENSWAN_SECRET_CONF = '''
 # Configuration for %s
@@ -878,7 +878,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         connection_id = FAKE_IPSEC_SITE_CONNECTION2_ID
         ike_policy = {'ike_version': 'v2',
                       'encryption_algorithm': 'aes-128',
-                      'auth_algorithm': 'sha1',
+                      'auth_algorithm': 'sha256',
                       'pfs': 'group5',
                       'lifetime_value': 3600}
         vpn_service = FAKE_VPN_SERVICE
@@ -1172,7 +1172,7 @@ class IPsecStrongswanConfigGeneration(BaseIPsecDeviceDriver):
             'dpd_delay': 30,
             'dpd_timeout': 120,
             'ike_encryption_algorithm': 'aes128',
-            'ike_auth_algorithm': 'sha1',
+            'ike_auth_algorithm': 'sha256',
             'ike_pfs': 'modp1536',
             'ike_lifetime': 3600,
             'life_time': 3600,

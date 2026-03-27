@@ -47,7 +47,7 @@ from neutron_vpnaas.services.vpn.device_drivers import ipsec
 
 _uuid = uuidutils.generate_uuid
 FAKE_IKE_POLICY = {
-    'auth_algorithm': 'sha1',
+    'auth_algorithm': 'sha256',
     "ike_version": "v1",
     'encryption_algorithm': 'aes-128',
     'pfs': 'group5',
@@ -63,7 +63,7 @@ FAKE_IPSEC_POLICY = {
     "lifetime_units": "seconds",
     "lifetime_value": 3600,
     "transform_protocol": "esp",
-    "auth_algorithm": "sha1",
+    "auth_algorithm": "sha256",
 }
 
 FAKE_VPN_SERVICE = {

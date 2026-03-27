@@ -1,0 +1,22 @@
+---
+upgrade:
+  - |
+    The deprecated and insecure cryptographic algorithms ``sha1``, ``md5``,
+    ``des``, and ``3des`` have been removed from neutron-vpnaas. These
+    algorithms are considered cryptographically weak and are no longer
+    accepted for IKE policies or IPsec policies. Existing configurations
+    using these algorithms must be updated to use stronger alternatives
+    such as ``sha256``, ``sha384``, or ``sha512`` for authentication
+    and ``aes-128``, ``aes-192``, or ``aes-256`` for encryption.
+security:
+  - |
+    Removed support for weak cryptographic algorithms ``sha1``, ``md5``,
+    ``des``, and ``3des`` in VPN IPsec policies. Users should migrate to
+    stronger algorithms (``sha256`` or above for authentication,
+    ``aes-128`` or above for encryption).
+other:
+  - |
+    It is still pending the database migration to remove the support of the
+    deprecated algorithms from the current enums:
+    ``ikepolicies.auth_algorithm``, ``ipsecpolicies.encryption_algorithm``,
+    ``ipsecpolicies.auth_algorithm`` and ``ikepolicies.auth_algorithm``. 

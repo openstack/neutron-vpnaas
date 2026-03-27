@@ -178,7 +178,7 @@ class VpnBase(rally_base.OpenStackScenario):
             "ikepolicy": {
                 "phase1_negotiation_mode":
                     kwargs.get("phase1_negotiation_mode", "main"),
-                "auth_algorithm": kwargs.get("auth_algorithm", "sha1"),
+                "auth_algorithm": kwargs.get("auth_algorithm", "sha256"),
                 "encryption_algorithm":
                     kwargs.get("encryption_algorithm", "aes-128"),
                 "pfs": kwargs.get("pfs", "group5"),
@@ -202,7 +202,7 @@ class VpnBase(rally_base.OpenStackScenario):
             "ipsecpolicy": {
                 "name": "rally_ipsecpolicy",
                 "transform_protocol": kwargs.get("transform_protocol", "esp"),
-                "auth_algorithm": kwargs.get("auth_algorithm", "sha1"),
+                "auth_algorithm": kwargs.get("auth_algorithm", "sha256"),
                 "encapsulation_mode":
                     kwargs.get("encapsulation_mode", "tunnel"),
                 "encryption_algorithm":

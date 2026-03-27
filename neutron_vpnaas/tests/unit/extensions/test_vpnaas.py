@@ -47,7 +47,7 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         ikepolicy_id = _uuid()
         data = {'ikepolicy': {'name': 'ikepolicy1',
                               'description': 'myikepolicy1',
-                              'auth_algorithm': 'sha1',
+                              'auth_algorithm': 'sha256',
                               'encryption_algorithm': 'aes-128',
                               'phase1_negotiation_mode': 'main',
                               'lifetime': {
@@ -76,7 +76,7 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         ikepolicy_id = _uuid()
         data = {'ikepolicy': {'name': 'ikepolicy1',
                               'description': 'myikepolicy1',
-                              'auth_algorithm': 'sha1',
+                              'auth_algorithm': 'sha256',
                               'encryption_algorithm': 'aes-128',
                               'phase1_negotiation_mode': 'aggressive',
                               'lifetime': {
@@ -104,7 +104,7 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         """Test case to list all ikepolicies."""
         ikepolicy_id = _uuid()
         return_value = [{'name': 'ikepolicy1',
-                         'auth_algorithm': 'sha1',
+                         'auth_algorithm': 'sha256',
                          'encryption_algorithm': 'aes-128',
                          'pfs': 'group5',
                          'ike_version': 'v1',
@@ -126,7 +126,7 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         update_data = {'ikepolicy': {'name': 'ikepolicy1',
                                      'encryption_algorithm': 'aes-256'}}
         return_value = {'name': 'ikepolicy1',
-                        'auth_algorithm': 'sha1',
+                        'auth_algorithm': 'sha256',
                         'encryption_algorithm': 'aes-256',
                         'phase1_negotiation_mode': 'main',
                         'lifetime': {
@@ -159,7 +159,7 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
                         'phase1_negotiation_mode': 'aggressive',
                         'encryption_algorithm': 'aes-256'}}
         return_value = {'name': 'ikepolicy1',
-                        'auth_algorithm': 'sha1',
+                        'auth_algorithm': 'sha256',
                         'encryption_algorithm': 'aes-256',
                         'phase1_negotiation_mode': 'aggressive',
                         'lifetime': {
@@ -188,7 +188,7 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         """Test case to get or show an ikepolicy."""
         ikepolicy_id = _uuid()
         return_value = {'name': 'ikepolicy1',
-                        'auth_algorithm': 'sha1',
+                        'auth_algorithm': 'sha256',
                         'encryption_algorithm': 'aes-128',
                         'phase1_negotiation_mode': 'main',
                         'lifetime': {
@@ -222,7 +222,7 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         ipsecpolicy_id = _uuid()
         data = {'ipsecpolicy': {'name': 'ipsecpolicy1',
                                 'description': 'myipsecpolicy1',
-                                'auth_algorithm': 'sha1',
+                                'auth_algorithm': 'sha256',
                                 'encryption_algorithm': 'aes-128',
                                 'encapsulation_mode': 'tunnel',
                                 'lifetime': {
@@ -249,7 +249,7 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         """Test case to list an ipsecpolicy."""
         ipsecpolicy_id = _uuid()
         return_value = [{'name': 'ipsecpolicy1',
-                         'auth_algorithm': 'sha1',
+                         'auth_algorithm': 'sha256',
                          'encryption_algorithm': 'aes-128',
                          'pfs': 'group5',
                          'id': ipsecpolicy_id}]
@@ -270,7 +270,7 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         update_data = {'ipsecpolicy': {'name': 'ipsecpolicy1',
                                        'encryption_algorithm': 'aes-256'}}
         return_value = {'name': 'ipsecpolicy1',
-                        'auth_algorithm': 'sha1',
+                        'auth_algorithm': 'sha256',
                         'encryption_algorithm': 'aes-128',
                         'encapsulation_mode': 'tunnel',
                         'lifetime': {
@@ -301,7 +301,7 @@ class VpnaasExtensionTestCase(base.ExtensionTestCase):
         """Test case to get or show an ipsecpolicy."""
         ipsecpolicy_id = _uuid()
         return_value = {'name': 'ipsecpolicy1',
-                        'auth_algorithm': 'sha1',
+                        'auth_algorithm': 'sha256',
                         'encryption_algorithm': 'aes-128',
                         'encapsulation_mode': 'tunnel',
                         'lifetime': {

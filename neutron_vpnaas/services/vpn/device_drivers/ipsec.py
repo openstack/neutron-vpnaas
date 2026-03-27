@@ -161,7 +161,6 @@ class BaseSwanProcess(metaclass=abc.ABCMeta):
     ]
 
     DIALECT_MAP = {
-        "3des": "3des",
         "aes-128": "aes128",
         "aes-192": "aes192",
         "aes-256": "aes256",
@@ -169,9 +168,9 @@ class BaseSwanProcess(metaclass=abc.ABCMeta):
         "aes-ctr-192": "aesctr192",
         "aes-ctr-256": "aesctr256",
         "aes-xcbc": "aes_xcbc",
-        "sha256": "sha2_256",
-        "sha384": "sha2_384",
-        "sha512": "sha2_512",
+        "sha256": "sha256",
+        "sha384": "sha384",
+        "sha512": "sha512",
         "group2": "modp1024",
         "group5": "modp1536",
         "group14": "modp2048",
