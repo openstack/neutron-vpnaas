@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    Removed compatibility code for libreswan versions prior to v3.10
+    (released in 2014). The ``initnss`` fallback when ``checknss`` is not
+    available has been removed. All supported libreswan versions include
+    the ``checknss`` command.

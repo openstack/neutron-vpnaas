@@ -1600,36 +1600,6 @@ class TestLibreSwanProcess(base.BaseTestCase):
             self.assertTrue(fake_ensure_needed_files.called)
             self.assertTrue(exists_mock.called)
 
-        exists_mock.reset_mock()
-
-        with mock.patch.object(
-            self.ipsec_process, '_execute'
-        ) as fake_execute, mock.patch.object(
-            self.ipsec_process, '_ipsec_execute'
-        ) as fake_ipsec_execute, mock.patch.object(
-            self.ipsec_process, '_ensure_needed_files'
-        ) as fake_ensure_needed_files:
-            fake_ipsec_execute.side_effect = [None, RuntimeError, None]
-            self.ipsec_process.ensure_configs()
-
-            expected = [mock.call(['chown', '--from=%s' % os.getuid(),
-                                   'root:root',
-                                   self.ipsec_process._get_config_filename(
-                                       'ipsec.secrets')]),
-                        mock.call(['chown', '--from=%s' % os.getuid(),
-                                   'root:root', self.ipsec_process.log_dir])]
-            fake_execute.assert_has_calls(expected)
-            self.assertEqual(2, fake_execute.call_count)
-
-            expected = [mock.call(['_stackmanager', 'start']),
-                        mock.call(['checknss']),
-                        mock.call(['initnss'])]
-            self.assertEqual(3, fake_ipsec_execute.call_count)
-            fake_ipsec_execute.assert_has_calls(expected)
-
-            self.assertTrue(fake_ensure_needed_files.called)
-            self.assertTrue(exists_mock.called)
-
 
 class IPsecStrongswanDeviceDriverLegacy(IPSecDeviceLegacy):
 

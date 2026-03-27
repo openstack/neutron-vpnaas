@@ -125,12 +125,7 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
         # Load the ipsec kernel module if not loaded
         self._ipsec_execute(['_stackmanager', 'start'])
         # checknss creates nssdb only if it is missing
-        # It is added in Libreswan version v3.10
-        # For prior versions use initnss
-        try:
-            self._ipsec_execute(['checknss'])
-        except RuntimeError:
-            self._ipsec_execute(['initnss'])
+        self._ipsec_execute(['checknss'])
 
     def get_status(self):
         return self._ipsec_execute(['whack', '--status'],
