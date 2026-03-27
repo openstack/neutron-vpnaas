@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Added compatibility with libreswan v5.3+, where the
+    ``_stackmanager`` command has been removed. The driver now falls
+    back to the ``start`` command when ``_stackmanager`` is not
+    available. See Launchpad bug `2146535
+    <https://launchpad.net/bugs/2146535>`_.

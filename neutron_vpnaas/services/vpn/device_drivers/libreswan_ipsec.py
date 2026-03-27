@@ -123,7 +123,12 @@ class LibreSwanProcess(ipsec.OpenSwanProcess):
         self._ensure_needed_files()
 
         # Load the ipsec kernel module if not loaded
-        self._ipsec_execute(['_stackmanager', 'start'])
+        # NOTE(ralonsoh): _stackmanager is no longer available since libreswan
+        # v5.3. Remove this fallback when we drop support for libreswan<v5.3
+        try:
+            self._ipsec_execute(['_stackmanager', 'start'])
+        except RuntimeError:
+            self._ipsec_execute(['start'])
         # checknss creates nssdb only if it is missing
         self._ipsec_execute(['checknss'])
 
