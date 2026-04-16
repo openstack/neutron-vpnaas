@@ -1078,7 +1078,7 @@ class IPsecDriver(device_drivers.DeviceDriver, metaclass=abc.ABCMeta):
 
     def should_be_reported(self, context, process):
         if (context.is_admin or
-            process.vpnservice["tenant_id"] == context.tenant_id):
+            process.vpnservice["tenant_id"] == context.project_id):
             return True
 
     @log_helpers.log_method_call
