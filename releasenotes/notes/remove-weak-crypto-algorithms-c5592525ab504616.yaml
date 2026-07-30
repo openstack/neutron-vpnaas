@@ -19,4 +19,4 @@ other:
     It is still pending the database migration to remove the support of the
     deprecated algorithms from the current enums:
     ``ikepolicies.auth_algorithm``, ``ipsecpolicies.encryption_algorithm``,
-    ``ipsecpolicies.auth_algorithm`` and ``ikepolicies.auth_algorithm``. 
+    ``ipsecpolicies.auth_algorithm`` and ``ikepolicies.auth_algorithm``.
