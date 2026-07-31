@@ -35,9 +35,6 @@ enable_service horizon
 
 # disable_service cinder c-sch c-api c-vol c-bak
 
-#new
-# OVN_BUILD_MODULES=True
-#new
 # ENABLE_CHASSIS_AS_GW=True
 
 # IPsec driver to use. Optional, defaults to strongswan.
