@@ -21,7 +21,6 @@ from neutron.tests.unit import testlib_api
 
 from neutron_vpnaas.db.models import head
 
-EXTERNAL_TABLES = set(external.TABLES) - set(external.VPNAAS_TABLES)
 VERSION_TABLE = 'alembic_version_vpnaas'
 
 
@@ -45,7 +44,7 @@ class TestModelsMigrationsVPNAAS(test_migrations.TestModelsMigrations,
     def include_object(self, object_, name, type_, reflected, compare_to):
         if type_ == 'table' and (name.startswith('alembic') or
                                  name == VERSION_TABLE or
-                                 name in EXTERNAL_TABLES):
+                                 name in external.TABLES):
             return False
         if type_ == 'index' and reflected and name.startswith("idx_autoinc_"):
             return False
