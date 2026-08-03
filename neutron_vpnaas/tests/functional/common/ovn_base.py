@@ -212,6 +212,7 @@ class TestOvnVPNAgentBase(base.TestOVNFunctionalBase):
         conf = agent_conf.setup_conf()
         conf.register_opts(ovn_conf.ovn_opts, group='ovn')
         conf.register_opts(ipsec.ipsec_opts, 'ipsec')
+        conf.register_opts(ipsec.openswan_opts, 'libreswan')
         common_conf.register_core_common_config_opts(conf)
         ovs_conf.register_ovs_opts(conf)
         ovn_agent.register_opts(conf)
