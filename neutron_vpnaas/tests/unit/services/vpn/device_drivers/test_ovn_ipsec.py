@@ -20,7 +20,9 @@ from neutron.conf import common as common_config
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
+from neutron_vpnaas.services.vpn.device_drivers import libreswan_ipsec
 from neutron_vpnaas.services.vpn.device_drivers import ovn_ipsec
+from neutron_vpnaas.services.vpn.device_drivers import strongswan_ipsec
 from neutron_vpnaas.tests import base
 from neutron_vpnaas.tests.unit.services.vpn.device_drivers import test_ipsec
 
@@ -178,7 +180,7 @@ class TestDeviceManager(base.BaseTestCase):
 class TestOvnStrongSwanDriver(test_ipsec.IPSecDeviceLegacy):
 
     def setUp(self, driver=ovn_ipsec.OvnStrongSwanDriver,
-              ipsec_process=ovn_ipsec.OvnStrongSwanProcess):
+              ipsec_process=strongswan_ipsec.StrongSwanProcess):
         conf = cfg.CONF
         conf.register_opts(common_config.core_opts)
         conf.register_opts(agent_config.INTERFACE_DRIVER_OPTS)
@@ -245,4 +247,4 @@ class TestOvnStrongSwanDriver(test_ipsec.IPSecDeviceLegacy):
 class TestOvnLibreSwanDriver(TestOvnStrongSwanDriver):
     def setUp(self):
         super().setUp(driver=ovn_ipsec.OvnLibreSwanDriver,
-                      ipsec_process=ovn_ipsec.OvnLibreSwanProcess)
+                      ipsec_process=libreswan_ipsec.LibreSwanProcess)

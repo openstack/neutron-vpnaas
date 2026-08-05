@@ -203,14 +203,6 @@ class NamespaceManager:
             LOG.exception(msg, name)
 
 
-class OvnStrongSwanProcess(strongswan_ipsec.StrongSwanProcess):
-    pass
-
-
-class OvnLibreSwanProcess(libreswan_ipsec.LibreSwanProcess):
-    pass
-
-
 class IPsecOvnDriverApi(ipsec.IPsecVpnDriverApi):
     def __init__(self, topic):
         super().__init__(topic)
@@ -347,7 +339,7 @@ class OvnIPsecDriver(ipsec.IPsecDriver):
 
 class OvnStrongSwanDriver(OvnIPsecDriver):
     def create_process(self, process_id, vpnservice, namespace):
-        return OvnStrongSwanProcess(
+        return strongswan_ipsec.StrongSwanProcess(
             self.conf,
             process_id,
             vpnservice,
@@ -356,7 +348,7 @@ class OvnStrongSwanDriver(OvnIPsecDriver):
 
 class OvnLibreSwanDriver(OvnIPsecDriver):
     def create_process(self, process_id, vpnservice, namespace):
-        return OvnLibreSwanProcess(
+        return libreswan_ipsec.LibreSwanProcess(
             self.conf,
             process_id,
             vpnservice,
