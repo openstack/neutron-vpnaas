@@ -30,7 +30,7 @@ _uuid = uuidutils.generate_uuid
 VPNAAS_NOP_DEVICE = ('neutron_vpnaas.tests.unit.services.'
                      'vpn.test_vpn_service.NoopDeviceDriver')
 VPNAAS_DEFAULT_DEVICE = ('neutron_vpnaas.services.vpn.'
-                         'device_drivers.ipsec.OpenSwanDriver')
+                         'device_drivers.libreswan_ipsec.LibreSwanDriver')
 FAKE_ROUTER_ID = _uuid()
 
 

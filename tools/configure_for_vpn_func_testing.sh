@@ -32,11 +32,8 @@ function _install_vpn_package {
         dsvm-functional-sswan*)
             IPSEC_PACKAGE=strongswan
             ;;
-        dsvm-functional-lswan*)
-            IPSEC_PACKAGE=libreswan
-            ;;
         *)
-            IPSEC_PACKAGE=openswan
+            IPSEC_PACKAGE=libreswan
             ;;
     esac
 

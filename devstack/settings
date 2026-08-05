@@ -26,7 +26,7 @@ function _get_service_provider {
     fi
 
     if [ "$ipsec_package" = "libreswan" ]; then
-        name="openswan"
+        name="libreswan"
     else
         name="strongswan"
     fi

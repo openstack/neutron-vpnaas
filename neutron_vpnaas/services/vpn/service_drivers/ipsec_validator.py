@@ -25,9 +25,7 @@ class IpsecValidationFailure(nexception.BadRequest):
 
 class IpsecVpnValidator(driver_validator.VpnDriverValidator):
 
-    """Driver-specific validator methods for the Openswan, Strongswan
-    and Libreswan.
-    """
+    """Driver-specific validator methods for the Strongswan and Libreswan."""
 
     def _check_transform_protocol(self, context, transform_protocol):
         """Restrict selecting ah-esp as IPSec Policy transform protocol.

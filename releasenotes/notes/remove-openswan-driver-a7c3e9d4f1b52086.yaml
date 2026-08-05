@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The OpenSwan VPN driver (``OpenSwanDriver`` and ``OvnOpenSwanDriver``)
+    has been removed. OpenSwan was deprecated in version 30.0.0 because it
+    has been unmaintained upstream and removed from major Linux
+    distributions. Deployments using OpenSwan must migrate to LibreSwan
+    or StrongSwan before upgrading. The default device driver is now
+    ``LibreSwanDriver``.

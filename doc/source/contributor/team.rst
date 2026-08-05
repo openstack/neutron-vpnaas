@@ -32,8 +32,6 @@ It includes both of in-tree and out-of-tree drivers.
 +----------------------------+---------------------------+------------------+
 | NSXvIPsecVpnDriver [#]_    | Roey Chen                 | roeyc            |
 +----------------------------+---------------------------+------------------+
-| OpenSwanDriver             | Lingxian Kong             | kong             |
-+----------------------------+---------------------------+------------------+
 |                            | Lingxian Kong             | kong             |
 | StrongSwanDriver           +---------------------------+------------------+
 |                            | Cao Xuan Hoang            | hoangcx          |

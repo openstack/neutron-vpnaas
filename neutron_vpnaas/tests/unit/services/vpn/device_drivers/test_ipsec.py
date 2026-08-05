@@ -14,10 +14,7 @@
 #    under the License.
 import copy
 import difflib
-import io
 import os
-import socket
-import time
 from unittest import mock
 
 import netaddr
@@ -29,11 +26,9 @@ from neutron.agent.linux import iptables_manager
 from neutron.conf.agent.l3 import config as l3_config
 from neutron_lib import constants
 from neutron_lib import context
-from neutron_lib.exceptions import vpn as vpn_exception
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
-from neutron_vpnaas.services.vpn.device_drivers import ipsec as openswan_ipsec
 from neutron_vpnaas.services.vpn.device_drivers import libreswan_ipsec
 from neutron_vpnaas.services.vpn.device_drivers import strongswan_ipsec
 from neutron_vpnaas.tests import base
@@ -122,7 +117,7 @@ AUTH_AH = '''ah
     # [auth_algorithm];[pfs]
     phase2alg=sha256;modp1536'''
 
-OPENSWAN_CONNECTION_DETAILS = '''# rightsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
+LIBRESWAN_CONNECTION_DETAILS = '''# rightsubnet=networkA/netmaskA, networkB/netmaskB (IKEv2 only)
     # [mtu]
     mtu=1500
     # [dpd_action]
@@ -156,21 +151,11 @@ OPENSWAN_CONNECTION_DETAILS = '''# rightsubnet=networkA/netmaskA, networkB/netma
     # lifebytes=100000 if lifetime_units=kilobytes (IKEv2 only)
 '''  # noqa: E501
 
-LIBRESWAN_CONNECTION_DETAILS = OPENSWAN_CONNECTION_DETAILS
-
 IPV4_NEXT_HOP = (
     '''# NOTE: a default route is required for %defaultroute to work...
     leftnexthop=%defaultroute
     rightnexthop=%defaultroute'''
 )
-
-IPV6_NEXT_HOP = '''# To recognize the given IP addresses in this config
-    # as IPv6 addresses by pluto whack. Default is ipv4
-    connaddrfamily=ipv6
-    # openswan can't process defaultroute for ipv6.
-    # Assign gateway address as leftnexthop
-    leftnexthop=%s
-    # rightnexthop is not mandatory for ipsec, so no need in ipv6.'''
 
 LIBRESWAN_IPV6_NEXT_HOP = (
     '''# To recognize the given IP addresses in this config
@@ -180,61 +165,6 @@ LIBRESWAN_IPV6_NEXT_HOP = (
     leftnexthop=%s
     # rightnexthop is not mandatory for ipsec, so no need in ipv6.'''
 )
-
-EXPECTED_OPENSWAN_CONF = """
-# Configuration for %(vpnservice_id)s
-config setup
-    nat_traversal=yes
-    virtual_private=%(virtual_privates)s
-conn %%default
-    keylife=60m
-    keyingtries=%%forever
-conn %(conn1_id)s
-    %(next_hop)s
-    left=%(left)s
-    leftid=%(leftid)s
-    auto=start
-    # NOTE:REQUIRED
-    # [subnet]
-    leftsubnet%(local_cidrs1)s
-    # [updown]
-    # What "updown" script to run to adjust routing and/or firewalling when
-    # the status of the connection changes (default "ipsec _updown").
-    # "--route yes" allows to specify such routing options as mtu and metric.
-    leftupdown="ipsec _updown --route yes"
-    ######################
-    # ipsec_site_connections
-    ######################
-    # [peer_address]
-    right=%(right1)s
-    # [peer_id]
-    rightid=%(right1)s
-    # [peer_cidrs]
-    rightsubnets={ %(peer_cidrs1)s }
-    %(conn_details)sconn %(conn2_id)s
-    %(next_hop)s
-    left=%(left)s
-    leftid=%(leftid)s
-    auto=start
-    # NOTE:REQUIRED
-    # [subnet]
-    leftsubnet%(local_cidrs2)s
-    # [updown]
-    # What "updown" script to run to adjust routing and/or firewalling when
-    # the status of the connection changes (default "ipsec _updown").
-    # "--route yes" allows to specify such routing options as mtu and metric.
-    leftupdown="ipsec _updown --route yes"
-    ######################
-    # ipsec_site_connections
-    ######################
-    # [peer_address]
-    right=%(right2)s
-    # [peer_id]
-    rightid=%(right2)s
-    # [peer_cidrs]
-    rightsubnets={ %(peer_cidrs2)s }
-    %(conn_details)s
-"""
 
 EXPECTED_LIBRESWAN_CONF = """
 # Configuration for %(vpnservice_id)s
@@ -294,12 +224,10 @@ STRONGSWAN_AUTH_ESP = 'esp=aes128-sha256-modp1536'
 
 STRONGSWAN_AUTH_AH = 'ah=sha256-modp1536'
 
-EXPECTED_IPSEC_OPENSWAN_SECRET_CONF = '''
+EXPECTED_IPSEC_LIBRESWAN_SECRET_CONF = '''
 # Configuration for %s
 60.0.0.4 60.0.0.5 : PSK 0scGFzc3dvcmQ=
 60.0.0.4 60.0.0.6 : PSK 0scGFzc3dvcmQ=''' % FAKE_VPNSERVICE_ID
-
-EXPECTED_IPSEC_LIBRESWAN_SECRET_CONF = EXPECTED_IPSEC_OPENSWAN_SECRET_CONF
 
 EXPECTED_IPSEC_STRONGSWAN_CONF = '''
 # Configuration for %(vpnservice_id)s
@@ -401,8 +329,8 @@ NOT_RUNNING_STATUS = "Command: ['ipsec', 'status'] Exit code: 3 Stdout:"
 
 
 class BaseIPsecDeviceDriver(base.BaseTestCase):
-    def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
-              ipsec_process=openswan_ipsec.OpenSwanProcess,
+    def setUp(self, driver=libreswan_ipsec.LibreSwanDriver,
+              ipsec_process=libreswan_ipsec.LibreSwanProcess,
               vpnservice=FAKE_VPN_SERVICE):
         super().setUp()
         for klass in [
@@ -503,8 +431,8 @@ class BaseIPsecDeviceDriver(base.BaseTestCase):
 
 class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
 
-    def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
-              ipsec_process=openswan_ipsec.OpenSwanProcess):
+    def setUp(self, driver=libreswan_ipsec.LibreSwanDriver,
+              ipsec_process=libreswan_ipsec.LibreSwanProcess):
         super().setUp(driver, ipsec_process)
         self._make_router_info_for_test()
 
@@ -531,7 +459,7 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         self._test_vpnservice_updated([self.router_info], **kwargs)
 
     def test_create_router(self):
-        process = mock.Mock(openswan_ipsec.OpenSwanProcess)
+        process = mock.Mock(libreswan_ipsec.LibreSwanProcess)
         process.vpnservice = self.vpnservice
         self.driver.processes = {
             FAKE_ROUTER_ID: process}
@@ -1010,8 +938,8 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
 
 class IPSecDeviceDVR(BaseIPsecDeviceDriver):
 
-    def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
-              ipsec_process=openswan_ipsec.OpenSwanProcess):
+    def setUp(self, driver=libreswan_ipsec.LibreSwanDriver,
+              ipsec_process=libreswan_ipsec.LibreSwanProcess):
         super().setUp(driver, ipsec_process)
         mock.patch.object(dvr_snat_ns.SnatNamespace, 'create').start()
         self._make_dvr_edge_router_info_for_test()
@@ -1062,144 +990,6 @@ class IPSecDeviceDVR(BaseIPsecDeviceDriver):
     def test_ensure_nat_rules_with_dvr_edge_router(self):
         self.driver.ensure_nat_rules(FAKE_VPN_SERVICE)
         self.apply_mock.assert_called_once_with()
-
-
-class TestOpenSwanConfigGeneration(BaseIPsecDeviceDriver):
-
-    """Verify that configuration files are generated correctly.
-
-    Besides the normal translation of some settings, when creating the config
-    file, the generated file can also vary based on the following
-    special conditions:
-
-        - IPv6 versus IPv4
-        - Multiple left subnets versus a single left subnet
-        - IPSec policy using AH transform
-
-    The tests will focus on these variations.
-    """
-
-    def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
-              ipsec_process=openswan_ipsec.OpenSwanProcess):
-        super().setUp(driver, ipsec_process, vpnservice=FAKE_VPN_SERVICE)
-        self.conf.register_opts(openswan_ipsec.openswan_opts, 'openswan')
-        self.conf.set_override('state_path', '/tmp')
-        self.ipsec_template = self.conf.openswan.ipsec_config_template
-        self.process = ipsec_process(self.conf,
-                                     'foo-process-id',
-                                     self.vpnservice,
-                                     mock.ANY)
-
-    def build_ipsec_expected_config_for_test(self, info):
-        """Modify OpenSwan ipsec expected config files for test variations."""
-        auth_mode = info.get('ipsec_auth', AUTH_ESP)
-        conn_details = OPENSWAN_CONNECTION_DETAILS % {
-            'auth_mode': auth_mode,
-            'dpd_action': 'hold',
-            'dpd_delay': 30,
-            'dpd_timeout': 120,
-            'ike_lifetime': 3600,
-            'life_time': 3600,
-            'encapsulation_mode': 'tunnel'}
-        virtual_privates = []
-        # Convert local CIDRs into assignment strings. IF more than one,
-        # pluralize the attribute name and enclose in brackets.
-        cidrs = info.get('local_cidrs', [['10.0.0.0/24'], ['11.0.0.0/24']])
-        local_cidrs = []
-        for cidr in cidrs:
-            if len(cidr) == 2:
-                local_cidrs.append("s={ %s }" % ' '.join(cidr))
-            else:
-                local_cidrs.append("=%s" % cidr[0])
-            for net in cidr:
-                version = netaddr.IPNetwork(net).version
-                virtual_privates.append('%v{}:{}'.format(version, net))
-        # Convert peer CIDRs into space separated strings
-        cidrs = info.get('peer_cidrs', [['20.0.0.0/24', '30.0.0.0/24'],
-                                        ['40.0.0.0/24', '50.0.0.0/24']])
-        for cidr in cidrs:
-            for net in cidr:
-                version = netaddr.IPNetwork(net).version
-                virtual_privates.append('%v{}:{}'.format(version, net))
-        peer_cidrs = [' '.join(cidr) for cidr in cidrs]
-        local_ip = info.get('local', '60.0.0.4')
-        local_id = info.get('local_id')
-        leftid = local_ip
-        if local_id:
-            leftid = local_id
-        version = info.get('local_ip_vers', 4)
-        next_hop = IPV4_NEXT_HOP if version == 4 else IPV6_NEXT_HOP % local_ip
-        peer_ips = info.get('peers', ['60.0.0.5', '60.0.0.6'])
-        virtual_privates.sort()
-        return EXPECTED_OPENSWAN_CONF % {
-            'vpnservice_id': FAKE_VPNSERVICE_ID,
-            'virtual_privates': ','.join(virtual_privates),
-            'next_hop': next_hop,
-            'local_cidrs1': local_cidrs[0], 'local_cidrs2': local_cidrs[1],
-            'local_ver': version,
-            'peer_cidrs1': peer_cidrs[0], 'peer_cidrs2': peer_cidrs[1],
-            'left': local_ip,
-            'leftid': leftid,
-            'right1': peer_ips[0], 'right2': peer_ips[1],
-            'conn1_id': FAKE_IPSEC_SITE_CONNECTION1_ID,
-            'conn2_id': FAKE_IPSEC_SITE_CONNECTION2_ID,
-            'conn_details': conn_details}
-
-    def test_connections_with_esp_transform_protocol(self):
-        """Test config file with IPSec policy using ESP."""
-        self._test_ipsec_connection_config({})
-
-    def test_connections_with_ah_transform_protocol(self):
-        """Test config file with IPSec policy using ESP."""
-        overrides = {'ipsec_auth': 'ah'}
-        self.modify_config_for_test(overrides)
-        self.process.update_vpnservice(self.vpnservice)
-        info = {'ipsec_auth': AUTH_AH}
-        self._test_ipsec_connection_config(info)
-
-    def test_connections_with_multiple_left_subnets(self):
-        """Test multiple local subnets.
-
-        The configure uses the 'leftsubnets' attribute, instead of the
-        'leftsubnet' attribute.
-        """
-
-        overrides = {'local_cidrs': [['10.0.0.0/24', '11.0.0.0/24'],
-                                     ['12.0.0.0/24', '13.0.0.0/24']]}
-        self.modify_config_for_test(overrides)
-        self.process.update_vpnservice(self.vpnservice)
-        self._test_ipsec_connection_config(overrides)
-
-    def test_config_files_with_ipv6_addresses(self):
-        """Test creating config files using IPv6 addressing."""
-        overrides = {'local_cidrs': [['2002:0a00::/48'], ['2002:0b00::/48']],
-                     'local_ip_vers': 6,
-                     'peer_cidrs': [['2002:1400::/48', '2002:1e00::/48'],
-                                    ['2002:2800::/48', '2002:3200::/48']],
-                     'local': '2002:3c00:0004::',
-                     'peers': ['2002:3c00:0005::', '2002:3c00:0006::'],
-                     'local_id': '2002:3c00:0004::'}
-        self.modify_config_for_test(overrides)
-        self.process.update_vpnservice(self.vpnservice)
-        self._test_ipsec_connection_config(overrides)
-
-    def test_config_files_with_ipv6_addresses_without_local_id(self):
-        """Test creating config files using IPv6 addressing."""
-        overrides = {'local_cidrs': [['2002:0a00::/48'], ['2002:0b00::/48']],
-                     'local_ip_vers': 6,
-                     'peer_cidrs': [['2002:1400::/48', '2002:1e00::/48'],
-                                    ['2002:2800::/48', '2002:3200::/48']],
-                     'local': '2002:3c00:0004::',
-                     'peers': ['2002:3c00:0005::', '2002:3c00:0006::']}
-        self.modify_config_for_test(overrides)
-        self.process.update_vpnservice(self.vpnservice)
-        self._test_ipsec_connection_config(overrides)
-
-    def test_secrets_config_file(self):
-        expected = EXPECTED_IPSEC_OPENSWAN_SECRET_CONF
-        actual = self.process._gen_config_content(
-            self.conf.openswan.ipsec_secret_template, self.vpnservice)
-        self.check_config_file(expected, actual)
 
 
 class IPsecStrongswanConfigGeneration(BaseIPsecDeviceDriver):
@@ -1411,299 +1201,6 @@ class TestLibreSwanConfigGeneration(BaseIPsecDeviceDriver):
         actual = self.process._gen_config_content(
             self.conf.libreswan.ipsec_secret_template, self.vpnservice)
         self.check_config_file(expected, actual)
-
-
-class TestOpenSwanProcess(IPSecDeviceLegacy):
-
-    _test_timeout = 1
-    _test_backoff = 2
-    _test_retries = 5
-
-    def setUp(self, driver=openswan_ipsec.OpenSwanDriver,
-              ipsec_process=openswan_ipsec.OpenSwanProcess):
-        super().setUp(driver, ipsec_process)
-        self.conf.register_opts(openswan_ipsec.openswan_opts,
-                                'openswan')
-        self.conf.set_override('state_path', '/tmp')
-        cfg.CONF.register_opts(openswan_ipsec.pluto_opts,
-                               'pluto')
-        cfg.CONF.set_override('shutdown_check_timeout', self._test_timeout,
-                              group='pluto')
-        cfg.CONF.set_override('shutdown_check_back_off', self._test_backoff,
-                              group='pluto')
-        cfg.CONF.set_override('shutdown_check_retries', self._test_retries,
-                              group='pluto')
-        self.addCleanup(cfg.CONF.reset)
-
-        self.os_remove = mock.patch('os.remove').start()
-
-        self.process = openswan_ipsec.OpenSwanProcess(self.conf,
-                                                      'foo-process-id',
-                                                      self.vpnservice,
-                                                      mock.ANY)
-
-    def test__resolve_fqdn(self):
-        with mock.patch.object(socket, 'getaddrinfo') as mock_getaddr_info:
-            mock_getaddr_info.return_value = [(2, 1, 6, '',
-                                              ('172.168.1.2', 0))]
-            resolved_ip_addr = self.process._resolve_fqdn('fqdn.foo.addr')
-            self.assertEqual('172.168.1.2', resolved_ip_addr)
-
-    def _test_get_nexthop_helper(self, address, _resolve_fqdn_side_effect,
-                                 expected_ip_cmd, expected_nexthop):
-        with mock.patch.object(self.process,
-                               '_resolve_fqdn') as fake_resolve_fqdn:
-            fake_resolve_fqdn.side_effect = _resolve_fqdn_side_effect
-
-            returned_next_hop = self.process._get_nexthop(address,
-                                                          'fake-conn-id')
-            _resolve_fqdn_expected_call_count = (
-                1 if _resolve_fqdn_side_effect else 0)
-
-            self.assertEqual(_resolve_fqdn_expected_call_count,
-                             fake_resolve_fqdn.call_count)
-            self._execute.assert_called_once_with(expected_ip_cmd)
-            self.assertEqual(expected_nexthop, returned_next_hop)
-
-    def test__get_nexthop_peer_addr_is_ipaddr(self):
-        gw_addr = '10.0.0.1'
-        self._execute.return_value = '172.168.1.2 via %s' % gw_addr
-        peer_address = '172.168.1.2'
-        expected_ip_cmd = ['ip', 'route', 'get', peer_address]
-        self._test_get_nexthop_helper(peer_address, None,
-                                      expected_ip_cmd, gw_addr)
-
-    def test__get_nexthop_peer_addr_is_valid_fqdn(self):
-        peer_address = 'foo.peer.addr'
-        expected_ip_cmd = ['ip', 'route', 'get', '172.168.1.2']
-        gw_addr = '10.0.0.1'
-        self._execute.return_value = '172.168.1.2 via %s' % gw_addr
-
-        def _fake_resolve_fqdn(address):
-            return '172.168.1.2'
-
-        self._test_get_nexthop_helper(peer_address, _fake_resolve_fqdn,
-                                      expected_ip_cmd, gw_addr)
-
-    def test__get_nexthop_gw_not_present(self):
-        peer_address = '172.168.1.2'
-        expected_ip_cmd = ['ip', 'route', 'get', '172.168.1.2']
-        self._execute.return_value = ' '
-
-        self._test_get_nexthop_helper(peer_address, None,
-                                      expected_ip_cmd, peer_address)
-
-    def test__get_nexthop_fqdn_peer_addr_is_not_resolved(self):
-        self.process.connection_status = {}
-        expected_connection_status_dict = (
-            {'fake-conn-id': {'status': constants.ERROR,
-                              'updated_pending_status': True}})
-
-        self.assertRaises(vpn_exception.VPNPeerAddressNotResolved,
-                          self.process._get_nexthop, 'foo.peer.addr.',
-                          'fake-conn-id')
-        self.assertEqual(expected_connection_status_dict,
-                         self.process.connection_status)
-
-        self.process.connection_status = (
-            {'fake-conn-id': {'status': constants.PENDING_CREATE,
-                              'updated_pending_status': False}})
-
-        self.assertRaises(vpn_exception.VPNPeerAddressNotResolved,
-                          self.process._get_nexthop, 'foo.peer.addr.',
-                          'fake-conn-id')
-        self.assertEqual(expected_connection_status_dict,
-                         self.process.connection_status)
-
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'ipsec.OpenSwanProcess._get_nexthop',
-                return_value='172.168.1.2')
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'ipsec.OpenSwanProcess._cleanup_control_files')
-    def test_no_cleanups(self, cleanup_mock, hop_mock):
-        # Not an "awesome test" but more of a check box item. Basically,
-        # what happens if we didn't need to clean up any files.
-        with mock.patch.object(self.process,
-                               '_process_running',
-                               return_value=True) as query_mock:
-            self.process.start()
-            self.assertEqual(1, query_mock.call_count)
-
-            # This is really what is being tested here. If process is
-            # running, we shouldn't attempt a cleanup.
-            self.assertFalse(cleanup_mock.called)
-
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'ipsec.OpenSwanProcess._get_nexthop',
-                return_value='172.168.1.2')
-    @mock.patch('os.path.exists', return_value=True)
-    def test_cleanup_files(self, exists_mock, hop_mock):
-        # Tests the 'bones' of things really and kind of check-box-item-bogus
-        # test - this really needs exercising through a higher level test.
-        with mock.patch.object(self.process,
-                               '_process_running',
-                               return_value=False) as query_mock:
-            fake_path = '/fake/path/run'
-            self.process.pid_path = fake_path
-            self.process.pid_file = '%s.pid' % fake_path
-            self.process.start()
-            self.assertEqual(1, query_mock.call_count)
-            self.assertEqual(2, self.os_remove.call_count)
-            self.os_remove.assert_has_calls([mock.call('%s.pid' % fake_path),
-                                             mock.call('%s.ctl' % fake_path)])
-
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'ipsec.OpenSwanProcess._get_nexthop',
-                return_value='172.168.1.2')
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'ipsec.OpenSwanProcess._process_running',
-                return_value=False)
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'ipsec.OpenSwanProcess._cleanup_control_files')
-    @mock.patch.object(time, 'sleep')
-    def test_restart_process_not_running(self, sleep_mock, cleanup_mock,
-                                         query_mock, hop_mock):
-        self.process.restart()
-
-        # Really what is being tested - retry configuration exists and that
-        # we do the right things when process check is false.
-        self.assertTrue(query_mock.called)
-        self.assertTrue(cleanup_mock.called)
-        self.assertFalse(sleep_mock.called)
-
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'ipsec.OpenSwanProcess._get_nexthop',
-                return_value='172.168.1.2')
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'ipsec.OpenSwanProcess._process_running',
-                return_value=True)
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'ipsec.OpenSwanProcess._cleanup_control_files')
-    @mock.patch.object(time, 'sleep')
-    def test_restart_process_doesnt_stop(self, sleep_mock, cleanup_mock,
-                                         query_mock, hop_mock):
-        self.process.restart()
-
-        # Really what is being tested - retry configuration exists and that
-        # we do the right things when process check is True.
-        self.assertEqual(self._test_retries + 1, query_mock.call_count)
-        self.assertFalse(cleanup_mock.called)
-        self.assertEqual(self._test_retries, sleep_mock.call_count)
-        calls = [mock.call(1), mock.call(2), mock.call(4),
-                 mock.call(8), mock.call(16)]
-        sleep_mock.assert_has_calls(calls)
-
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'ipsec.OpenSwanProcess._get_nexthop',
-                return_value='172.168.1.2')
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'ipsec.OpenSwanProcess._process_running',
-                side_effect=[True, True, False, False])
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.'
-                'ipsec.OpenSwanProcess._cleanup_control_files')
-    @mock.patch.object(time, 'sleep')
-    def test_restart_process_retry_until_stop(self, sleep_mock, cleanup_mock,
-                                              query_mock, hop_mock):
-        self.process.restart()
-
-        # Really what is being tested - retry configuration exists and that
-        # we do the right things when process check is True a few times and
-        # then returns False.
-        self.assertEqual(4, query_mock.call_count)
-        self.assertTrue(cleanup_mock.called)
-        self.assertEqual(2, sleep_mock.call_count)
-
-    def test_process_running_no_pid(self):
-        with mock.patch('os.path.exists', return_value=False):
-            self.assertFalse(
-                self.process._process_running())
-
-    # open() is used elsewhere, so we need to inject a mocked open into the
-    # module to be tested.
-    @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.open',
-                create=True,
-                side_effect=IOError)
-    def test_process_running_open_failure(self, mock_open, mock_exists):
-        self.assertFalse(self.process._process_running())
-        self.assertTrue(mock_exists.called)
-        self.assertTrue(mock_open.called)
-
-    @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.open',
-                create=True,
-                side_effect=[io.StringIO('invalid'),
-                             IOError])
-    def test_process_running_bogus_pid(self, mock_open, mock_exists):
-        with mock.patch.object(openswan_ipsec.LOG, 'error'):
-            self.assertFalse(self.process._process_running())
-            self.assertTrue(mock_exists.called)
-            self.assertEqual(2, mock_open.call_count)
-
-    @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.open',
-                create=True,
-                side_effect=[io.StringIO('134'), io.StringIO('')])
-    def test_process_running_no_cmdline(self, mock_open, mock_exists):
-        with mock.patch.object(openswan_ipsec.LOG, 'error') as log_mock:
-            self.assertFalse(self.process._process_running())
-            self.assertFalse(log_mock.called)
-            self.assertEqual(2, mock_open.call_count)
-
-    @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.open',
-                create=True,
-                side_effect=[io.StringIO('134'), io.StringIO('ps ax')])
-    def test_process_running_cmdline_mismatch(self, mock_open, mock_exists):
-        with mock.patch.object(openswan_ipsec.LOG, 'error') as log_mock:
-            self.assertFalse(self.process._process_running())
-            self.assertFalse(log_mock.called)
-            self.assertEqual(2, mock_open.call_count)
-
-    @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('neutron_vpnaas.services.vpn.device_drivers.ipsec.open',
-                create=True,
-                side_effect=[io.StringIO('134'),
-                             io.StringIO('/usr/libexec/ipsec/pluto -ctlbase'
-                                         '/some/foo/path')])
-    def test_process_running_cmdline_match(self, mock_open, mock_exists):
-        self.process.pid_path = '/some/foo/path'
-        with mock.patch.object(openswan_ipsec.LOG, 'error') as log_mock:
-            self.assertTrue(self.process._process_running())
-            self.assertTrue(log_mock.called)
-
-    def test_status_handling_for_downed_connection(self):
-        """Test status handling for downed connection."""
-        self._test_status_handling_for_downed_connection(PLUTO_DOWN_STATUS)
-
-    def test_status_handling_for_connection_with_no_ipsec_sa(self):
-        """Test status handling for downed connection."""
-        self._test_status_handling_for_downed_connection(
-            PLUTO_ACTIVE_NO_IPSEC_SA_STATUS)
-
-    def test_status_handling_for_active_connection(self):
-        """Test status handling for active connection."""
-        self._test_status_handling_for_active_connection(PLUTO_ACTIVE_STATUS)
-
-    def test_status_handling_for_ike_v2_active_connection(self):
-        """Test status handling for active connection."""
-        self._test_status_handling_for_ike_v2_active_connection(
-            PLUTO_ACTIVE_STATUS_IKEV2)
-
-    def test_status_handling_for_deleted_connection(self):
-        """Test status handling for deleted connection."""
-        self._test_status_handling_for_deleted_connection(NOT_RUNNING_STATUS)
-
-    def test_connection_names_handling_for_multiple_subnets(self):
-        """Test connection names handling for multiple subnets."""
-        self._test_connection_names_handling_for_multiple_subnets(
-            PLUTO_MULTIPLE_SUBNETS_ESTABLISHED_STATUS)
-
-    def test_parse_connection_status(self):
-        """Test the status of ipsec-site-connection parsed correctly."""
-        self._test_parse_connection_status(NOT_RUNNING_STATUS,
-                                           PLUTO_ACTIVE_STATUS,
-                                           PLUTO_DOWN_STATUS)
 
 
 class TestLibreSwanProcess(base.BaseTestCase):

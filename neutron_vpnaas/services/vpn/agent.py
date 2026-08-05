@@ -28,13 +28,11 @@ vpn_agent_opts = [
     cfg.MultiStrOpt(
         'vpn_device_driver',
         default=['neutron_vpnaas.services.vpn.device_drivers.'
-                 'ipsec.OpenSwanDriver'],
-        sample_default=['neutron_vpnaas.services.vpn.device_drivers.ipsec.'
-                        'OpenSwanDriver, '
+                 'libreswan_ipsec.LibreSwanDriver'],
+        sample_default=['neutron_vpnaas.services.vpn.device_drivers.'
+                        'libreswan_ipsec.LibreSwanDriver, '
                         'neutron_vpnaas.services.vpn.device_drivers.'
-                        'strongswan_ipsec.StrongSwanDriver, '
-                        'neutron_vpnaas.services.vpn.device_drivers.'
-                        'libreswan_ipsec.LibreSwanDriver'],
+                        'strongswan_ipsec.StrongSwanDriver'],
         help=_("The vpn device drivers Neutron will use")),
 ]
 cfg.CONF.register_opts(vpn_agent_opts, 'vpnagent')

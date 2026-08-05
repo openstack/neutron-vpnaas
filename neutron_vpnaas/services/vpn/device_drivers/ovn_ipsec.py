@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from debtcollector import removals
 import netaddr
 
 from neutron.agent.common import utils as agent_common_utils
@@ -204,10 +203,6 @@ class NamespaceManager:
             LOG.exception(msg, name)
 
 
-class OvnOpenSwanProcess(ipsec.OpenSwanProcess):
-    pass
-
-
 class OvnStrongSwanProcess(strongswan_ipsec.StrongSwanProcess):
     pass
 
@@ -353,20 +348,6 @@ class OvnIPsecDriver(ipsec.IPsecDriver):
 class OvnStrongSwanDriver(OvnIPsecDriver):
     def create_process(self, process_id, vpnservice, namespace):
         return OvnStrongSwanProcess(
-            self.conf,
-            process_id,
-            vpnservice,
-            namespace)
-
-
-@removals.remove(
-    message='Openswan driver is deprecated. '
-            'Use LibreSwan or strongSwan instead.',
-    version='30.0.0',
-)
-class OvnOpenSwanDriver(OvnIPsecDriver):
-    def create_process(self, process_id, vpnservice, namespace):
-        return OvnOpenSwanProcess(
             self.conf,
             process_id,
             vpnservice,

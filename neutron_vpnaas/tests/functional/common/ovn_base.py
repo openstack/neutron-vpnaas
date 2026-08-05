@@ -35,6 +35,7 @@ from neutron_vpnaas.agent.ovn.vpn import agent
 from neutron_vpnaas.agent.ovn.vpn import ovsdb
 from neutron_vpnaas.services.vpn.common import constants as vpn_const
 from neutron_vpnaas.services.vpn.device_drivers import ipsec
+from neutron_vpnaas.services.vpn.device_drivers import libreswan_ipsec
 from neutron_vpnaas.services.vpn import ovn_agent
 from neutron_vpnaas.services.vpn.service_drivers import ovn_ipsec
 
@@ -212,7 +213,7 @@ class TestOvnVPNAgentBase(base.TestOVNFunctionalBase):
         conf = agent_conf.setup_conf()
         conf.register_opts(ovn_conf.ovn_opts, group='ovn')
         conf.register_opts(ipsec.ipsec_opts, 'ipsec')
-        conf.register_opts(ipsec.openswan_opts, 'libreswan')
+        conf.register_opts(libreswan_ipsec.libreswan_opts, 'libreswan')
         common_conf.register_core_common_config_opts(conf)
         ovs_conf.register_ovs_opts(conf)
         ovn_agent.register_opts(conf)

@@ -242,12 +242,6 @@ class TestOvnStrongSwanDriver(test_ipsec.IPSecDeviceLegacy):
             process.disable.assert_called()
 
 
-class TestOvnOpenSwanDriver(TestOvnStrongSwanDriver):
-    def setUp(self):
-        super().setUp(driver=ovn_ipsec.OvnOpenSwanDriver,
-                      ipsec_process=ovn_ipsec.OvnOpenSwanProcess)
-
-
 class TestOvnLibreSwanDriver(TestOvnStrongSwanDriver):
     def setUp(self):
         super().setUp(driver=ovn_ipsec.OvnLibreSwanDriver,

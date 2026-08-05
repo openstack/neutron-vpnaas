@@ -43,6 +43,7 @@ import testtools
 from neutron_vpnaas.services.vpn import agent as vpn_agent
 from neutron_vpnaas.services.vpn.agent import vpn_agent_opts
 from neutron_vpnaas.services.vpn.device_drivers import ipsec
+from neutron_vpnaas.services.vpn.device_drivers import libreswan_ipsec
 
 
 _uuid = uuidutils.generate_uuid
@@ -332,7 +333,7 @@ class TestIPSecBase(framework.L3AgentTestFramework):
         config.register_opts(serviceprovider_opts, 'service_providers')
         config.register_opts(vpn_agent_opts, 'vpnagent')
         config.register_opts(ipsec.ipsec_opts, 'ipsec')
-        config.register_opts(ipsec.openswan_opts, 'openswan')
+        config.register_opts(libreswan_ipsec.libreswan_opts, 'libreswan')
 
         logging.register_options(config)
         agent_config.register_process_monitor_opts(config)
@@ -563,7 +564,7 @@ class TestIPSecBase(framework.L3AgentTestFramework):
 
     def _wait_for_ipsec_startup(self, router, driver, conf, should_run=True):
         """Wait for new IPSec process on failover agent to start up."""
-        # check for both strongswan and openswan processes
+        # check for both strongswan and libreswan processes
         path = driver.processes[router.router_id].config_dir
         pid_files = ['%s/var/run/charon.pid' % path,
                      '%s/var/run/pluto.pid' % path]
