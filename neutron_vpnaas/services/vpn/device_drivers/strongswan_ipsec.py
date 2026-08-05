@@ -49,9 +49,7 @@ strongswan_opts = [
         help=_('Template file for ipsec secret configuration.')),
     cfg.StrOpt(
         'default_config_area',
-        default=os.path.join(
-            TEMPLATE_PATH,
-            '/etc/strongswan.d'),
+        default='/etc/strongswan.d',
         help=_('The area where default StrongSwan configuration '
                'files are located.'))
 ]
