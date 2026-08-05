@@ -27,8 +27,6 @@ function neutron_agent_vpnaas_install_agent_packages {
         install_package apparmor
         sudo ln -sf /etc/apparmor.d/usr.lib.ipsec.charon /etc/apparmor.d/disable/
         sudo ln -sf /etc/apparmor.d/usr.lib.ipsec.stroke /etc/apparmor.d/disable/
-        # NOTE: Due to https://bugs.launchpad.net/ubuntu/+source/apparmor/+bug/1387220
-        # one must use 'sudo start apparmor ACTION=reload' for Ubuntu 14.10
         restart_service apparmor
     fi
 }
