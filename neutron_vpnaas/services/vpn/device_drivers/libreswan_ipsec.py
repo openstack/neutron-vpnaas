@@ -313,9 +313,6 @@ class LibreSwanProcess(ipsec.BaseSwanProcess):
             cmd += ['--perpeerlog', '--perpeerlogbase', self.log_dir]
         self._ipsec_execute(cmd)
 
-    def add_ipsec_connection(self, nexthop, conn_id):
-        pass
-
     def start_whack_listening(self):
         # NOTE(huntxu): This is a workaround for with a weak (len<8) secret,
         # "ipsec whack --listen" will exit with 3.
@@ -344,14 +341,6 @@ class LibreSwanProcess(ipsec.BaseSwanProcess):
             self._cleanup_control_files()
 
         self.start_pluto()
-
-        for ipsec_site_conn in self.vpnservice['ipsec_site_connections']:
-            if not ipsec_site_conn['admin_state_up']:
-                continue
-            nexthop = self._get_nexthop(ipsec_site_conn['peer_address'],
-                                        ipsec_site_conn['id'])
-            self.add_ipsec_connection(nexthop, ipsec_site_conn['id'])
-
         self.start_whack_listening()
 
         for ipsec_site_conn in self.vpnservice['ipsec_site_connections']:
