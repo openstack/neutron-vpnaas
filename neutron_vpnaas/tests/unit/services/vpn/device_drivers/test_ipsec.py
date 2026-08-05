@@ -156,9 +156,13 @@ OPENSWAN_CONNECTION_DETAILS = '''# rightsubnet=networkA/netmaskA, networkB/netma
     # lifebytes=100000 if lifetime_units=kilobytes (IKEv2 only)
 '''  # noqa: E501
 
-IPV4_NEXT_HOP = '''# NOTE: a default route is required for %defaultroute to work...
+LIBRESWAN_CONNECTION_DETAILS = OPENSWAN_CONNECTION_DETAILS
+
+IPV4_NEXT_HOP = (
+    '''# NOTE: a default route is required for %defaultroute to work...
     leftnexthop=%defaultroute
-    rightnexthop=%defaultroute'''  # noqa: E501
+    rightnexthop=%defaultroute'''
+)
 
 IPV6_NEXT_HOP = '''# To recognize the given IP addresses in this config
     # as IPv6 addresses by pluto whack. Default is ipv4
@@ -168,10 +172,73 @@ IPV6_NEXT_HOP = '''# To recognize the given IP addresses in this config
     leftnexthop=%s
     # rightnexthop is not mandatory for ipsec, so no need in ipv6.'''
 
+LIBRESWAN_IPV6_NEXT_HOP = (
+    '''# To recognize the given IP addresses in this config
+    # as IPv6 addresses by pluto whack. Default is ipv4
+    connaddrfamily=ipv6
+    # Assign gateway address as leftnexthop
+    leftnexthop=%s
+    # rightnexthop is not mandatory for ipsec, so no need in ipv6.'''
+)
+
 EXPECTED_OPENSWAN_CONF = """
 # Configuration for %(vpnservice_id)s
 config setup
     nat_traversal=yes
+    virtual_private=%(virtual_privates)s
+conn %%default
+    keylife=60m
+    keyingtries=%%forever
+conn %(conn1_id)s
+    %(next_hop)s
+    left=%(left)s
+    leftid=%(leftid)s
+    auto=start
+    # NOTE:REQUIRED
+    # [subnet]
+    leftsubnet%(local_cidrs1)s
+    # [updown]
+    # What "updown" script to run to adjust routing and/or firewalling when
+    # the status of the connection changes (default "ipsec _updown").
+    # "--route yes" allows to specify such routing options as mtu and metric.
+    leftupdown="ipsec _updown --route yes"
+    ######################
+    # ipsec_site_connections
+    ######################
+    # [peer_address]
+    right=%(right1)s
+    # [peer_id]
+    rightid=%(right1)s
+    # [peer_cidrs]
+    rightsubnets={ %(peer_cidrs1)s }
+    %(conn_details)sconn %(conn2_id)s
+    %(next_hop)s
+    left=%(left)s
+    leftid=%(leftid)s
+    auto=start
+    # NOTE:REQUIRED
+    # [subnet]
+    leftsubnet%(local_cidrs2)s
+    # [updown]
+    # What "updown" script to run to adjust routing and/or firewalling when
+    # the status of the connection changes (default "ipsec _updown").
+    # "--route yes" allows to specify such routing options as mtu and metric.
+    leftupdown="ipsec _updown --route yes"
+    ######################
+    # ipsec_site_connections
+    ######################
+    # [peer_address]
+    right=%(right2)s
+    # [peer_id]
+    rightid=%(right2)s
+    # [peer_cidrs]
+    rightsubnets={ %(peer_cidrs2)s }
+    %(conn_details)s
+"""
+
+EXPECTED_LIBRESWAN_CONF = """
+# Configuration for %(vpnservice_id)s
+config setup
     virtual_private=%(virtual_privates)s
 conn %%default
     keylife=60m
@@ -231,6 +298,8 @@ EXPECTED_IPSEC_OPENSWAN_SECRET_CONF = '''
 # Configuration for %s
 60.0.0.4 60.0.0.5 : PSK 0scGFzc3dvcmQ=
 60.0.0.4 60.0.0.6 : PSK 0scGFzc3dvcmQ=''' % FAKE_VPNSERVICE_ID
+
+EXPECTED_IPSEC_LIBRESWAN_SECRET_CONF = EXPECTED_IPSEC_OPENSWAN_SECRET_CONF
 
 EXPECTED_IPSEC_STRONGSWAN_CONF = '''
 # Configuration for %(vpnservice_id)s
@@ -1225,14 +1294,123 @@ class IPsecStrongswanConfigGeneration(BaseIPsecDeviceDriver):
         self.check_config_file(expected, actual)
 
 
-class TestLibreSwanConfigGeneration(TestOpenSwanConfigGeneration):
+class TestLibreSwanConfigGeneration(BaseIPsecDeviceDriver):
+    """Verify that LibreSwan configuration files are generated correctly."""
+
     def setUp(self, driver=libreswan_ipsec.LibreSwanDriver,
               ipsec_process=libreswan_ipsec.LibreSwanProcess):
-        super().setUp(driver=driver, ipsec_process=ipsec_process)
+        super().setUp(driver, ipsec_process, vpnservice=FAKE_VPN_SERVICE)
+        self.conf.register_opts(libreswan_ipsec.libreswan_opts, 'libreswan')
+        self.conf.set_override('state_path', '/tmp')
+        self.ipsec_template = self.conf.libreswan.ipsec_config_template
+        self.process = ipsec_process(self.conf,
+                                     'foo-process-id',
+                                     self.vpnservice,
+                                     mock.ANY)
 
     def build_ipsec_expected_config_for_test(self, info):
-        expected = super().build_ipsec_expected_config_for_test(info)
-        return expected.replace('    nat_traversal=yes\n', '')
+        """Build LibreSwan ipsec expected config for test variations."""
+        auth_mode = info.get('ipsec_auth', AUTH_ESP)
+        conn_details = LIBRESWAN_CONNECTION_DETAILS % {
+            'auth_mode': auth_mode,
+            'dpd_action': 'hold',
+            'dpd_delay': 30,
+            'dpd_timeout': 120,
+            'ike_lifetime': 3600,
+            'life_time': 3600,
+            'encapsulation_mode': 'tunnel'}
+        virtual_privates = []
+        cidrs = info.get('local_cidrs', [['10.0.0.0/24'], ['11.0.0.0/24']])
+        local_cidrs = []
+        for cidr in cidrs:
+            if len(cidr) == 2:
+                local_cidrs.append("s={ %s }" % ' '.join(cidr))
+            else:
+                local_cidrs.append("=%s" % cidr[0])
+            for net in cidr:
+                version = netaddr.IPNetwork(net).version
+                virtual_privates.append('%v{}:{}'.format(version, net))
+        cidrs = info.get('peer_cidrs', [['20.0.0.0/24', '30.0.0.0/24'],
+                                        ['40.0.0.0/24', '50.0.0.0/24']])
+        for cidr in cidrs:
+            for net in cidr:
+                version = netaddr.IPNetwork(net).version
+                virtual_privates.append('%v{}:{}'.format(version, net))
+        peer_cidrs = [' '.join(cidr) for cidr in cidrs]
+        local_ip = info.get('local', '60.0.0.4')
+        local_id = info.get('local_id')
+        leftid = local_ip
+        if local_id:
+            leftid = local_id
+        version = info.get('local_ip_vers', 4)
+        next_hop = (IPV4_NEXT_HOP if version == 4
+                    else LIBRESWAN_IPV6_NEXT_HOP % local_ip)
+        peer_ips = info.get('peers', ['60.0.0.5', '60.0.0.6'])
+        virtual_privates.sort()
+        return EXPECTED_LIBRESWAN_CONF % {
+            'vpnservice_id': FAKE_VPNSERVICE_ID,
+            'virtual_privates': ','.join(virtual_privates),
+            'next_hop': next_hop,
+            'local_cidrs1': local_cidrs[0], 'local_cidrs2': local_cidrs[1],
+            'local_ver': version,
+            'peer_cidrs1': peer_cidrs[0], 'peer_cidrs2': peer_cidrs[1],
+            'left': local_ip,
+            'leftid': leftid,
+            'right1': peer_ips[0], 'right2': peer_ips[1],
+            'conn1_id': FAKE_IPSEC_SITE_CONNECTION1_ID,
+            'conn2_id': FAKE_IPSEC_SITE_CONNECTION2_ID,
+            'conn_details': conn_details}
+
+    def test_connections_with_esp_transform_protocol(self):
+        """Test config file with IPSec policy using ESP."""
+        self._test_ipsec_connection_config({})
+
+    def test_connections_with_ah_transform_protocol(self):
+        """Test config file with IPSec policy using AH."""
+        overrides = {'ipsec_auth': 'ah'}
+        self.modify_config_for_test(overrides)
+        self.process.update_vpnservice(self.vpnservice)
+        info = {'ipsec_auth': AUTH_AH}
+        self._test_ipsec_connection_config(info)
+
+    def test_connections_with_multiple_left_subnets(self):
+        """Test multiple local subnets."""
+        overrides = {'local_cidrs': [['10.0.0.0/24', '11.0.0.0/24'],
+                                     ['12.0.0.0/24', '13.0.0.0/24']]}
+        self.modify_config_for_test(overrides)
+        self.process.update_vpnservice(self.vpnservice)
+        self._test_ipsec_connection_config(overrides)
+
+    def test_config_files_with_ipv6_addresses(self):
+        """Test creating config files using IPv6 addressing."""
+        overrides = {'local_cidrs': [['2002:0a00::/48'], ['2002:0b00::/48']],
+                     'local_ip_vers': 6,
+                     'peer_cidrs': [['2002:1400::/48', '2002:1e00::/48'],
+                                    ['2002:2800::/48', '2002:3200::/48']],
+                     'local': '2002:3c00:0004::',
+                     'peers': ['2002:3c00:0005::', '2002:3c00:0006::'],
+                     'local_id': '2002:3c00:0004::'}
+        self.modify_config_for_test(overrides)
+        self.process.update_vpnservice(self.vpnservice)
+        self._test_ipsec_connection_config(overrides)
+
+    def test_config_files_with_ipv6_addresses_without_local_id(self):
+        """Test creating config files using IPv6 addressing."""
+        overrides = {'local_cidrs': [['2002:0a00::/48'], ['2002:0b00::/48']],
+                     'local_ip_vers': 6,
+                     'peer_cidrs': [['2002:1400::/48', '2002:1e00::/48'],
+                                    ['2002:2800::/48', '2002:3200::/48']],
+                     'local': '2002:3c00:0004::',
+                     'peers': ['2002:3c00:0005::', '2002:3c00:0006::']}
+        self.modify_config_for_test(overrides)
+        self.process.update_vpnservice(self.vpnservice)
+        self._test_ipsec_connection_config(overrides)
+
+    def test_secrets_config_file(self):
+        expected = EXPECTED_IPSEC_LIBRESWAN_SECRET_CONF
+        actual = self.process._gen_config_content(
+            self.conf.libreswan.ipsec_secret_template, self.vpnservice)
+        self.check_config_file(expected, actual)
 
 
 class TestOpenSwanProcess(IPSecDeviceLegacy):
@@ -1541,14 +1719,17 @@ class TestLibreSwanProcess(base.BaseTestCase):
 
     @mock.patch('os.path.exists', return_value=True)
     def test_ensure_configs_on_restart(self, exists_mock):
-        openswan_ipsec.OpenSwanProcess.ensure_configs = mock.Mock()
         with mock.patch.object(
             self.ipsec_process, '_execute'
         ) as fake_execute, mock.patch.object(
             self.ipsec_process, '_ipsec_execute'
         ) as fake_ipsec_execute, mock.patch.object(
             self.ipsec_process, '_ensure_needed_files'
-        ) as fake_ensure_needed_files:
+        ) as fake_ensure_needed_files, mock.patch.object(
+            self.ipsec_process, 'ensure_config_dir'
+        ), mock.patch.object(
+            self.ipsec_process, 'ensure_config_file'
+        ):
             self.ipsec_process.ensure_configs()
 
             expected = [mock.call(['rm', '-f',
@@ -1573,14 +1754,17 @@ class TestLibreSwanProcess(base.BaseTestCase):
 
     @mock.patch('os.path.exists', return_value=False)
     def test_ensure_configs(self, exists_mock):
-        openswan_ipsec.OpenSwanProcess.ensure_configs = mock.Mock()
         with mock.patch.object(
             self.ipsec_process, '_execute'
         ) as fake_execute, mock.patch.object(
             self.ipsec_process, '_ipsec_execute'
         ) as fake_ipsec_execute, mock.patch.object(
             self.ipsec_process, '_ensure_needed_files'
-        ) as fake_ensure_needed_files:
+        ) as fake_ensure_needed_files, mock.patch.object(
+            self.ipsec_process, 'ensure_config_dir'
+        ), mock.patch.object(
+            self.ipsec_process, 'ensure_config_file'
+        ):
             self.ipsec_process.ensure_configs()
 
             expected = [mock.call(['chown', '--from=%s' % os.getuid(),
