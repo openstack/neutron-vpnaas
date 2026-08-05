@@ -183,8 +183,6 @@ class TestOvnVPNAgentBase(base.TestOVNFunctionalBase):
     FAKE_CHASSIS_HOST = 'ovn-host-fake'
 
     def setUp(self):
-        self.skipTest('This test is skipped after the eventlet removal and '
-                      'needs to be refactored')
         cfg.CONF.set_override('service_provider', [IPSEC_SERVICE_PROVIDER],
                               group='service_providers')
         service_plugins = {'vpnaas_plugin': VPN_PLUGIN}
@@ -252,6 +250,8 @@ class TestOvnVPNAgentBase(base.TestOVNFunctionalBase):
         driver.devmgr.OVN_NS_PREFIX = self.ns_prefix
 
         agt.start()
+        self.addCleanup(agt._process_monitor.stop)
+        self.addCleanup(driver.process_status_cache_check.stop)
         self.addCleanup(agt.ovs_idl.ovsdb_connection.stop)
         self.addCleanup(agt.sb_idl.ovsdb_connection.stop)
         # let agent remove remaining vpn namespaces in cleanup
