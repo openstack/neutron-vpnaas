@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    The Openswan driver has been deprecated, because Openswan has been
+    unmaintained upstream. It was removed from major Linux distributions.

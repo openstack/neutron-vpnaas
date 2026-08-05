@@ -24,6 +24,7 @@ import sys
 import time
 import typing as ty
 
+from debtcollector import removals
 import jinja2
 import netaddr
 from neutron.agent.l3.router_info import RouterInfo
@@ -1190,6 +1191,11 @@ class IPsecDriver(device_drivers.DeviceDriver, metaclass=abc.ABCMeta):
             self.destroy_process(process_id)
 
 
+@removals.remove(
+    message='Openswan driver is deprecated. '
+            'Use LibreSwan or strongSwan instead.',
+    version='30.0.0',
+)
 class OpenSwanDriver(IPsecDriver):
     def create_process(self, process_id, vpnservice, namespace):
         return OpenSwanProcess(
