@@ -47,10 +47,18 @@
               - openstack/neutron
         - neutron-tempest-plugin-vpnaas
         - neutron-tempest-plugin-vpnaas-ovn
+        - neutron-tempest-plugin-vpnaas-ovn-lswan
         - neutron-vpnaas-functional-sswan
         - neutron-vpnaas-rally
     experimental:
       jobs: *vpnaas-periodic-weekly-jobs
+
+- job:
+    name: neutron-tempest-plugin-vpnaas-ovn-lswan
+    parent: neutron-tempest-plugin-vpnaas-ovn
+    vars:
+      devstack_localrc:
+        IPSEC_PACKAGE: libreswan
 
 - job:
     name: neutron-vpnaas-functional-sswan
