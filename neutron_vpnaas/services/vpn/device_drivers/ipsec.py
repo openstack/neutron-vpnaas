@@ -43,7 +43,6 @@ from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import device_drivers
 
 LOG = logging.getLogger(__name__)
-TEMPLATE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 ipsec_opts = [
     cfg.StrOpt(
