@@ -10,52 +10,41 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 
-import neutron.conf.plugins.ml2.drivers.ovn.ovn_conf
-import neutron.services.provider_configuration
+from neutron.conf.plugins.ml2.drivers.ovn import ovn_conf
+from neutron.services import provider_configuration
 
 from neutron_vpnaas.db.vpn import vpn_agentschedulers_db
-import neutron_vpnaas.services.vpn.agent
-import neutron_vpnaas.services.vpn.device_drivers.ipsec
-import neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec
-import neutron_vpnaas.services.vpn.ovn_agent
+from neutron_vpnaas.services.vpn import agent as vpn_agent
+from neutron_vpnaas.services.vpn.device_drivers import ipsec
+from neutron_vpnaas.services.vpn.device_drivers import libreswan_ipsec
+from neutron_vpnaas.services.vpn.device_drivers import strongswan_ipsec
+from neutron_vpnaas.services.vpn import ovn_agent
 
 
 def list_agent_opts():
     return [
-        ('vpnagent',
-         neutron_vpnaas.services.vpn.agent.vpn_agent_opts),
-        ('ipsec',
-         neutron_vpnaas.services.vpn.device_drivers.ipsec.ipsec_opts),
-        ('strongswan',
-         neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.
-         strongswan_opts),
-        ('pluto',
-         neutron_vpnaas.services.vpn.device_drivers.ipsec.pluto_opts)
+        ('vpnagent', vpn_agent.vpn_agent_opts),
+        ('ipsec', ipsec.ipsec_opts),
+        ('libreswan', libreswan_ipsec.libreswan_opts),
+        ('strongswan', strongswan_ipsec.strongswan_opts),
+        ('pluto', ipsec.pluto_opts)
     ]
 
 
 def list_ovn_agent_opts():
     return [
-        ('vpnagent',
-         neutron_vpnaas.services.vpn.ovn_agent.VPN_AGENT_OPTS),
-        ('ovs',
-         neutron_vpnaas.services.vpn.ovn_agent.OVS_OPTS),
-        ('ovn',
-         neutron.conf.plugins.ml2.drivers.ovn.ovn_conf.ovn_opts),
-        ('ipsec',
-         neutron_vpnaas.services.vpn.device_drivers.ipsec.ipsec_opts),
-        ('strongswan',
-         neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.
-         strongswan_opts),
-        ('pluto',
-         neutron_vpnaas.services.vpn.device_drivers.ipsec.pluto_opts)
+        ('vpnagent', vpn_agent.vpn_agent_opts),
+        ('ovs', ovn_agent.OVS_OPTS),
+        ('ovn', ovn_conf.ovn_opts),
+        ('ipsec', ipsec.ipsec_opts),
+        ('libreswan', libreswan_ipsec.libreswan_opts),
+        ('strongswan', strongswan_ipsec.strongswan_opts),
+        ('pluto', ipsec.pluto_opts)
     ]
 
 
 def list_opts():
     return [
-        ('service_providers',
-         neutron.services.provider_configuration.serviceprovider_opts),
-        ('',
-         vpn_agentschedulers_db.VPN_AGENTS_SCHEDULER_OPTS)
+        ('service_providers', provider_configuration.serviceprovider_opts),
+        ('', vpn_agentschedulers_db.VPN_AGENTS_SCHEDULER_OPTS)
     ]
