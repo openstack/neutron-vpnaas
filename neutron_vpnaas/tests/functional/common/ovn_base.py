@@ -338,10 +338,10 @@ class TestOvnVPNAgentBase(base.TestOVNFunctionalBase):
             ('name', '=', self.chassis_name)).execute(
             check_error=True)[0]
 
-        # Assert that, prior to creating a resource the VPN agent
-        # didn't populate the external_ids from the Chassis
-        self.assertNotIn(vpn_const.OVN_AGENT_VPN_SB_CFG_KEY,
-                         chassis_row['external_ids'])
+        # The VPN agent sets the sb_cfg key at startup so that the
+        # server-side AgentCache sees it as alive immediately.
+        self.assertIn(vpn_const.OVN_AGENT_VPN_SB_CFG_KEY,
+                      chassis_row['external_ids'])
 
         # Let's list the agents to force the nb_cfg to be bumped on NB
         # db, which will automatically increment the nb_cfg counter on

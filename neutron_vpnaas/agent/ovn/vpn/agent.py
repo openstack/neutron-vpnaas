@@ -58,6 +58,7 @@ class ChassisCreateEventBase(row_event.RowEvent):
             # with the local chassis in case its entry was re-created
             # (happens when restarting the ovn-controller)
             self.agent.register_vpn_agent()
+            self.agent.update_vpn_sb_cfg_key()
             LOG.info("Connection to OVSDB established, doing a full sync")
             self.agent.sync()
 
@@ -81,12 +82,7 @@ class SbGlobalUpdateEvent(row_event.RowEvent):
         self.event_name = self.__class__.__name__
 
     def run(self, event, row, old):
-        table = ('Chassis_Private' if self.agent.has_chassis_private
-                 else 'Chassis')
-        external_ids = {constants.OVN_AGENT_VPN_SB_CFG_KEY: str(row.nb_cfg)}
-        self.agent.sb_idl.db_set(
-            table, self.agent.chassis,
-            ('external_ids', external_ids)).execute()
+        self.agent.update_vpn_sb_cfg_key(nb_cfg=row.nb_cfg)
 
 
 class OvnVpnAgent(service.Service):
@@ -135,8 +131,11 @@ class OvnVpnAgent(service.Service):
                 chassis=self.chassis, tables=tables,
                 events=events + (ChassisCreateEvent(self), )).start()
 
-        # Register the agent with its corresponding Chassis
+        # Register the agent with its corresponding Chassis and set the
+        # initial sb_cfg key so the server-side AgentCache sees the agent
+        # as alive immediately.
         self.register_vpn_agent()
+        self.update_vpn_sb_cfg_key()
 
         # Do the initial sync.
         self.sync()
@@ -155,6 +154,16 @@ class OvnVpnAgent(service.Service):
         ext_ids = {constants.OVN_AGENT_VPN_ID_KEY: str(agent_id)}
         self.sb_idl.db_add(table, self.chassis, 'external_ids',
                            ext_ids).execute(check_error=True)
+
+    def update_vpn_sb_cfg_key(self, nb_cfg=None):
+        table = ('Chassis_Private' if self.has_chassis_private else 'Chassis')
+        nb_cfg = (nb_cfg or
+                  self.sb_idl.db_get(table, self.chassis,
+                                     'nb_cfg').execute())
+        external_ids = {constants.OVN_AGENT_VPN_SB_CFG_KEY: str(nb_cfg)}
+        self.sb_idl.db_set(
+            table, self.chassis,
+            ('external_ids', external_ids)).execute(check_error=True)
 
     def _get_own_chassis_name(self):
         """Return the external_ids:system-id value of the Open_vSwitch table.
