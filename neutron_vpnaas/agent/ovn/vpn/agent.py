@@ -81,12 +81,9 @@ class OvnVpnAgent(service.Service):
         super().__init__()
         self.conf = conf
         vlog.use_python_logger(max_level=config.get_ovn_ovsdb_log_level())
-        self._process_monitor = external_process.ProcessMonitor(
-            config=self.conf,
-            resource_type='ipsec')
-
-        self.service = vpn_service.VPNService(self)
-        self.device_drivers = self.service.load_device_drivers(self.conf.host)
+        self._process_monitor = None
+        self.service = None
+        self.device_drivers = None
 
     def _load_config(self):
         self.chassis = self._get_own_chassis_name()
@@ -101,7 +98,11 @@ class OvnVpnAgent(service.Service):
 
     def start(self):
         super().start()
-
+        self._process_monitor = external_process.ProcessMonitor(
+            config=self.conf,
+            resource_type='ipsec')
+        self.service = vpn_service.VPNService(self)
+        self.device_drivers = self.service.load_device_drivers(self.conf.host)
         self.ovs_idl = ovsdb.VPNAgentOvsIdl().start()
         self._load_config()
 

@@ -244,6 +244,12 @@ class TestOvnVPNAgentBase(base.TestOVNFunctionalBase):
         self.ns_prefix = 'qvpn-test-%s-' % helpers.get_random_string(8)
 
         agt = agent.OvnVpnAgent(conf)
+
+        # Device drivers are now created inside start(), so mock sync()
+        # to prevent RPC calls before agent_rpc can be mocked.
+        with mock.patch.object(agent.OvnVpnAgent, 'sync'):
+            agt.start()
+
         driver = agt.device_drivers[0]
         driver.agent_rpc = mock.Mock()
         # let initial sync get an empty list of vpnservices
@@ -251,7 +257,7 @@ class TestOvnVPNAgentBase(base.TestOVNFunctionalBase):
         driver.devmgr.plugin = driver.agent_rpc
         driver.devmgr.OVN_NS_PREFIX = self.ns_prefix
 
-        agt.start()
+        agt.sync()
         self.addCleanup(agt._process_monitor.stop)
         self.addCleanup(driver.process_status_cache_check.stop)
         self.addCleanup(agt.ovs_idl.ovsdb_connection.stop)
