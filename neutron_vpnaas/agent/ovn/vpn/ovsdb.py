@@ -57,9 +57,14 @@ class VPNAgentOvnSbIdl(ovsdb_monitor.OvnIdl):
         return idlutils.get_schema_helper(connection_string, self.SCHEMA)
 
     def start(self):
-        conn = connection.Connection(
+        self.ovsdb_connection = connection.Connection(
             self, timeout=config.get_ovn_ovsdb_timeout())
-        return impl_idl_ovn.OvsdbSbOvnIdl(conn)
+        return impl_idl_ovn.OvsdbSbOvnIdl(self.ovsdb_connection)
+
+    def stop(self):
+        if getattr(self, 'ovsdb_connection', None):
+            LOG.info('Stopping the OVN SB connection')
+            self.ovsdb_connection.stop()
 
 
 class VPNAgentOvsIdl:
@@ -74,6 +79,11 @@ class VPNAgentOvsIdl:
         ovs_idl = idl.Idl(
             connection_string, helper,
             probe_interval=config.get_ovn_ovsdb_probe_interval())
-        conn = connection.Connection(
+        self.ovsdb_connection = connection.Connection(
             ovs_idl, timeout=config.cfg.CONF.ovs.ovsdb_connection_timeout)
-        return idl_ovs.OvsdbIdl(conn)
+        return idl_ovs.OvsdbIdl(self.ovsdb_connection)
+
+    def stop(self):
+        if getattr(self, 'ovsdb_connection', None):
+            LOG.info('Stopping the OVS connection')
+            self.ovsdb_connection.stop()

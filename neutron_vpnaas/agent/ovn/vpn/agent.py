@@ -84,6 +84,8 @@ class OvnVpnAgent(service.Service):
         self._process_monitor = None
         self.service = None
         self.device_drivers = None
+        self._ovs_idl = None
+        self._sb_idl = None
 
     def _load_config(self):
         self.chassis = self._get_own_chassis_name()
@@ -103,16 +105,18 @@ class OvnVpnAgent(service.Service):
             resource_type='ipsec')
         self.service = vpn_service.VPNService(self)
         self.device_drivers = self.service.load_device_drivers(self.conf.host)
-        self.ovs_idl = ovsdb.VPNAgentOvsIdl().start()
+        self._ovs_idl = ovsdb.VPNAgentOvsIdl()
+        self.ovs_idl = self._ovs_idl.start()
         self._load_config()
 
         tables = ('SB_Global', 'Chassis', 'Chassis_Private')
         events = (SbGlobalUpdateEvent(self),
                   ChassisPrivateCreateEvent(self),
                   )
-        self.sb_idl = ovsdb.VPNAgentOvnSbIdl(
+        self._sb_idl = ovsdb.VPNAgentOvnSbIdl(
             chassis=self.chassis, tables=tables,
-            events=events).start()
+            events=events)
+        self.sb_idl = self._sb_idl.start()
 
         # Register the agent with its corresponding Chassis and set the
         # initial sb_cfg key so the server-side AgentCache sees the agent
@@ -122,6 +126,14 @@ class OvnVpnAgent(service.Service):
 
         # Do the initial sync.
         self.sync()
+
+    def stop(self, graceful=True):
+        LOG.info('Stopping the OVN VPN Agent')
+        if self._sb_idl:
+            self._sb_idl.stop()
+        if self._ovs_idl:
+            self._ovs_idl.stop()
+        super().stop(graceful)
 
     def sync(self):
         for driver in self.device_drivers:

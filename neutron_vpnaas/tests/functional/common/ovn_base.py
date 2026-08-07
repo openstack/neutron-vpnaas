@@ -260,8 +260,7 @@ class TestOvnVPNAgentBase(base.TestOVNFunctionalBase):
         agt.sync()
         self.addCleanup(agt._process_monitor.stop)
         self.addCleanup(driver.process_status_cache_check.stop)
-        self.addCleanup(agt.ovs_idl.ovsdb_connection.stop)
-        self.addCleanup(agt.sb_idl.ovsdb_connection.stop)
+        self.addCleanup(agt.stop)
         # let agent remove remaining vpn namespaces in cleanup
         self.addCleanup(driver._cleanup_stale_vpn_processes, [])
 
