@@ -261,12 +261,6 @@ class TestOvnVPNAgentBase(base.TestOVNFunctionalBase):
 
         return agt
 
-    @property
-    def agent_chassis_table(self):
-        if self.agent.has_chassis_private:
-            return 'Chassis_Private'
-        return 'Chassis'
-
     def _make_ext_network(self):
         network = self._make_network(
             self.fmt, 'external-net', True, as_admin=True,
@@ -334,7 +328,7 @@ class TestOvnVPNAgentBase(base.TestOVNFunctionalBase):
 
     def test_agent(self):
         chassis_row = self.sb_api.db_find(
-            self.agent_chassis_table,
+            'Chassis_Private',
             ('name', '=', self.chassis_name)).execute(
             check_error=True)[0]
 
@@ -350,7 +344,7 @@ class TestOvnVPNAgentBase(base.TestOVNFunctionalBase):
         # Chassis row to signal that it's healthy.
 
         row_event = VPNAgentHealthEvent(self.chassis_name, 1,
-                                        self.agent_chassis_table)
+                                        'Chassis_Private')
         self.handler.watch_event(row_event)
         self.new_list_request('agents').get_response(self.api)
 

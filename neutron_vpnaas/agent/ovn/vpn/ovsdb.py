@@ -45,9 +45,8 @@ class VPNAgentOvnSbIdl(ovsdb_monitor.OvnIdl):
             # TODO(bpetermann) We can remove this when we require ovs>=2.12.0
             super().__init__(None, connection_string, helper)
         if chassis:
-            table = ('Chassis_Private' if 'Chassis_Private' in tables
-                     else 'Chassis')
-            self.set_table_condition(table, [['name', '==', chassis]])
+            self.set_table_condition(
+                'Chassis_Private', [['name', '==', chassis]])
         if events:
             self.notify_handler.watch_events(events)
 

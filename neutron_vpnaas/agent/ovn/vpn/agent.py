@@ -32,22 +32,21 @@ LOG = logging.getLogger(__name__)
 OVN_VPNAGENT_UUID_NAMESPACE = uuid.UUID('e1ce3b12-b1e0-4c81-ba27-07c0fec9c12b')
 
 
-class ChassisCreateEventBase(row_event.RowEvent):
-    """Row create event - Chassis name == our_chassis.
+class ChassisPrivateCreateEvent(row_event.RowEvent):
+    """Row create event - Chassis_Private name == our_chassis.
 
     On connection, we get a dump of all chassis so if we catch a creation
     of our own chassis it has to be a reconnection. In this case, we need
     to do a full sync to make sure that we capture all changes while the
     connection to OVSDB was down.
     """
-    table = None
 
     def __init__(self, vpn_agent):
         self.agent = vpn_agent
         self.first_time = True
         events = (self.ROW_CREATE,)
         super().__init__(
-            events, self.table, (('name', '=', self.agent.chassis),))
+            events, 'Chassis_Private', (('name', '=', self.agent.chassis),))
         self.event_name = self.__class__.__name__
 
     def run(self, event, row, old):
@@ -61,14 +60,6 @@ class ChassisCreateEventBase(row_event.RowEvent):
             self.agent.update_vpn_sb_cfg_key()
             LOG.info("Connection to OVSDB established, doing a full sync")
             self.agent.sync()
-
-
-class ChassisCreateEvent(ChassisCreateEventBase):
-    table = 'Chassis'
-
-
-class ChassisPrivateCreateEvent(ChassisCreateEventBase):
-    table = 'Chassis_Private'
 
 
 class SbGlobalUpdateEvent(row_event.RowEvent):
@@ -114,22 +105,13 @@ class OvnVpnAgent(service.Service):
         self.ovs_idl = ovsdb.VPNAgentOvsIdl().start()
         self._load_config()
 
-        tables = ('SB_Global', 'Chassis')
-        events = (SbGlobalUpdateEvent(self), )
-        # TODO(lucasagomes): Remove this in the future. Try to register
-        # the Chassis_Private table, if not present, fallback to the normal
-        # Chassis table.
-        # Open the connection to OVN SB database.
-        self.has_chassis_private = False
-        try:
-            self.sb_idl = ovsdb.VPNAgentOvnSbIdl(
-                chassis=self.chassis, tables=tables + ('Chassis_Private', ),
-                events=events + (ChassisPrivateCreateEvent(self), )).start()
-            self.has_chassis_private = True
-        except AssertionError:
-            self.sb_idl = ovsdb.VPNAgentOvnSbIdl(
-                chassis=self.chassis, tables=tables,
-                events=events + (ChassisCreateEvent(self), )).start()
+        tables = ('SB_Global', 'Chassis', 'Chassis_Private')
+        events = (SbGlobalUpdateEvent(self),
+                  ChassisPrivateCreateEvent(self),
+                  )
+        self.sb_idl = ovsdb.VPNAgentOvnSbIdl(
+            chassis=self.chassis, tables=tables,
+            events=events).start()
 
         # Register the agent with its corresponding Chassis and set the
         # initial sb_cfg key so the server-side AgentCache sees the agent
@@ -148,21 +130,18 @@ class OvnVpnAgent(service.Service):
     def register_vpn_agent(self):
         # NOTE(lucasagomes): db_add() will not overwrite the UUID if
         # it's already set.
-        table = ('Chassis_Private' if self.has_chassis_private else 'Chassis')
-        # Generate unique, but consistent vpn agent id for chassis name
         agent_id = uuid.uuid5(self.chassis_id, 'vpn_agent')
         ext_ids = {constants.OVN_AGENT_VPN_ID_KEY: str(agent_id)}
-        self.sb_idl.db_add(table, self.chassis, 'external_ids',
+        self.sb_idl.db_add('Chassis_Private', self.chassis, 'external_ids',
                            ext_ids).execute(check_error=True)
 
     def update_vpn_sb_cfg_key(self, nb_cfg=None):
-        table = ('Chassis_Private' if self.has_chassis_private else 'Chassis')
         nb_cfg = (nb_cfg or
-                  self.sb_idl.db_get(table, self.chassis,
+                  self.sb_idl.db_get('Chassis_Private', self.chassis,
                                      'nb_cfg').execute())
         external_ids = {constants.OVN_AGENT_VPN_SB_CFG_KEY: str(nb_cfg)}
         self.sb_idl.db_set(
-            table, self.chassis,
+            'Chassis_Private', self.chassis,
             ('external_ids', external_ids)).execute(check_error=True)
 
     def _get_own_chassis_name(self):
