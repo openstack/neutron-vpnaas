@@ -24,6 +24,7 @@
         - neutron-vpnaas-functional-lswan
         - neutron-tempest-plugin-vpnaas
         - neutron-tempest-plugin-vpnaas-ovn
+        - neutron-tempest-plugin-vpnaas-ovn-lswan
     gate:
       jobs:
         - openstack-tox-py311:
@@ -50,6 +51,7 @@
         - neutron-tempest-plugin-vpnaas-ovn
         - neutron-tempest-plugin-vpnaas-ovn-lswan
         - neutron-vpnaas-functional-sswan
+        - neutron-vpnaas-functional-lswan
         - neutron-vpnaas-rally
     experimental:
       jobs: *vpnaas-periodic-weekly-jobs
