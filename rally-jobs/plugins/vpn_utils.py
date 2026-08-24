@@ -269,8 +269,7 @@ def create_server(nova_client, keypair, **kwargs):
     # add sec-group
     sec_group_name = "rally_secgroup_" + kwargs["sec_group_suffix"]
     LOG.debug("ADDING NEW SECURITY GROUP %s", sec_group_name)
-    secgroup = nova_client.security_groups.create(sec_group_name,
-                                                  sec_group_name)
+    secgroup = nova_client.security_groups.create(sec_group_name)
     # add security rules for SSH and ICMP
     nova_client.security_group_rules.create(secgroup.id, from_port=22,
                 to_port=22, ip_protocol="tcp", cidr="0.0.0.0/0")
