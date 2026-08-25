@@ -636,13 +636,13 @@ class IPsecDriver(device_drivers.DeviceDriver, metaclass=abc.ABCMeta):
         Disable the process, remove the iptables rules, and remove the process
         manager for the processes that no longer are running vpn service.
         """
-        if process_id in self.processes:
-            process = self.processes[process_id]
+        process = self.processes.get(process_id)
+        if process:
             process.disable()
             vpnservice = process.vpnservice
             if vpnservice:
                 self.remove_nat_rules(process_id)
-            del self.processes[process_id]
+            self.processes.pop(process_id, None)
 
     def destroy_router(self, process_id):
         """Handling destroy_router event.
@@ -651,8 +651,7 @@ class IPsecDriver(device_drivers.DeviceDriver, metaclass=abc.ABCMeta):
         is deleted.
         """
         self.destroy_process(process_id)
-        if process_id in self.routers:
-            del self.routers[process_id]
+        self.routers.pop(process_id, None)
 
     def get_process_status_cache(self, process):
         if not self.process_status_cache.get(process.id):
