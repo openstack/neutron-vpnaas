@@ -346,6 +346,19 @@ class OvnStrongSwanDriver(OvnIPsecDriver):
             namespace)
 
 
+class OvnSwanctlDriver(OvnIPsecDriver):
+    """OVN IPsec driver using swanctl (VICI protocol).
+
+    .. versionadded:: 25.1.0
+    """
+    def create_process(self, process_id, vpnservice, namespace):
+        return strongswan_ipsec.SwanctlProcess(
+            self.conf,
+            process_id,
+            vpnservice,
+            namespace)
+
+
 class OvnLibreSwanDriver(OvnIPsecDriver):
     def create_process(self, process_id, vpnservice, namespace):
         return libreswan_ipsec.LibreSwanProcess(

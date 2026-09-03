@@ -248,3 +248,14 @@ class TestOvnLibreSwanDriver(TestOvnStrongSwanDriver):
     def setUp(self):
         super().setUp(driver=ovn_ipsec.OvnLibreSwanDriver,
                       ipsec_process=libreswan_ipsec.LibreSwanProcess)
+
+
+class TestOvnSwanctlDriver(TestOvnStrongSwanDriver):
+    def setUp(self):
+        super().setUp(driver=ovn_ipsec.OvnSwanctlDriver,
+                      ipsec_process=strongswan_ipsec.SwanctlProcess)
+
+    def test_create_process(self):
+        process = self.driver.create_process(
+            FAKE_PROCESS_ID, self.vpnservice, FAKE_NAMESPACE_NAME)
+        self.assertIsInstance(process, strongswan_ipsec.SwanctlProcess)

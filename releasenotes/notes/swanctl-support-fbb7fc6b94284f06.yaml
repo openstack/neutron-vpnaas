@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    Added support for ``swanctl`` (VICI protocol) as an alternative to the
+    legacy stroke/starter interface in the strongSwan device driver. Operators
+    can now enable swanctl mode by setting ``use_swanctl = True`` under the
+    ``[strongswan]`` configuration section. This enables compatibility with
+    modern Linux distributions (Fedora, RHEL 9+, recent Ubuntu/Debian) that
+    ship strongSwan without the deprecated stroke plugin.
+
+deprecated:
+  - |
+    The ``use_swanctl`` configuration option under ``[strongswan]`` is now
+    deprecated and will be removed in the 2027.2 release. Operators should
+    migrate to using swanctl mode by default without requiring this option.
+
+  - |
+    The ``StrongSwanProcess`` class is now deprecated and will be removed in a
+    future release. Users should migrate to ``SwanctlProcess`` which is now the
+    default behavior when ``use_swanctl`` is not explicitly set to False.
