@@ -24,6 +24,7 @@
         - neutron-vpnaas-functional-lswan
         - neutron-tempest-plugin-vpnaas
         - neutron-tempest-plugin-vpnaas-ovn
+        - neutron-tempest-plugin-vpnaas-ovn-sswan-legacy
         - neutron-tempest-plugin-vpnaas-ovn-lswan
     gate:
       jobs:
@@ -49,6 +50,7 @@
               - openstack/neutron
         - neutron-tempest-plugin-vpnaas
         - neutron-tempest-plugin-vpnaas-ovn
+        - neutron-tempest-plugin-vpnaas-ovn-sswan-legacy
         - neutron-tempest-plugin-vpnaas-ovn-lswan
         - neutron-vpnaas-functional-sswan
         - neutron-vpnaas-functional-lswan
@@ -62,6 +64,13 @@
     vars:
       devstack_localrc:
         IPSEC_PACKAGE: libreswan
+
+- job:
+    name: neutron-tempest-plugin-vpnaas-ovn-sswan-legacy
+    parent: neutron-tempest-plugin-vpnaas-ovn
+    vars:
+      devstack_localrc:
+        STRONGSWAN_USE_SWANCTL: False
 
 - job:
     name: neutron-vpnaas-functional-sswan

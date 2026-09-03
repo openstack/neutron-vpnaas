@@ -50,6 +50,9 @@ function neutron_vpnaas_configure_agent {
     else
         iniset_multiline $NEUTRON_L3_CONF vpnagent vpn_device_driver $NEUTRON_VPNAAS_DEVICE_DRIVER
     fi
+    if [[ "$STRONGSWAN_USE_SWANCTL" == "False" ]]; then
+        iniset $NEUTRON_L3_CONF strongswan use_swanctl False
+    fi
 }
 
 function neutron_vpnaas_configure_ovn_agent {
@@ -69,6 +72,10 @@ function neutron_vpnaas_configure_ovn_agent {
         iniset_multiline $OVN_VPNAGENT_CONF vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.ovn_ipsec.OvnLibreSwanDriver
     else
         iniset_multiline $OVN_VPNAGENT_CONF vpnagent vpn_device_driver $NEUTRON_VPNAAS_DEVICE_DRIVER
+    fi
+
+    if [[ "$STRONGSWAN_USE_SWANCTL" == "False" ]]; then
+        iniset $OVN_VPNAGENT_CONF strongswan use_swanctl False
     fi
 
     OVSDB_SERVER_LOCAL_HOST=$SERVICE_LOCAL_HOST
