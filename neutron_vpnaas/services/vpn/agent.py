@@ -19,23 +19,13 @@ from neutron_lib.agent import l3_extension
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from neutron_vpnaas._i18n import _
+from neutron_vpnaas.conf.agent import vpn_agent as vpn_agent_conf
 from neutron_vpnaas.services.vpn import vpn_service
 
 LOG = logging.getLogger(__name__)
 
-vpn_agent_opts = [
-    cfg.MultiStrOpt(
-        'vpn_device_driver',
-        default=['neutron_vpnaas.services.vpn.device_drivers.'
-                 'libreswan_ipsec.LibreSwanDriver'],
-        sample_default=['neutron_vpnaas.services.vpn.device_drivers.'
-                        'libreswan_ipsec.LibreSwanDriver, '
-                        'neutron_vpnaas.services.vpn.device_drivers.'
-                        'strongswan_ipsec.StrongSwanDriver'],
-        help=_("The vpn device drivers Neutron will use")),
-]
-cfg.CONF.register_opts(vpn_agent_opts, 'vpnagent')
+vpn_agent_opts = vpn_agent_conf.vpn_agent_opts
+vpn_agent_conf.register_vpn_agent_opts()
 
 
 class VPNAgent(l3_extension.L3AgentExtension):

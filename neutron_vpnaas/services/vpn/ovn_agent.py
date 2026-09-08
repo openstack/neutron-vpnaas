@@ -22,34 +22,13 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_service import service
 
-from neutron_vpnaas._i18n import _
 from neutron_vpnaas.agent.ovn.vpn import agent
+from neutron_vpnaas.conf.agent import ovn_agent as ovn_agent_conf
 
 LOG = logging.getLogger(__name__)
 
-
-VPN_AGENT_OPTS = [
-    cfg.MultiStrOpt(
-        'vpn_device_driver',
-        default=['neutron_vpnaas.services.vpn.device_drivers.'
-                 'ovn_ipsec.OvnStrongSwanDriver'],
-        sample_default=['neutron_vpnaas.services.vpn.device_drivers.'
-                        'ovn_ipsec.OvnStrongSwanDriver'],
-        help=_("The OVN VPN device drivers Neutron will use")),
-]
-
-OVS_OPTS = [
-    cfg.StrOpt('ovsdb_connection',
-               default='unix:/usr/local/var/run/openvswitch/db.sock',
-               regex=r'^(tcp|ssl|unix):.+',
-               help=_('The connection string for the native OVSDB backend.\n'
-                      'Use tcp:IP:PORT for TCP connection.\n'
-                      'Use unix:FILE for unix domain socket connection.')),
-    cfg.IntOpt('ovsdb_connection_timeout',
-               default=180,
-               help=_('Timeout in seconds for the OVSDB '
-                      'connection transaction'))
-]
+VPN_AGENT_OPTS = ovn_agent_conf.VPN_AGENT_OPTS
+OVS_OPTS = ovn_agent_conf.OVS_OPTS
 
 
 def register_opts(conf):
@@ -58,8 +37,7 @@ def register_opts(conf):
     agent_config.register_interface_opts(conf)
     agent_config.register_availability_zone_opts_helper(conf)
     ovn_conf.register_opts()
-    conf.register_opts(VPN_AGENT_OPTS, 'vpnagent')
-    conf.register_opts(OVS_OPTS, 'ovs')
+    ovn_agent_conf.register_ovn_vpn_agent_opts(conf)
 
 
 def main():

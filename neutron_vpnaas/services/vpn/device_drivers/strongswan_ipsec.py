@@ -26,67 +26,14 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import fileutils
 
-from neutron_vpnaas._i18n import _
+from neutron_vpnaas.conf.services.vpn import strongswan as strongswan_conf
 from neutron_vpnaas.services.vpn.device_drivers import ipsec
 
 LOG = logging.getLogger(__name__)
-TEMPLATE_PATH = os.path.dirname(os.path.abspath(__file__))
 
-strongswan_opts = [
-    cfg.StrOpt(
-        'ipsec_config_template',
-        default=os.path.join(
-            TEMPLATE_PATH,
-            'template/strongswan/ipsec.conf.template'),
-        help=_('Template file for ipsec configuration.')),
-    cfg.StrOpt(
-        'strongswan_config_template',
-        default=os.path.join(
-            TEMPLATE_PATH,
-            'template/strongswan/strongswan.conf.template'),
-        help=_('Template file for strongswan configuration.')),
-    cfg.StrOpt(
-        'ipsec_secret_template',
-        default=os.path.join(
-            TEMPLATE_PATH,
-            'template/strongswan/ipsec.secret.template'),
-        help=_('Template file for ipsec secret configuration.')),
-    cfg.StrOpt(
-        'default_config_area',
-        default='/etc/strongswan.d',
-        help=_('The area where default StrongSwan configuration '
-               'files are located.')),
-    # swanctl options
-    cfg.BoolOpt(
-        'use_swanctl',
-        default=True,
-        deprecated_since='2027.1',
-        deprecated_reason=_('The use_swanctl option is deprecated and will be '
-                            'removed in the 2027.2 release. ``swanctl`` mode '
-                            'is the default behavior.'),
-        help=_('Use ``swanctl`` (VICI protocol) instead of legacy stroke '
-               'interface. When True, configuration files are generated in '
-               '/etc/swanctl/ and charon is managed via systemd.')),
-    cfg.StrOpt(
-        'swanctl_config_template',
-        default=os.path.join(
-            TEMPLATE_PATH,
-            'template/swanctl/swanctl.conf.template'),
-        help=_('Template file for swanctl configuration.')),
-    cfg.StrOpt(
-        'swanctl_secrets_template',
-        default=os.path.join(
-            TEMPLATE_PATH,
-            'template/swanctl/ipsec.secrets.template'),
-        help=_('Template file for swanctl secrets configuration.')),
-    cfg.StrOpt(
-        'swanctl_config_dir',
-        default='/etc/swanctl',
-        help=_('Directory where swanctl loads its configuration from. '
-               'This directory must contain swanctl.conf, connections/, '
-               'secrets/.'))
-]
-cfg.CONF.register_opts(strongswan_opts, 'strongswan')
+
+strongswan_opts = strongswan_conf.strongswan_opts
+strongswan_conf.register_strongswan_opts()
 
 
 class StrongSwanProcess(ipsec.BaseSwanProcess):

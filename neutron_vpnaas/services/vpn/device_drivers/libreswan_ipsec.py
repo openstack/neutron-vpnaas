@@ -26,28 +26,13 @@ from neutron_lib.exceptions import vpn as vpn_exception
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from neutron_vpnaas._i18n import _
+from neutron_vpnaas.conf.services.vpn import libreswan as libreswan_conf
 from neutron_vpnaas.services.vpn.device_drivers import ipsec
 
 LOG = logging.getLogger(__name__)
-TEMPLATE_PATH = os.path.dirname(os.path.abspath(__file__))
 
-libreswan_opts = [
-    cfg.StrOpt(
-        'ipsec_config_template',
-        default=os.path.join(
-            TEMPLATE_PATH,
-            'template/libreswan/ipsec.conf.template'),
-        help=_('Template file for ipsec configuration')),
-    cfg.StrOpt(
-        'ipsec_secret_template',
-        default=os.path.join(
-            TEMPLATE_PATH,
-            'template/libreswan/ipsec.secret.template'),
-        help=_('Template file for ipsec secret configuration'))
-]
-
-cfg.CONF.register_opts(libreswan_opts, 'libreswan')
+libreswan_opts = libreswan_conf.libreswan_opts
+libreswan_conf.register_libreswan_opts()
 
 
 class LibreSwanProcess(ipsec.BaseSwanProcess):

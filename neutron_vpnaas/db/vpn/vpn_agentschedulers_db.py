@@ -20,14 +20,13 @@ from neutron_lib.db import api as db_api
 from neutron_lib.db import model_base
 from neutron_lib.plugins import constants as plugin_const
 from neutron_lib.plugins import directory
-from oslo_config import cfg
 from oslo_db import exception as db_exc
 from oslo_log import log as logging
 import oslo_messaging
 import sqlalchemy as sa
 from sqlalchemy import func
 
-from neutron_vpnaas._i18n import _
+from neutron_vpnaas.conf.db import vpn_agentschedulers_db as vpn_scheduler_conf
 from neutron_vpnaas.db.vpn import vpn_models
 from neutron_vpnaas.extensions import vpn_agentschedulers
 from neutron_vpnaas.services.vpn.common.constants import AGENT_TYPE_VPN
@@ -35,20 +34,8 @@ from neutron_vpnaas.services.vpn.common.constants import AGENT_TYPE_VPN
 
 LOG = logging.getLogger(__name__)
 
-VPN_AGENTS_SCHEDULER_OPTS = [
-    cfg.StrOpt('vpn_scheduler_driver',
-               default='neutron_vpnaas.scheduler.vpn_agent_scheduler'
-                       '.LeastRoutersScheduler',
-               help=_('Driver to use for scheduling '
-                      'router to a VPN agent')),
-    cfg.BoolOpt('vpn_auto_schedule', default=True,
-                help=_('Allow auto scheduling of routers to VPN agent.')),
-    cfg.BoolOpt('allow_automatic_vpnagent_failover', default=False,
-                help=_('Automatically reschedule routers from offline VPN '
-                       'agents to online VPN agents.')),
-]
-
-cfg.CONF.register_opts(VPN_AGENTS_SCHEDULER_OPTS)
+VPN_AGENTS_SCHEDULER_OPTS = vpn_scheduler_conf.VPN_AGENTS_SCHEDULER_OPTS
+vpn_scheduler_conf.register_db_vpn_agentschedulers_opts()
 
 
 class RouterVPNAgentBinding(model_base.BASEV2):

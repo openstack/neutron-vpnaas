@@ -38,54 +38,16 @@ from oslo_service import loopingcall
 from oslo_utils import encodeutils
 from oslo_utils import fileutils
 
-from neutron_vpnaas._i18n import _
+from neutron_vpnaas.conf.services.vpn import ipsec as ipsec_conf
 from neutron_vpnaas.services.vpn.common import topics
 from neutron_vpnaas.services.vpn import device_drivers
 
 LOG = logging.getLogger(__name__)
 
-ipsec_opts = [
-    cfg.StrOpt(
-        'config_base_dir',
-        default='$state_path/ipsec',
-        help=_('Location to store ipsec server config files')),
-    cfg.IntOpt('ipsec_status_check_interval',
-               default=60,
-               help=_("Interval for checking ipsec status")),
-    cfg.BoolOpt('enable_detailed_logging',
-                default=False,
-                help=_("Enable detail logging for ipsec pluto process. "
-                       "If the flag set to True, the detailed logging will "
-                       "be written into config_base_dir/<pid>/log. "
-                       "Note: This setting applies to LibreSwan "
-                       "only. StrongSwan logs to syslog.")),
-]
-cfg.CONF.register_opts(ipsec_opts, 'ipsec')
-
-
-pluto_opts = [
-    cfg.IntOpt('shutdown_check_timeout',
-               default=1,
-               help=_('Initial interval in seconds for checking if pluto '
-                      'daemon is shutdown'),
-               deprecated_group='libreswan'),
-    cfg.IntOpt('shutdown_check_retries',
-               default=5,
-               help=_('The maximum number of retries for checking for '
-                      'pluto daemon shutdown'),
-               deprecated_group='libreswan'),
-    cfg.FloatOpt('shutdown_check_back_off',
-                 default=1.5,
-                 help=_('A factor to increase the retry interval for '
-                        'each retry'),
-                 deprecated_group='libreswan'),
-    cfg.BoolOpt('restart_check_config',
-                default=False,
-                help=_('Enable this flag to avoid from unnecessary restart'),
-                deprecated_group='libreswan')
-]
-
-cfg.CONF.register_opts(pluto_opts, 'pluto')
+ipsec_opts = ipsec_conf.ipsec_opts
+pluto_opts = ipsec_conf.pluto_opts
+ipsec_conf.register_ipsec_opts()
+ipsec_conf.register_pluto_opts()
 
 JINJA_ENV = None
 
