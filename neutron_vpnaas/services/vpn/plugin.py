@@ -48,7 +48,8 @@ class VPNPlugin(vpn_db.VPNPluginDb):
                                    "service-type",
                                    "vpn-flavors",
                                    "vpn-aes-ccm-gcm",
-                                   "vpn-aes-ctr"]
+                                   "vpn-aes-ctr",
+                                   "vpn-no-sha1-3des"]
     path_prefix = "/vpn"
 
 
