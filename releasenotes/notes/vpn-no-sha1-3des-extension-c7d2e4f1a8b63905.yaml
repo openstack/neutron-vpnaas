@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Added support for the ``vpn-no-sha1-3des`` API extension. When this
+    extension is loaded, the deprecated ``sha1`` authentication algorithm
+    and ``3des`` encryption algorithm are removed from VPN IKE and IPsec
+    policy choices, and the default ``auth_algorithm`` changes from
+    ``sha1`` to ``sha256``.
