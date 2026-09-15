@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added support for the ``vpn-aes-ccm-gcm`` API extension. This
+    extension advertises support for AES CCM and AES GCM encryption
+    algorithms in VPN IKE and IPsec policies.

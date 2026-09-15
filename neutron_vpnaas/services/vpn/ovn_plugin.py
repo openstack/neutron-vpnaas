@@ -68,6 +68,7 @@ class VPNOVNPlugin(VPNPluginDb,
                                    "vpn-endpoint-groups",
                                    "service-type",
                                    "vpn-agent-scheduler",
+                                   "vpn-aes-ccm-gcm",
                                    "vpn-aes-ctr"]
     path_prefix = "/vpn"
 
