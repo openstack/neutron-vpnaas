@@ -11,9 +11,6 @@
         - openstack-tox-py311:
             required-projects:
               - openstack/neutron
-        - openstack-tox-py313:
-            required-projects:
-              - openstack/neutron
         - openstack-tox-py314:
             required-projects:
               - openstack/neutron
@@ -30,7 +27,7 @@
         - openstack-tox-py311:
             required-projects:
               - openstack/neutron
-        - openstack-tox-py313:
+        - openstack-tox-py314:
             required-projects:
               - openstack/neutron
         - openstack-tox-docs:
@@ -41,10 +38,10 @@
         - neutron-tempest-plugin-vpnaas-ovn
     periodic-weekly:
       jobs: &vpnaas-periodic-weekly-jobs
-        - openstack-tox-py313:
+        - openstack-tox-py314:
             required-projects:
               - openstack/neutron
-        - openstack-tox-py313-with-oslo-master:
+        - openstack-tox-py314-with-oslo-master:
             required-projects:
               - openstack/neutron
         - neutron-tempest-plugin-vpnaas
