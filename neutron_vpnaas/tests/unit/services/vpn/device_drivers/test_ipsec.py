@@ -992,7 +992,48 @@ class IPSecDeviceDVR(BaseIPsecDeviceDriver):
         self.apply_mock.assert_called_once_with()
 
 
-class IPsecStrongswanConfigGeneration(BaseIPsecDeviceDriver):
+class IpsecIdInjectionMixin:
+    """Requires: self.process, self.vpnservice, and a template via hook."""
+    def _id_injection_config_template(self):
+        return self.ipsec_template  # override in swanctl class
+
+    def test_peer_id_config_injection_is_rejected(self):
+        """A crafted peer_id must not inject ipsec.conf directives.
+
+        Regression test for bug 2143775: local_id/peer_id are rendered
+        unescaped into ipsec.conf, so a value containing newlines could
+        previously be used to inject arbitrary directives (e.g. an
+        additional "conn" stanza with a malicious "leftupdown" command).
+        """
+        malicious_peer_id = (
+            'evil"\nconn injected\n    leftupdown="/bin/sh -c pwned"\n')
+        overrides = {'peers': [malicious_peer_id, '60.0.0.6']}
+        self.modify_config_for_test(overrides)
+        self.process.update_vpnservice(self.vpnservice)
+        actual = self.process._gen_config_content(
+            self._id_injection_config_template(), self.vpnservice)
+        self.assertNotIn('injected', actual)
+        self.assertNotIn('leftupdown="/bin/sh', actual)
+        self.assertNotIn(FAKE_IPSEC_SITE_CONNECTION1_ID, actual)
+        self.assertIn(FAKE_IPSEC_SITE_CONNECTION2_ID, actual)
+
+    def test_local_id_config_injection_is_rejected(self):
+        """A crafted local_id must not inject ipsec.conf directives."""
+        malicious_local_id = (
+            'evil"\nconn injected\n    leftupdown="/bin/sh -c pwned"\n')
+        conn = self.vpnservice['ipsec_site_connections'][0]
+        conn['local_id'] = malicious_local_id
+        self.process.update_vpnservice(self.vpnservice)
+        actual = self.process._gen_config_content(
+            self._id_injection_config_template(), self.vpnservice)
+        self.assertNotIn('injected', actual)
+        self.assertNotIn('leftupdown="/bin/sh', actual)
+        self.assertNotIn(FAKE_IPSEC_SITE_CONNECTION1_ID, actual)
+        self.assertIn(FAKE_IPSEC_SITE_CONNECTION2_ID, actual)
+
+
+class IPsecStrongswanConfigGeneration(IpsecIdInjectionMixin,
+                                      BaseIPsecDeviceDriver):
 
     def setUp(self, driver=strongswan_ipsec.StrongSwanDriver,
               ipsec_process=strongswan_ipsec.StrongSwanProcess):
@@ -1084,7 +1125,8 @@ class IPsecStrongswanConfigGeneration(BaseIPsecDeviceDriver):
         self.check_config_file(expected, actual)
 
 
-class TestLibreSwanConfigGeneration(BaseIPsecDeviceDriver):
+class TestLibreSwanConfigGeneration(IpsecIdInjectionMixin,
+                                    BaseIPsecDeviceDriver):
     """Verify that LibreSwan configuration files are generated correctly."""
 
     def setUp(self, driver=libreswan_ipsec.LibreSwanDriver,
@@ -1316,3 +1358,23 @@ class IPsecStrongswanDeviceDriverDVR(IPSecDeviceDVR):
     def setUp(self, driver=strongswan_ipsec.StrongSwanDriver,
               ipsec_process=strongswan_ipsec.StrongSwanProcess):
         super().setUp(driver, ipsec_process)
+
+
+class TestSwanctlConfigGeneration(IpsecIdInjectionMixin,
+                                  BaseIPsecDeviceDriver):
+
+    def setUp(self, driver=strongswan_ipsec.SwanctlDriver,
+              ipsec_process=strongswan_ipsec.SwanctlProcess):
+        super().setUp(
+            driver, ipsec_process, vpnservice=FAKE_VPN_SERVICE)
+        self.conf.register_opts(strongswan_ipsec.strongswan_opts,
+                                'strongswan')
+        self.conf.set_override('state_path', '/tmp')
+        self.swanctl_template = self.conf.strongswan.swanctl_config_template
+        self.process = strongswan_ipsec.SwanctlProcess(self.conf,
+                                                       'foo-process-id',
+                                                       self.vpnservice,
+                                                       mock.ANY)
+
+    def _id_injection_config_template(self):
+        return self.swanctl_template
