@@ -178,9 +178,9 @@ class VPNAgentSchedulerTestCaseBase(test_vpn_db.VPNTestMixin,
         except KeyError:
             raise n_exc.agent.AgentNotFound(id=agent_id)
 
-    def _get_any_metadata_agent_id(self):
+    def _get_any_ovn_neutron_agent_id(self):
         for agent in self._agents.values():
-            if agent['agent_type'] == ovn_constants.OVN_METADATA_AGENT:
+            if agent['agent_type'] == ovn_constants.OVN_NEUTRON_AGENT:
                 return agent['id']
 
     def _take_down_vpn_agent(self, host):
@@ -194,8 +194,8 @@ class VPNAgentSchedulerTestCaseBase(test_vpn_db.VPNTestMixin,
     def _register_agent_states(self):
         self._register_vpn_agent(host=VPN_HOSTA)
         self._register_vpn_agent(host=VPN_HOSTB)
-        self._register_metadata_agent(host=VPN_HOSTA)
-        self._register_metadata_agent(host=VPN_HOSTB)
+        self._register_ovn_neutron_agent(host=VPN_HOSTA)
+        self._register_ovn_neutron_agent(host=VPN_HOSTB)
 
     def _register_vpn_agent(self, host=None):
         agent = {
@@ -212,16 +212,16 @@ class VPNAgentSchedulerTestCaseBase(test_vpn_db.VPNTestMixin,
         self._agents[agent['id']] = agent
         self._vpn_agents_by_host[host] = agent
 
-    def _register_metadata_agent(self, host=None):
+    def _register_ovn_neutron_agent(self, host=None):
         agent = {
             'id': uuidutils.generate_uuid(),
-            'binary': "neutron-ovn-metadata-agent",
+            'binary': "ovn-neutron-agent",
             'host': host,
             'availability_zone': helpers.DEFAULT_AZ,
             'topic': 'n/a',
             'configurations': {},
             'start_flag': True,
-            'agent_type': ovn_constants.OVN_METADATA_AGENT,
+            'agent_type': ovn_constants.OVN_NEUTRON_AGENT,
             'alive': True,
             'admin_state_up': True}
         self._agents[agent['id']] = agent
@@ -470,11 +470,11 @@ class VPNAgentSchedulerTestCase(VPNAgentSchedulerTestCaseBase):
 
     def test_add_router_to_vpn_agent_wrong_type(self):
         self._register_agent_states()
-        agent_id = self._get_any_metadata_agent_id()
+        agent_id = self._get_any_ovn_neutron_agent_id()
 
         with self.router() as router:
             router_id = router['router']['id']
-            # add_router_to_vpn_agent with a metadata agent id shall fail
+            # add_router_to_vpn_agent with a neutron agent id shall fail
             self._add_router_to_vpn_agent(
                 agent_id, router_id,
                 expected_code=exc.HTTPNotFound.code)
