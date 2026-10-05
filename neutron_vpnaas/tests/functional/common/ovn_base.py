@@ -18,6 +18,7 @@ import netaddr
 from neutron.agent.linux import ip_lib
 from neutron.common import config as common_config
 from neutron.common.ovn import constants as ovn_const
+from neutron.common import utils as n_utils
 from neutron.conf.agent import common as agent_conf
 from neutron.conf import common as common_conf
 from neutron.conf.plugins.ml2.drivers.ovn import ovn_conf
@@ -332,15 +333,24 @@ class TestOvnVPNAgentBase(base.TestOVNFunctionalBase):
                 return row
 
     def test_agent(self):
-        chassis_row = self.sb_api.db_find(
-            'Chassis_Private',
-            ('name', '=', self.chassis_name)).execute(
-            check_error=True)[0]
+        # The VPN agent sets the sb_cfg key at startup (via a transaction
+        # on its own "sb_idl" connection) so that the server-side
+        # AgentCache sees it as alive immediately. However, this test
+        # reads the Chassis_Private row over a *different* OVSDB IDL
+        # connection (self.sb_api), so there's an inherent, variable
+        # delay between the agent's write committing on the server and
+        # that update being replicated to self.sb_api's local IDL cache.
+        # Poll until the key shows up instead of asserting immediately,
+        # to avoid an intermittent race failure here.
+        def _chassis_has_sb_cfg_key():
+            chassis_row = self.sb_api.db_find(
+                'Chassis_Private',
+                ('name', '=', self.chassis_name)).execute(
+                check_error=True)[0]
+            return (vpn_const.OVN_AGENT_VPN_SB_CFG_KEY in
+                    chassis_row['external_ids'])
 
-        # The VPN agent sets the sb_cfg key at startup so that the
-        # server-side AgentCache sees it as alive immediately.
-        self.assertIn(vpn_const.OVN_AGENT_VPN_SB_CFG_KEY,
-                      chassis_row['external_ids'])
+        n_utils.wait_until_true(_chassis_has_sb_cfg_key, timeout=10)
 
         # Let's list the agents to force the nb_cfg to be bumped on NB
         # db, which will automatically increment the nb_cfg counter on
