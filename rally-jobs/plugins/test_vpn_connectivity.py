@@ -20,13 +20,15 @@ import vpn_base
 LOG = logging.getLogger(__name__)
 
 
+@types.convert(image={"type": "glance_image"},
+               flavor={"type": "nova_flavor"})
+@scenario.configure(
+    name="TestVpnBasicScenario.create_and_delete_vpn_connection",
+    platform="openstack")
 class TestVpnBasicScenario(vpn_base.VpnBase):
     """Rally scenarios for VPNaaS"""
 
-    @types.convert(image={"type": "glance_image"},
-                   flavor={"type": "nova_flavor"})
-    @scenario.configure()
-    def create_and_delete_vpn_connection(self, **kwargs):
+    def run(self, **kwargs):
         """Basic VPN connectivity scenario.
 
         1. Create 2 private networks, subnets and routers

@@ -1,0 +1,35 @@
+- hosts: all
+  tasks:
+    - name: Ensure .ssh directory exists for stack user
+      become: true
+      become_user: stack
+      file:
+        path: /opt/stack/.ssh
+        state: directory
+        mode: '0700'
+
+    - name: Generate SSH keypair for stack user
+      become: true
+      become_user: stack
+      command: ssh-keygen -t rsa -b 2048 -f /opt/stack/.ssh/id_rsa -N ""
+      args:
+        creates: /opt/stack/.ssh/id_rsa
+
+    - name: Authorize the key for localhost access
+      become: true
+      become_user: stack
+      shell: cat /opt/stack/.ssh/id_rsa.pub >> /opt/stack/.ssh/authorized_keys
+
+    - name: Set permissions on authorized_keys
+      become: true
+      become_user: stack
+      file:
+        path: /opt/stack/.ssh/authorized_keys
+        mode: '0600'
+
+    - name: Accept localhost host key
+      become: true
+      become_user: stack
+      shell: |
+        ssh-keyscan -H 127.0.0.1 >> /opt/stack/.ssh/known_hosts
+        ssh-keyscan -H localhost >> /opt/stack/.ssh/known_hosts

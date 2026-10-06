@@ -1,101 +1,124 @@
+{% set flavor_name = flavor_name or "m1.tiny" %}
+{% set image_name = image_name or "^cirros.*-disk$" %}
+{% set private_key = private_key or "/opt/stack/.ssh/id_rsa" %}
+{% set ext_net = ext_net or "public" %}
+{% set controller_ip = controller_ip or "127.0.0.1" %}
+{% set controller_user = controller_user or "stack" %}
+{% set compute_ip = compute_ip or "127.0.0.1" %}
+{% set compute_user = compute_user or "stack" %}
+
 ---
-
-  TestVpnBasicScenario.create_and_delete_vpn_connection:
+  version: 2
+  title: Rally Task for OpenStack Neutron VPNaaS CI (DVR)
+  description: >
+    The task contains scenarios to test VPNaaS functionality with DVR enabled
+  subtasks:
     -
-      args:
-        flavor:
-            name: "m1.tiny"
-        image:
-            name: {{image_name}}
-        phase1_negotiation_mode: "main"
-        auth_algorithm: "sha256"
-        encryption_algorithm: "aes-128"
-        pfs: "group5"
-        value:  7200
-        ike_version: "v1"
-        transform_protocol: "esp"
-        encapsulation_mode: "tunnel"
-        mtu: 1500
-        secret: "secret"
-        nova_server_boot_timeout: 60 * 6
-        vpn_service_creation_timeout: 100
-        ipsec_site_connection_creation_timeout: 180
-        namespace_creation_timeout: 60
-        private_key: {{private_key}}
-        controller_creds: {{controller_creds}}
-        compute_creds: {{compute_creds}}
-        DVR_flag: True
-        use_admin_client: False
-        ext-net: "ext-net"
-
+      title: VPN basic connectivity test (DVR)
+      scenario:
+        TestVpnBasicScenario.create_and_delete_vpn_connection:
+          flavor:
+            name: "{{flavor_name}}"
+          image:
+            name: "{{image_name}}"
+          phase1_negotiation_mode: "main"
+          auth_algorithm: "sha256"
+          encryption_algorithm: "aes-128"
+          pfs: "group5"
+          value: 7200
+          ike_version: "v1"
+          transform_protocol: "esp"
+          encapsulation_mode: "tunnel"
+          mtu: 1500
+          secret: "secret"
+          nova_server_boot_timeout: 360
+          vpn_service_creation_timeout: 240
+          ipsec_site_connection_creation_timeout: 180
+          namespace_creation_timeout: 60
+          private_key: "{{private_key}}"
+          controller_creds:
+            - ip: "{{controller_ip}}"
+              username: "{{controller_user}}"
+          compute_creds:
+            - ip: "{{compute_ip}}"
+              username: "{{compute_user}}"
+              port: 22
+          DVR_flag: True
+          use_admin_client: False
+          ext-net: "{{ext_net}}"
       runner:
-        type: "constant"
-        times: 1
-        concurrency: 1
-
-      context:
+        constant:
+          times: 1
+          concurrency: 1
+      contexts:
         users:
           tenants: 1
           users_per_tenant: 1
       sla:
         failure_rate:
           max: 0
-
-  TestVpnStatusScenario.check_vpn_status:
     -
-      args:
-        flavor:
-            name: "m1.tiny"
-        image:
-            name: {{image_name}}
-        nova_server_boot_timeout: 60 * 6
-        vpn_service_creation_timeout: 100
-        ipsec_site_connection_creation_timeout: 400
-        namespace_creation_timeout: 60
-        private_key: {{private_key}}
-        controller_creds: {{controller_creds}}
-        compute_creds: {{compute_creds}}
-        DVR_flag: True
-        use_admin_client: False
-        ext-net: "ext-net"
-
+      title: VPN status check (DVR)
+      scenario:
+        TestVpnStatusScenario.check_vpn_status:
+          flavor:
+            name: "{{flavor_name}}"
+          image:
+            name: "{{image_name}}"
+          nova_server_boot_timeout: 360
+          vpn_service_creation_timeout: 240
+          ipsec_site_connection_creation_timeout: 400
+          namespace_creation_timeout: 60
+          private_key: "{{private_key}}"
+          controller_creds:
+            - ip: "{{controller_ip}}"
+              username: "{{controller_user}}"
+          compute_creds:
+            - ip: "{{compute_ip}}"
+              username: "{{compute_user}}"
+              port: 22
+          DVR_flag: True
+          use_admin_client: False
+          ext-net: "{{ext_net}}"
       runner:
-        type: "constant"
-        times: 1
-        concurrency: 1
-
-      context:
+        constant:
+          times: 1
+          concurrency: 1
+      contexts:
         users:
           tenants: 1
           users_per_tenant: 1
       sla:
         failure_rate:
           max: 0
-
-  TestVpnTenantScenario.multitenants_vpn_test:
     -
-      args:
-        flavor:
-            name: "m1.tiny"
-        image:
-            name: {{image_name}}
-        nova_server_boot_timeout: 60 * 6
-        vpn_service_creation_timeout: 100
-        ipsec_site_connection_creation_timeout: 180
-        namespace_creation_timeout: 60
-        private_key: {{private_key}}
-        controller_creds: {{controller_creds}}
-        compute_creds: {{compute_creds}}
-        DVR_flag: True
-        use_admin_client: True
-        ext-net: "ext-net"
-
+      title: VPN multi-tenant test (DVR)
+      scenario:
+        TestVpnTenantScenario.multitenants_vpn_test:
+          flavor:
+            name: "{{flavor_name}}"
+          image:
+            name: "{{image_name}}"
+          nova_server_boot_timeout: 360
+          vpn_service_creation_timeout: 240
+          ipsec_site_connection_creation_timeout: 180
+          namespace_creation_timeout: 60
+          private_key: "{{private_key}}"
+          controller_creds:
+            - ip: "{{controller_ip}}"
+              username: "{{controller_user}}"
+          compute_creds:
+            - ip: "{{compute_ip}}"
+              username: "{{compute_user}}"
+              port: 22
+          DVR_flag: True
+          use_admin_client: True
+          ext-net: "{{ext_net}}"
       runner:
-        type: "constant"
-        times: 1
-        concurrency: 1
-
-      context:
+        constant:
+          times: 1
+          concurrency: 1
+      contexts:
         users:
           tenants: 1
           users_per_tenant: 1

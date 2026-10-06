@@ -22,13 +22,14 @@ import vpn_base
 LOG = logging.getLogger(__name__)
 
 
+@types.convert(image={"type": "glance_image"},
+               flavor={"type": "nova_flavor"})
+@scenario.configure(name="TestVpnTenantScenario.multitenants_vpn_test",
+                    platform="openstack")
 class TestVpnTenantScenario(vpn_base.VpnBase):
     """Rally scenarios for VPNaaS"""
 
-    @types.convert(image={"type": "glance_image"},
-                   flavor={"type": "nova_flavor"})
-    @scenario.configure()
-    def multitenants_vpn_test(self, **kwargs):
+    def run(self, **kwargs):
         """Test VPN connectivity under two different tenants.
 
         1. Create 2 private networks with 2 different tenants, subnets, routers
@@ -48,7 +49,7 @@ class TestVpnTenantScenario(vpn_base.VpnBase):
 
         try:
             self.setup(**kwargs)
-            self.create_tenants()
+            self.create_projects()
             self.create_networks(**kwargs)
             self.check_route()
             self.ike_policy = self._create_ike_policy(**kwargs)

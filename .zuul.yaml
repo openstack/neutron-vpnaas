@@ -51,7 +51,7 @@
         - neutron-tempest-plugin-vpnaas-ovn-lswan
         - neutron-vpnaas-functional-sswan
         - neutron-vpnaas-functional-lswan
-        - neutron-vpnaas-rally
+        - neutron-vpnaas-rally-ovs
     experimental:
       jobs: *vpnaas-periodic-weekly-jobs
 
@@ -86,14 +86,44 @@
       tox_envlist: dsvm-functional-lswan
 
 - job:
-    name: neutron-vpnaas-rally
+    name: neutron-vpnaas-rally-ovs
     parent: rally-task-neutron
     timeout: 7800
+    pre-run: playbooks/configure_rally_job.yaml
     vars:
+      devstack_localrc:
+        Q_AGENT: openvswitch
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: openvswitch
+        Q_ML2_TENANT_NETWORK_TYPE: vxlan
+      devstack_services:
+        # Cinder services
+        c-api: false
+        c-bak: false
+        c-sch: false
+        c-vol: false
+        cinder: false
+        # Swift services
+        s-account: false
+        s-container: false
+        s-object: false
+        s-proxy: false
+        # Disable OVN services (DevStack defaults to OVN)
+        ovn-controller: false
+        ovn-northd: false
+        ovs-vswitchd: false
+        ovsdb-server: false
+        q-ovn-agent: false
+        # Enable OVS agent and L3/DHCP/metadata agents
+        q-agt: true
+        q-l3: true
+        q-dhcp: true
+        q-meta: true
+        q-metering: true
+        q-svc: true
       devstack_plugins:
         rally-openstack: https://opendev.org/openstack/rally-openstack
         neutron-vpnaas: https://opendev.org/openstack/neutron-vpnaas
-      rally_task: rally-jobs/rally-configs/rally_config_dvr.yaml
+      rally_task: rally-jobs/rally-configs/rally_config_non_dvr.yaml
     required-projects:
       - openstack/neutron
       - openstack/neutron-vpnaas

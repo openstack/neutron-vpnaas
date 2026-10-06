@@ -25,9 +25,15 @@ function neutron_agent_vpnaas_install_agent_packages {
     install_package $IPSEC_PACKAGE
     if is_ubuntu && [[ "$IPSEC_PACKAGE" == "strongswan" ]]; then
         install_package apparmor
+        # The symlinks prevent profiles from being reloaded on future
+        # apparmor restarts. apparmor_parser -R unloads the profiles
+        # that were already loaded into the kernel by the strongswan
+        # package installation. Without the unload, charon inside
+        # network namespaces is denied dac_read_search by AppArmor.
         sudo ln -sf /etc/apparmor.d/usr.lib.ipsec.charon /etc/apparmor.d/disable/
         sudo ln -sf /etc/apparmor.d/usr.lib.ipsec.stroke /etc/apparmor.d/disable/
-        restart_service apparmor
+        sudo apparmor_parser -R /etc/apparmor.d/usr.lib.ipsec.charon || true
+        sudo apparmor_parser -R /etc/apparmor.d/usr.lib.ipsec.stroke || true
     fi
 }
 

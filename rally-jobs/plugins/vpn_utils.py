@@ -18,8 +18,8 @@ import time
 
 import paramiko
 from rally.common import logging
-from rally.plugins.openstack.wrappers import network as network_wrapper
 from rally.task import utils as task_utils
+from rally_openstack.common.wrappers import network as network_wrapper
 
 LOG = logging.getLogger(__name__)
 SUBNET_IP_VERSION = 4
@@ -58,33 +58,34 @@ def execute_cmd_over_ssh(host, cmd, private_key):
     LOG.debug("CONNECTED TO HOST <%s>", host["ip"])
     try:
         stdin, stdout, stderr = client.exec_command(cmd)
-        return stdout.read().splitlines()
+        return stdout.read().decode('utf-8').splitlines()
     except paramiko.SSHException as e:
         raise Exception("SSHEXCEPTION WHEN CONNECTING TO %s", host["ip"], e)
     finally:
         client.close()
 
 
-def create_tenant(keystone_client, tenant_suffix):
-    """Creates keystone tenant with a random name.
+def create_project(keystone_client, project_suffix):
+    """Creates keystone project with a random name.
 
     :param keystone_client: keystone client
-    :param tenant_suffix: suffix name for the tenant
-    :returns: uuid of the new tenant
+    :param project_suffix: suffix name for the project
+    :returns: uuid of the new project
     """
-    tenant_name = "rally_tenant_" + tenant_suffix
-    LOG.debug("CREATING NEW TENANT %s", tenant_name)
-    return keystone_client.tenants.create(tenant_name).id
+    project_name = "rally_project_" + project_suffix
+    LOG.debug("CREATING NEW PROJECT %s", project_name)
+    return keystone_client.projects.create(name=project_name,
+                                           domain="default").id
 
 
 def create_network(neutron_client, neutron_admin_client, network_suffix,
-                   tenant_id=None, DVR_flag=True, ext_net_name=None):
+                   project_id=None, DVR_flag=True, ext_net_name=None):
     """Create neutron network, subnet, router
 
     :param neutron_client: neutron client
     :param neutron_admin_client: neutron client with admin credentials
     :param network_suffix: str, suffix name of the new network
-    :param tenant_id: uuid of the tenant
+    :param project_id: uuid of the project
     :param DVR_flag: True - creates a DVR router
                      False - creates a non DVR router
     :param ext_net_name: external network that is to be used
@@ -99,8 +100,8 @@ def create_network(neutron_client, neutron_admin_client, network_suffix,
         network_args = {"name": network_name,
                         "router:external": is_external
                         }
-        if tenant_id:
-            network_args["tenant_id"] = tenant_id
+        if project_id:
+            network_args["project_id"] = project_id
         LOG.debug("ADDING NEW NETWORK %s", network_name)
         return neutron_client.create_network({"network": network_args})
 
@@ -114,8 +115,8 @@ def create_network(neutron_client, neutron_admin_client, network_suffix,
                        "network_id": network_id,
                        "ip_version": SUBNET_IP_VERSION
                        }
-        if tenant_id:
-            subnet_args["tenant_id"] = tenant_id
+        if project_id:
+            subnet_args["project_id"] = project_id
         LOG.debug("ADDING SUBNET %s", subnet_name)
         return neutron_client.create_subnet({"subnet": subnet_args})
 
@@ -136,12 +137,10 @@ def create_network(neutron_client, neutron_admin_client, network_suffix,
                        }
         if not dvr_flag:
             router_args["distributed"] = dvr_flag
-        if tenant_id:
-            router_args["tenant_id"] = 'tenant_id'
         LOG.debug("ADDING ROUTER %s", router_name)
         rally_router = neutron_client.create_router({"router": router_args})
 
-        LOG.debug("[%s]: ADDING ROUTER INTERFACE")
+        LOG.debug("[%s]: ADDING ROUTER INTERFACE", router_name)
         neutron_client.add_interface_router(
             rally_router['router']["id"],
             {"subnet_id": rally_subnet["subnet"]["id"]})
@@ -259,7 +258,7 @@ def write_key_to_compute_node(keypair, local_path, remote_path, host,
         transport.close()
 
 
-def create_server(nova_client, keypair, **kwargs):
+def create_server(nova_client, neutron_client, keypair, **kwargs):
     """Create nova instance
 
     :param nova_client: nova client
@@ -269,13 +268,24 @@ def create_server(nova_client, keypair, **kwargs):
     # add sec-group
     sec_group_name = "rally_secgroup_" + kwargs["sec_group_suffix"]
     LOG.debug("ADDING NEW SECURITY GROUP %s", sec_group_name)
-    secgroup = nova_client.security_groups.create(sec_group_name)
+    secgroup = neutron_client.create_security_group(
+        {'security_group': {'name': sec_group_name}})['security_group']
     # add security rules for SSH and ICMP
-    nova_client.security_group_rules.create(secgroup.id, from_port=22,
-                to_port=22, ip_protocol="tcp", cidr="0.0.0.0/0")
+    neutron_client.create_security_group_rule(
+        {'security_group_rule': {
+            'security_group_id': secgroup['id'],
+            'port_range_min': 22,
+            'port_range_max': 22,
+            'protocol': 'tcp',
+            'direction': 'ingress',
+        }})
 
-    nova_client.security_group_rules.create(secgroup.id, from_port=-1,
-                to_port=-1, ip_protocol="icmp", cidr="0.0.0.0/0")
+    neutron_client.create_security_group_rule(
+        {'security_group_rule': {
+            'security_group_id': secgroup['id'],
+            'protocol': 'icmp',
+            'direction': 'ingress'
+        }})
 
     # boot new nova instance
     server_name = "rally_server_" + (kwargs["server_suffix"])
@@ -285,7 +295,7 @@ def create_server(nova_client, keypair, **kwargs):
                                         image=kwargs["image"],
                                         flavor=kwargs["flavor"],
                                         key_name=keypair.name,
-                                        security_groups=[secgroup.id],
+                                        security_groups=[secgroup['id']],
                                         nics=kwargs["nics"])
     return server
 
@@ -321,25 +331,55 @@ def get_server_ip(nova_client, server_id, network_suffix):
     return server_ip
 
 
-def add_floating_ip(nova_client, server):
+class _FloatingIP:
+    """Simple wrapper to provide .ip and .id attributes for a floating IP."""
+
+    def __init__(self, fip_dict):
+        self.id = fip_dict['id']
+        self.ip = fip_dict['floating_ip_address']
+
+
+def add_floating_ip(neutron_client, server):
     """Associates floating-ip to a server
 
-    :param nova_client: nova client
+    :param neutron_client: neutron client
     :param server: nova instance
     :return: associated floating ip
     """
 
-    fip_list = nova_client.floating_ips.list()
+    # Find an unassociated floating IP
+    fip_list = neutron_client.list_floatingips()['floatingips']
+    floating_ip = None
     for fip in fip_list:
-        if fip.instance_id is None:
+        if fip.get('port_id') is None:
             floating_ip = fip
             break
-    else:
+
+    if floating_ip is None:
         LOG.debug("CREATING NEW FLOATING IP")
-        floating_ip = nova_client.floating_ips.create()
-    LOG.debug("ASSOCIATING FLOATING IP %s", floating_ip.ip)
-    nova_client.servers.add_floating_ip(server.id, floating_ip.ip)
-    return floating_ip
+        # Find an external network
+        ext_nets = neutron_client.list_networks(
+            **{'router:external': True})['networks']
+        if not ext_nets:
+            raise Exception("No external network found for floating IP")
+        ext_net_id = ext_nets[0]['id']
+        floating_ip = neutron_client.create_floatingip(
+            {'floatingip': {'floating_network_id': ext_net_id}}
+        )['floatingip']
+
+    # Find the server's port
+    ports = neutron_client.list_ports(device_id=server.id)['ports']
+    if not ports:
+        raise Exception("No port found for server %s" % server.id)
+    port_id = ports[0]['id']
+
+    # Associate the floating IP to the server's port
+    LOG.debug("ASSOCIATING FLOATING IP %s", floating_ip['floating_ip_address'])
+    neutron_client.update_floatingip(
+        floating_ip['id'],
+        {'floatingip': {'port_id': port_id}})
+
+    return _FloatingIP(floating_ip)
 
 
 def get_namespace(host, private_key):
@@ -353,6 +393,7 @@ def get_namespace(host, private_key):
     LOG.debug("GET NAMESPACES")
     cmd = "sudo ip netns"
     namespaces = execute_cmd_over_ssh(host, cmd, private_key)
+    namespaces = [ns.split()[0] for ns in namespaces if ns.strip()]
     LOG.debug("NAMESPACES %s", namespaces)
     return namespaces
 
@@ -502,7 +543,7 @@ def ssh_and_ping_server_with_fip(local_server, peer_server, keyfile,
     return ping(local_host, cmd, private_key)
 
 
-def delete_servers(nova_client, servers):
+def delete_servers(nova_client, neutron_client, servers):
     """Delete nova servers
 
     It deletes the nova servers, associated security groups.
@@ -520,21 +561,22 @@ def delete_servers(nova_client, servers):
         task_utils.wait_for_delete(
             server, update_resource=task_utils.get_from_manager())
 
-        for secgroup in nova_client.security_groups.list():
-            if secgroup.id == sec_group_id:
+        sec_groups = neutron_client.list_security_groups()['security_groups']
+        for secgroup in sec_groups:
+            if secgroup['id'] == sec_group_id:
                 LOG.debug("DELETING SEC_GROUP: %s", sec_group_id)
-                nova_client.security_groups.delete(secgroup.id)
+                neutron_client.delete_security_group(sec_group_id)
 
 
-def delete_floating_ips(nova_client, fips):
+def delete_floating_ips(neutron_client, fips):
     """Delete floating ips
 
-    :param nova_client: nova client
-    :param fips: list of floating ips
+    :param neutron_client: neutron client
+    :param fips: list of floating ips (_FloatingIP objects)
     :return:
     """
     for fip in fips:
-        nova_client.floating_ips.delete(fip.id)
+        neutron_client.delete_floatingip(fip.id)
 
 
 def delete_keypairs(nova_client, keypairs):
@@ -588,16 +630,16 @@ def delete_networks(neutron_client, neutron_admin_client,
             neutron_client.delete_network(network['network']['id'])
 
 
-def delete_tenants(keystone_client, tenant_ids):
-    """Delete keystone tenant
+def delete_projects(keystone_client, project_ids):
+    """Delete keystone project
 
     :param keystone_client: keystone client
-    :param tenant_ids: list of tenants' uuids
-    :returns: delete keystone tenant instance
+    :param project_ids: list of projects' uuids
+    :returns: delete keystone project instance
     """
-    LOG.debug('DELETE TENANTS')
-    for id in tenant_ids:
-        keystone_client.tenants.delete(id)
+    LOG.debug('DELETE PROJECTS')
+    for id in project_ids:
+        keystone_client.projects.delete(id)
 
 
 def delete_keyfiles(local_key_files, remote_key_files=None,

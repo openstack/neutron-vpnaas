@@ -22,11 +22,12 @@ import vpn_base
 LOG = logging.getLogger(__name__)
 
 
+@types.convert(image={"type": "glance_image"},
+               flavor={"type": "nova_flavor"})
+@scenario.configure(name="TestVpnStatusScenario.check_vpn_status",
+                    platform="openstack")
 class TestVpnStatusScenario(vpn_base.VpnBase):
-    @types.convert(image={"type": "glance_image"},
-                   flavor={"type": "nova_flavor"})
-    @scenario.configure()
-    def check_vpn_status(self, **kwargs):
+    def run(self, **kwargs):
         """Test VPN's status correctly after bringing router's status to
          DOWN and back to ACTIVE state
 
@@ -59,9 +60,11 @@ class TestVpnStatusScenario(vpn_base.VpnBase):
             self.assert_statuses(final_status='ACTIVE', **kwargs)
             self.update_router(self.router_ids[0], admin_state_up=False)
             self.update_router(self.router_ids[1], admin_state_up=False)
+            self.update_vpn_services_status(admin_state_up=False)
             self.assert_statuses(final_status='DOWN', **kwargs)
             self.update_router(self.router_ids[0], admin_state_up=True)
             self.update_router(self.router_ids[1], admin_state_up=True)
+            self.update_vpn_services_status(admin_state_up=True)
             self.assert_statuses(final_status='ACTIVE', **kwargs)
             LOG.info("VPN STATUS TEST PASSED!")
 

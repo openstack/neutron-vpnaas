@@ -19,8 +19,8 @@ import time
 
 from oslo_utils import uuidutils
 from rally.common import logging
-from rally.plugins.openstack import scenario as rally_base
 from rally.task import atomic
+from rally_openstack.task import scenario as rally_base
 
 import vpn_utils
 
@@ -51,7 +51,7 @@ class VpnBase(rally_base.OpenStackScenario):
             self.local_key_files = ['/tmp/' + x for x in self.remote_key_files]
             self.private_key_file = kwargs["private_key"]
             self.keypairs = []
-            self.tenant_ids = []
+            self.project_ids = []
             self.ns_controller_tuples = []
             self.qrouterns_compute_tuples = []
             self.router_ids = []
@@ -68,23 +68,23 @@ class VpnBase(rally_base.OpenStackScenario):
             self.server_private_ips = []
             self.server_fips = []
 
-    def create_tenants(self):
-        """Create tenants"""
+    def create_projects(self):
+        """Create projects"""
 
         for x in range(MAX_RESOURCES):
-            tenant_id = vpn_utils.create_tenant(
+            project_id = vpn_utils.create_project(
                 self.keystone_client, self.suffixes[x])
             with LOCK:
-                self.tenant_ids.append(tenant_id)
+                self.project_ids.append(project_id)
 
     def create_networks(self, **kwargs):
         """Create networks to test vpn connectivity"""
 
         for x in range(MAX_RESOURCES):
-            if self.tenant_ids:
+            if self.project_ids:
                 router, network, subnet, cidr = vpn_utils.create_network(
                     self.neutron_client, self.neutron_admin_client,
-                    self.suffixes[x], tenant_id=self.tenant_ids[x],
+                    self.suffixes[x], project_id=self.project_ids[x],
                     DVR_flag=kwargs["DVR_flag"],
                     ext_net_name=kwargs["ext-net"])
             else:
@@ -130,7 +130,7 @@ class VpnBase(rally_base.OpenStackScenario):
             keypair = vpn_utils.create_keypair(
                 self.nova_client, self.suffixes[x])
             server = vpn_utils.create_server(
-                self.nova_client, keypair, **kwargs)
+                self.nova_client, self.neutron_client, keypair, **kwargs)
             vpn_utils.assert_server_status(server, **kwargs)
             with LOCK:
                 self.servers.append(server)
@@ -153,7 +153,7 @@ class VpnBase(rally_base.OpenStackScenario):
             else:
                 vpn_utils.write_key_to_local_path(self.keypairs[x],
                                                   self.local_key_files[x])
-                fip = vpn_utils.add_floating_ip(self.nova_client, server)
+                fip = vpn_utils.add_floating_ip(self.neutron_client, server)
                 with LOCK:
                     self.server_fips.append(fip)
 
@@ -245,6 +245,17 @@ class VpnBase(rally_base.OpenStackScenario):
             with LOCK:
                 self.vpn_services.append(vpn_service)
 
+    def update_vpn_services_status(self, admin_state_up):
+        """Update the status of VPN service"""
+
+        LOG.debug('UPDATING VPN_SERVICE STATUS')
+        for vpn_srvs in self.vpn_services:
+            self.neutron_client.update_vpnservice(
+                vpn_srvs["vpnservice"]["id"],
+                {"vpnservice": {
+                    "admin_state_up": admin_state_up
+                }})
+
     @atomic.action_timer("_create_ipsec_site_connection")
     def _create_ipsec_site_connection(self, local_index, peer_index, **kwargs):
         """Create IPSEC site connection
@@ -264,7 +275,7 @@ class VpnBase(rally_base.OpenStackScenario):
                 "mtu": kwargs.get("mtu", "1500"),
                 "ikepolicy_id": self.ike_policy["ikepolicy"]["id"],
                 "dpd": {
-                    "action": "disabled",
+                    "action": "hold",
                     "interval": 60,
                     "timeout": 240
                 },
@@ -495,9 +506,12 @@ class VpnBase(rally_base.OpenStackScenario):
     def cleanup(self):
         """Clean the resources"""
 
-        vpn_utils.delete_servers(self.nova_client, self.servers)
+        vpn_utils.delete_servers(self.nova_client,
+                                 self.neutron_client,
+                                 self.servers)
         if self.server_fips:
-            vpn_utils.delete_floating_ips(self.nova_client, self.server_fips)
+            vpn_utils.delete_floating_ips(self.neutron_client,
+                                          self.server_fips)
         vpn_utils.delete_keypairs(self.nova_client, self.keypairs)
 
         if self.qrouterns_compute_tuples:
@@ -519,5 +533,5 @@ class VpnBase(rally_base.OpenStackScenario):
         vpn_utils.delete_networks(
             self.neutron_client, self.neutron_admin_client, self.rally_routers,
             self.rally_networks, self.rally_subnets)
-        if self.tenant_ids:
-            vpn_utils.delete_tenants(self.keystone_client, self.tenant_ids)
+        if self.project_ids:
+            vpn_utils.delete_projects(self.keystone_client, self.project_ids)
