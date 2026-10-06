@@ -841,6 +841,181 @@ class IPSecDeviceLegacy(BaseIPsecDeviceDriver):
         self.assertIsNotNone(missing_conn)
         self.assertEqual(constants.DOWN, missing_conn['status'])
 
+    def _make_fake_process(self, status=constants.ACTIVE,
+                           updated_pending_status=False):
+        process = mock.Mock()
+        process.id = FAKE_ROUTER_ID
+        process.vpnservice = self.vpnservice
+        process.status = status
+        process.updated_pending_status = updated_pending_status
+        process.connection_status = {
+            FAKE_IPSEC_SITE_CONNECTION2_ID: {
+                'status': status,
+                'updated_pending_status': updated_pending_status,
+            }
+        }
+        return process
+
+    def test_report_status_forces_pending_update_on_first_report(self):
+        """First report of a process must clear PENDING_* on the server.
+
+        The server only transitions a VPNService/IPsec connection out of a
+        PENDING_* status when the agent reports updated_pending_status=True.
+        Because the process-level flag is reset after every report_status()
+        call (including the periodic one), the very first report of a
+        process must always carry updated_pending_status=True regardless of
+        the current value of the process flag.
+        """
+        context = mock.Mock(is_admin=True)
+        # updated_pending_status is already reset (False), simulating a race
+        # where the periodic report_status() fires after the flag was unset.
+        process = self._make_fake_process(
+            status=constants.ACTIVE, updated_pending_status=False)
+        self.driver.processes = {FAKE_ROUTER_ID: process}
+        self.driver.process_status_cache = {}
+
+        self.driver.report_status(context)
+
+        self.driver.agent_rpc.update_status.assert_called_once()
+        reported = self.driver.agent_rpc.update_status.call_args[0][1]
+        self.assertEqual(1, len(reported))
+        self.assertTrue(reported[0]['updated_pending_status'])
+        conn = reported[0]['ipsec_site_connections'][
+            FAKE_IPSEC_SITE_CONNECTION2_ID]
+        self.assertTrue(conn['updated_pending_status'])
+
+    def test_report_status_no_forced_pending_update_on_later_report(self):
+        """Subsequent reports must not force the pending status update."""
+        context = mock.Mock(is_admin=True)
+        process = self._make_fake_process(
+            status=constants.DOWN, updated_pending_status=False)
+        self.driver.processes = {FAKE_ROUTER_ID: process}
+        # A non-None cached status means this is not the first report.
+        self.driver.process_status_cache = {
+            FAKE_ROUTER_ID: {
+                'status': constants.ACTIVE,
+                'id': self.vpnservice['id'],
+                'updated_pending_status': False,
+                'ipsec_site_connections': {
+                    FAKE_IPSEC_SITE_CONNECTION2_ID: {
+                        'status': constants.ACTIVE,
+                        'updated_pending_status': False,
+                    }
+                }
+            }
+        }
+
+        self.driver.report_status(context)
+
+        self.driver.agent_rpc.update_status.assert_called_once()
+        reported = self.driver.agent_rpc.update_status.call_args[0][1]
+        self.assertFalse(reported[0]['updated_pending_status'])
+
+    def _make_flapping_process(self, statuses):
+        """Build a fake process whose status flips on every read.
+
+        ``process.status`` and ``process.connection_status`` each trigger a
+        live 'ipsec status' call in the real code, so successive reads can
+        return different values during tunnel negotiation/rekey. This helper
+        returns a process that yields the given sequence of statuses on
+        successive reads of ``status`` (and keeps ``connection_status``
+        consistent with the status returned by the preceding ``status`` read).
+        """
+        statuses = list(statuses)
+        state = {'current': statuses[0]}
+
+        def _next_status():
+            # Advance through the sequence, holding on the last value.
+            value = statuses.pop(0) if len(statuses) > 1 else statuses[0]
+            state['current'] = value
+            return value
+
+        process = mock.Mock()
+        process.id = FAKE_ROUTER_ID
+        process.vpnservice = self.vpnservice
+        process.updated_pending_status = False
+        type(process).status = mock.PropertyMock(side_effect=_next_status)
+        type(process).connection_status = mock.PropertyMock(
+            side_effect=lambda: {
+                FAKE_IPSEC_SITE_CONNECTION2_ID: {
+                    'status': state['current'],
+                    'updated_pending_status': False,
+                }
+            })
+        return process
+
+    def test_report_status_single_status_read_per_cycle(self):
+        """report_status must read the live status only once per cycle.
+
+        Reading process.status / process.connection_status runs an 'ipsec
+        status' command whose result can flip during tunnel rekey. If it is
+        read more than once per report cycle, the value reported to the
+        server and the value cached locally can diverge, leaving a connection
+        permanently stuck at DOWN on the server. This test fails if the
+        driver reads the status more than once.
+        """
+        context = mock.Mock(is_admin=True)
+        # First read ACTIVE, any subsequent read in the same cycle would
+        # return DOWN and cause a divergence.
+        process = self._make_flapping_process(
+            [constants.ACTIVE, constants.DOWN])
+        self.driver.processes = {FAKE_ROUTER_ID: process}
+        self.driver.process_status_cache = {}
+
+        self.driver.report_status(context)
+
+        self.driver.agent_rpc.update_status.assert_called_once()
+        reported = self.driver.agent_rpc.update_status.call_args[0][1]
+        reported_conn = reported[0]['ipsec_site_connections'][
+            FAKE_IPSEC_SITE_CONNECTION2_ID]
+        cached = self.driver.process_status_cache[FAKE_ROUTER_ID]
+        cached_conn = cached['ipsec_site_connections'][
+            FAKE_IPSEC_SITE_CONNECTION2_ID]
+        # The reported status and the cached status must come from the same
+        # snapshot and therefore be identical.
+        self.assertEqual(reported[0]['status'], cached['status'])
+        self.assertEqual(reported_conn['status'], cached_conn['status'])
+        self.assertEqual(constants.ACTIVE, reported_conn['status'])
+
+    def test_report_status_reports_down_to_active_transition(self):
+        """A connection that becomes ACTIVE after DOWN must be re-reported.
+
+        Simulates the real failure: a transient flap during a long sync
+        cycle caused the connection to be reported (and cached) as DOWN.
+        Once the SA is established, the next report_status() must re-report
+        the ACTIVE status so the server moves the connection out of DOWN.
+        """
+        context = mock.Mock(is_admin=True)
+        process = self._make_fake_process(
+            status=constants.ACTIVE, updated_pending_status=False)
+        self.driver.processes = {FAKE_ROUTER_ID: process}
+        # The connection was previously reported and cached as DOWN.
+        self.driver.process_status_cache = {
+            FAKE_ROUTER_ID: {
+                'status': constants.ACTIVE,
+                'id': self.vpnservice['id'],
+                'updated_pending_status': False,
+                'ipsec_site_connections': {
+                    FAKE_IPSEC_SITE_CONNECTION2_ID: {
+                        'status': constants.DOWN,
+                        'updated_pending_status': False,
+                    }
+                }
+            }
+        }
+
+        self.driver.report_status(context)
+
+        self.driver.agent_rpc.update_status.assert_called_once()
+        reported = self.driver.agent_rpc.update_status.call_args[0][1]
+        reported_conn = reported[0]['ipsec_site_connections'][
+            FAKE_IPSEC_SITE_CONNECTION2_ID]
+        self.assertEqual(constants.ACTIVE, reported_conn['status'])
+        # The cache must now reflect the newly reported ACTIVE status.
+        cached_conn = self.driver.process_status_cache[FAKE_ROUTER_ID][
+            'ipsec_site_connections'][FAKE_IPSEC_SITE_CONNECTION2_ID]
+        self.assertEqual(constants.ACTIVE, cached_conn['status'])
+
     def _test_status_handling_for_downed_connection(self, down_status):
         """Test status handling for downed connection."""
         router_id = self.router_info.router_id

@@ -624,12 +624,21 @@ class IPsecDriver(device_drivers.DeviceDriver, metaclass=abc.ABCMeta):
                 'ipsec_site_connections': {}}
         return self.process_status_cache[process.id]
 
-    def is_status_updated(self, process, previous_status):
+    def is_status_updated(self, process, previous_status, current_status=None):
+        # NOTE(lajoskatona): 'current_status' is a snapshot of the process
+        # status captured once by report_status(). It must be used for the
+        # comparison (instead of re-reading process.status /
+        # process.connection_status, which run a fresh 'ipsec status' each
+        # time) so that the status used for the comparison, the status
+        # reported to the server and the status cached locally are always
+        # consistent. See report_status() for details.
+        if current_status is None:
+            current_status = self._capture_process_status(process)
         if process.updated_pending_status:
             return True
-        if process.status != previous_status['status']:
+        if current_status['status'] != previous_status['status']:
             return True
-        if (process.connection_status !=
+        if (current_status['connection_status'] !=
             previous_status['ipsec_site_connections']):
             return True
 
@@ -638,12 +647,54 @@ class IPsecDriver(device_drivers.DeviceDriver, metaclass=abc.ABCMeta):
         for connection_status in process.connection_status.values():
             connection_status['updated_pending_status'] = False
 
-    def copy_process_status(self, process):
+    def _capture_process_status(self, process):
+        """Capture a consistent snapshot of the process status.
+
+        Reading ``process.status`` and ``process.connection_status`` each
+        run a fresh ``ipsec status`` command on the device. During a tunnel
+        negotiation/rekey the reported state can flip between DOWN (ROUTED/
+        CONNECTING) and ACTIVE (INSTALLED) within milliseconds. If the status
+        is read more than once per report cycle, the value reported to the
+        server and the value cached locally may diverge: e.g. DOWN is
+        reported to the server while ACTIVE is cached. On the next cycle the
+        (ACTIVE) cache matches the (ACTIVE) live status, so no update is sent,
+        and the connection stays stuck at DOWN on the server forever.
+
+        Capturing the status once and reusing it for the comparison, the
+        reported value and the cached value guarantees they are consistent.
+        """
+        return {
+            'status': process.status,
+            'connection_status': copy.deepcopy(process.connection_status),
+        }
+
+    def _copy_process_status(self, process, force_pending_update=False,
+                             current_status=None):
+        # NOTE(lajoskatona): The server only moves a VPNService
+        # (or IPsec site connection) out of a PENDING_* status when the
+        # agent reports with 'updated_pending_status' set to True (see
+        # VPNPluginRpcDbMixin.update_status_by_agent). The process-level
+        # 'updated_pending_status' flag is set in Process.update() but is
+        # reset after every report_status() call, including the periodic
+        # one. When the periodic report_status() fires before the pending
+        # transition has been acknowledged, the flag is lost and the
+        # resource stays stuck in PENDING_CREATE forever. To avoid this
+        # race, force the pending status update whenever this is the first
+        # time we report the process to the server (previous cached status
+        # is None).
+        if current_status is None:
+            current_status = self._capture_process_status(process)
+        updated_pending_status = (
+            process.updated_pending_status or force_pending_update)
+        connection_status = copy.deepcopy(current_status['connection_status'])
+        if force_pending_update:
+            for conn in connection_status.values():
+                conn['updated_pending_status'] = True
         return {
             'id': process.vpnservice['id'],
-            'status': process.status,
-            'updated_pending_status': process.updated_pending_status,
-            'ipsec_site_connections': copy.deepcopy(process.connection_status)
+            'status': current_status['status'],
+            'updated_pending_status': updated_pending_status,
+            'ipsec_site_connections': connection_status
         }
 
     def update_downed_connections(self, process_id, new_status):
@@ -684,12 +735,34 @@ class IPsecDriver(device_drivers.DeviceDriver, metaclass=abc.ABCMeta):
             if not self.should_be_reported(context, process):
                 continue
             previous_status = self.get_process_status_cache(process)
-            if self.is_status_updated(process, previous_status):
-                new_status = self.copy_process_status(process)
+            # NOTE(lajoskatona): Capture the process status exactly once per
+            # report cycle. Reading process.status / process.connection_status
+            # runs a live 'ipsec status' command, and the reported state can
+            # flip between DOWN and ACTIVE during tunnel negotiation/rekey.
+            # Reusing a single snapshot for the comparison, the value reported
+            # to the server and the value cached locally keeps them consistent
+            # and prevents a connection that just became ACTIVE from being
+            # permanently stuck at DOWN on the server side.
+            current_status = self._capture_process_status(process)
+            if self.is_status_updated(process, previous_status,
+                                      current_status=current_status):
+                # NOTE(lajoskatona): If we have never reported this process
+                # to the server (previous cached status is None),
+                # the corresponding resources may still be in a PENDING_*
+                # status on the server side. Force the pending status update
+                # so the server always transitions them out of PENDING_CREATE,
+                # even if the process-level updated_pending_status flag was
+                # already reset by a competing (e.g. periodic) report_status()
+                # call.
+                force_pending_update = previous_status['status'] is None
+                new_status = self._copy_process_status(
+                    process, force_pending_update=force_pending_update,
+                    current_status=current_status)
                 self.update_downed_connections(process.id, new_status)
                 status_changed_vpn_services.append(new_status)
                 self.process_status_cache[process.id] = (
-                    self.copy_process_status(process))
+                    self._copy_process_status(
+                        process, current_status=current_status))
                 # We need unset updated_pending status after it
                 # is reported to the server side
                 self.unset_updated_pending_status(process)

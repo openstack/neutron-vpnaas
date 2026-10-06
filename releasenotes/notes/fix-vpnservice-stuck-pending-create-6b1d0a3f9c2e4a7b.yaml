@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed a race in the IPsec device driver where a VPN service (and its
+    IPsec site connections) could remain stuck in the ``PENDING_CREATE``
+    status. The server only transitions a resource out of a ``PENDING_*``
+    status when the agent reports it with ``updated_pending_status`` set to
+    ``True``. That flag is reset after every status report, including the
+    periodic one, so a periodic report firing right after the pending
+    transition was computed could drop the flag and leave the resource
+    pending indefinitely. The driver now always forces the pending status
+    update on the first report of a process.
