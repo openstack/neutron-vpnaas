@@ -52,6 +52,7 @@
         - neutron-vpnaas-functional-sswan
         - neutron-vpnaas-functional-lswan
         - neutron-vpnaas-rally-ovs
+        - neutron-vpnaas-rally-ovn
     experimental:
       jobs: *vpnaas-periodic-weekly-jobs
 
@@ -134,3 +135,26 @@
       - ^doc/.*$
       - ^neutron_vpnaas/tests/unit/.*$
       - ^releasenotes/.*$
+
+- job:
+    name: neutron-vpnaas-rally-ovn
+    parent: neutron-vpnaas-rally-ovs
+    vars:
+      devstack_localrc:
+        Q_AGENT: ovn
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn
+        Q_ML2_TENANT_NETWORK_TYPE: geneve
+      devstack_services:
+        # Enable OVN services
+        ovn-controller: true
+        ovn-northd: true
+        ovs-vswitchd: true
+        ovsdb-server: true
+        q-ovn-agent: true
+        q-ovn-vpn-agent: true
+        # Disable OVS agent and L3/DHCP/metadata agents
+        q-agt: false
+        q-l3: false
+        q-dhcp: false
+        q-meta: false
+        q-metering: false

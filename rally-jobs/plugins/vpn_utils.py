@@ -25,6 +25,8 @@ LOG = logging.getLogger(__name__)
 SUBNET_IP_VERSION = 4
 START_CIDR = "10.2.0.0/24"
 EXT_NET_CIDR = "172.16.1.0/24"
+OVN_VPN_NS_PREFIX = 'qvpn-'
+OVN_VPN_AGENT_BINARY = 'neutron-ovn-vpn-agent'
 
 
 def execute_cmd_over_ssh(host, cmd, private_key):
@@ -78,6 +80,29 @@ def create_project(keystone_client, project_suffix):
                                            domain="default").id
 
 
+def list_network_extensions(neutron_client):
+    """List the Neutron API available and loaded extensions
+
+    :param neutron_client: neutron client
+    :return: list of aliases
+    """
+    body = neutron_client.list_extensions()
+    return [net_ext['alias'] for net_ext in body['extensions']]
+
+
+def list_neutron_agents(neutron_admin_client, **filters):
+    """Return agent dicts from ``list_agents``.
+
+    Rally VPN scenarios use the raw neutronclient, which returns
+    ``{'agents': [...]}``. The rally-openstack Neutron service wrapper
+    returns the agent list directly.
+    """
+    response = neutron_admin_client.list_agents(**filters)
+    if isinstance(response, dict):
+        return response.get('agents', [])
+    return response
+
+
 def create_network(neutron_client, neutron_admin_client, network_suffix,
                    project_id=None, DVR_flag=True, ext_net_name=None):
     """Create neutron network, subnet, router
@@ -128,6 +153,7 @@ def create_network(neutron_client, neutron_admin_client, network_suffix,
         :param rally_subnet: subnet to add router interface
         :param dvr_flag: True - creates a DVR router
                          False - creates a non DVR router
+                         None - no support for "dvr" extension
         :return: router
         """
         router_name = "rally_router_" + network_suffix
@@ -135,7 +161,7 @@ def create_network(neutron_client, neutron_admin_client, network_suffix,
         router_args = {"name": router_name,
                        "external_gateway_info": gw_info
                        }
-        if not dvr_flag:
+        if dvr_flag is False:
             router_args["distributed"] = dvr_flag
         LOG.debug("ADDING ROUTER %s", router_name)
         rally_router = neutron_client.create_router({"router": router_args})
@@ -380,6 +406,34 @@ def add_floating_ip(neutron_client, server):
         {'floatingip': {'port_id': port_id}})
 
     return _FloatingIP(floating_ip)
+
+
+def get_vpn_agent_ssh_host(neutron_admin_client, hosts):
+    """Return SSH credentials for a host running the OVN VPN agent.
+
+    In single-node DevStack/Rally jobs there is typically one VPN agent and
+    one entry in ``hosts`` (the controller). For multi-node deployments, match
+    the agent ``host`` field to a host credential when possible.
+
+    :param neutron_admin_client: neutron admin client
+    :param hosts: list of SSH host dicts (ip, username, ...)
+    :returns: host dict suitable for execute_cmd_over_ssh
+    """
+    agents = list_neutron_agents(
+        neutron_admin_client, binary=OVN_VPN_AGENT_BINARY)
+    alive_agents = [agent for agent in agents if agent.get('alive')]
+    if not alive_agents:
+        raise Exception('No alive %s found' % OVN_VPN_AGENT_BINARY)
+    if len(hosts) == 1:
+        return hosts[0]
+    agent_host = alive_agents[0]['host']
+    for host in hosts:
+        if host.get('ip') == agent_host or host.get('hostname') == agent_host:
+            return host
+    LOG.warning(
+        'Could not match VPN agent host %s to SSH credentials; '
+        'using the first host entry', agent_host)
+    return hosts[0]
 
 
 def get_namespace(host, private_key):

@@ -67,6 +67,23 @@ class VpnBase(rally_base.OpenStackScenario):
             self.servers = []
             self.server_private_ips = []
             self.server_fips = []
+            self._dvr_extension = None
+            self._is_driver_ovn = None
+
+    @property
+    def is_dvr_extension(self):
+        if self._dvr_extension is None:
+            self._dvr_extension = 'dvr' in vpn_utils.list_network_extensions(
+                self.neutron_client)
+        return self._dvr_extension
+
+    @property
+    def is_driver_ovn(self):
+        if self._is_driver_ovn is None:
+            ovn_agents = vpn_utils.list_neutron_agents(
+                self.neutron_admin_client, binary='ovn-controller')
+            self._is_driver_ovn = len(ovn_agents) > 0
+        return self._is_driver_ovn
 
     def create_projects(self):
         """Create projects"""
@@ -79,6 +96,9 @@ class VpnBase(rally_base.OpenStackScenario):
 
     def create_networks(self, **kwargs):
         """Create networks to test vpn connectivity"""
+        if not self.is_dvr_extension and not kwargs["DVR_flag"]:
+            # Disable the DVR_flag if the flag is False and there is no support
+            kwargs["DVR_flag"] = None
 
         for x in range(MAX_RESOURCES):
             if self.project_ids:
@@ -102,7 +122,14 @@ class VpnBase(rally_base.OpenStackScenario):
                     router["router"]["external_gateway_info"]
                     ["external_fixed_ips"][0]["ip_address"])
 
-            if kwargs["DVR_flag"]:
+            if self.is_driver_ovn:
+                # OVN VPN uses qvpn-<router_id> on the neutron-ovn-vpn-agent
+                # host. The namespace is created when the VPN service is
+                # provisioned, not when the router is created.
+                controller = vpn_utils.get_vpn_agent_ssh_host(
+                    self.neutron_admin_client, kwargs['controller_creds'])
+                ns = vpn_utils.OVN_VPN_NS_PREFIX + router["router"]['id']
+            elif kwargs["DVR_flag"]:
                 ns, controller = vpn_utils.wait_for_namespace_creation(
                     "snat-", router["router"]['id'],
                     kwargs['controller_creds'],
@@ -119,7 +146,6 @@ class VpnBase(rally_base.OpenStackScenario):
 
     def create_servers(self, **kwargs):
         """Create servers"""
-
         for x in range(MAX_RESOURCES):
             kwargs.update({
                 "nics":
@@ -159,6 +185,11 @@ class VpnBase(rally_base.OpenStackScenario):
 
     def check_route(self):
         """Verify route exists between the router gateways"""
+
+        if self.is_driver_ovn:
+            # OVN has no qrouter/snat Linux namespaces at router creation time.
+            LOG.debug("SKIP ROUTE CHECK FOR ML2/OVN")
+            return
 
         LOG.debug("VERIFY ROUTE EXISTS BETWEEN THE ROUTER GATEWAYS")
         for tuple in self.ns_controller_tuples:
@@ -256,6 +287,23 @@ class VpnBase(rally_base.OpenStackScenario):
                     "admin_state_up": admin_state_up
                 }})
 
+    def _get_vpnservice_external_v4_ip(self, index):
+        """Return the VPN endpoint IPv4 for site index.
+
+        On ML2/OVN this is the VPN gateway address, not the Neutron router GW.
+        """
+        vpnservice = self.vpn_services[index]['vpnservice']
+        external_ip = vpnservice.get('external_v4_ip')
+        if not external_ip:
+            refreshed = self.neutron_client.show_vpnservice(vpnservice['id'])
+            external_ip = refreshed['vpnservice'].get('external_v4_ip')
+        if external_ip:
+            return external_ip
+        if self.rally_router_gw_ips:
+            return self.rally_router_gw_ips[index]
+        raise Exception(
+            'No external IPv4 for VPN service %s' % vpnservice['id'])
+
     @atomic.action_timer("_create_ipsec_site_connection")
     def _create_ipsec_site_connection(self, local_index, peer_index, **kwargs):
         """Create IPSEC site connection
@@ -265,27 +313,32 @@ class VpnBase(rally_base.OpenStackScenario):
         :return: IPSEC site connection
         """
         LOG.debug('CREATING IPSEC_SITE_CONNECTION')
+        peer_address = self._get_vpnservice_external_v4_ip(peer_index)
+        local_address = self._get_vpnservice_external_v4_ip(local_index)
+        conn = {
+            "psk": kwargs.get("secret", "secret"),
+            "initiator": "bi-directional",
+            "ipsecpolicy_id": self.ipsec_policy["ipsecpolicy"]["id"],
+            "admin_state_up": True,
+            "peer_cidrs": [self.rally_cidrs[peer_index]],
+            "mtu": kwargs.get("mtu", "1500"),
+            "ikepolicy_id": self.ike_policy["ikepolicy"]["id"],
+            "dpd": {
+                "action": "hold",
+                "interval": 60,
+                "timeout": 240
+            },
+            "vpnservice_id":
+                self.vpn_services[local_index]["vpnservice"]["id"],
+            "peer_address": peer_address,
+            "peer_id": peer_address,
+            "name": "rally_ipsec_site_connection_" +
+                    self.suffixes[local_index]
+        }
+        if self.is_driver_ovn:
+            conn["local_id"] = local_address
         ipsec_site_conn = self.neutron_client.create_ipsec_site_connection({
-            "ipsec_site_connection": {
-                "psk": kwargs.get("secret", "secret"),
-                "initiator": "bi-directional",
-                "ipsecpolicy_id": self.ipsec_policy["ipsecpolicy"]["id"],
-                "admin_state_up": True,
-                "peer_cidrs": self.rally_cidrs[peer_index],
-                "mtu": kwargs.get("mtu", "1500"),
-                "ikepolicy_id": self.ike_policy["ikepolicy"]["id"],
-                "dpd": {
-                    "action": "hold",
-                    "interval": 60,
-                    "timeout": 240
-                },
-                "vpnservice_id":
-                    self.vpn_services[local_index]["vpnservice"]["id"],
-                "peer_address": self.rally_router_gw_ips[peer_index],
-                "peer_id": self.rally_router_gw_ips[peer_index],
-                "name": "rally_ipsec_site_connection_" +
-                        self.suffixes[local_index]
-            }
+            "ipsec_site_connection": conn
         })
         return ipsec_site_conn
 
@@ -296,6 +349,20 @@ class VpnBase(rally_base.OpenStackScenario):
         b = self._create_ipsec_site_connection(1, 0, **kwargs)
         with LOCK:
             self.ipsec_site_connections = [a, b]
+
+        if self.is_driver_ovn:
+            # OVN VPN agent creates the qvpn-<router_id> namespace only
+            # after a VPN service with at least one IPsec site connection
+            # is synced. Wait for the namespaces now that the connections
+            # exist.
+            for x in range(MAX_RESOURCES):
+                ns, controller = vpn_utils.wait_for_namespace_creation(
+                    vpn_utils.OVN_VPN_NS_PREFIX, self.router_ids[x],
+                    [self.ns_controller_tuples[x][1]],
+                    self.private_key_file,
+                    kwargs['namespace_creation_timeout'])
+                with LOCK:
+                    self.ns_controller_tuples[x] = (ns, controller)
 
     def _get_resource(self, resource_tag, resource_id):
         """Get the resource(vpn_service or ipsec_site_connection)
@@ -394,11 +461,15 @@ class VpnBase(rally_base.OpenStackScenario):
         qg = vpn_utils.get_interfaces(
             self.ns_controller_tuples[peer_index],
             self.private_key_file)
-        p = re.compile(r"qg-\w+-\w+")
+        if self.is_driver_ovn:
+            # OVN external VPN ports are named vg<suffix> (hyphens allowed).
+            p = re.compile(r"^\d+:\s+(vg\S+):")
+        else:
+            p = re.compile(r"qg-\w+-\w+")
         for line in qg:
             m = p.search(line)
             if m:
-                return m.group()
+                return m.group(1) if self.is_driver_ovn else m.group()
         return None
 
     @atomic.action_timer("_verify_vpn_connection")
