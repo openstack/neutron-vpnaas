@@ -1,0 +1,8 @@
+---
+security:
+  - |
+    ``local_id`` and ``peer_id`` values are now validated against a
+    character set before being rendered, and any IPsec site connection
+    with an invalid value is excluded from the generated configuration
+    files (``ipsec.conf`` or ``ipsec.secrets``). For more information, see
+    `bug 2143775 <https://bugs.launchpad.net/neutron/+bug/2143775>`_.

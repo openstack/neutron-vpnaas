@@ -140,6 +140,14 @@ class BaseSwanProcess(metaclass=abc.ABCMeta):
     STATUS_IPSEC_SA_ESTABLISHED_RE2 = (
         r'\d{3} #\d+: "([a-f0-9\-\/x]+).*established.*newest')
 
+    # local_id/peer_id are rendered, unescaped, into line-oriented
+    # ipsec.conf/ipsec.secrets files. Jinja2's autoescape only neutralizes
+    # HTML-significant characters and does nothing for newlines, so these
+    # values must be restricted to a safe character set before rendering,
+    # otherwise a crafted value could inject arbitrary ipsec.conf directives
+    # (e.g. additional "conn" stanzas with a malicious "leftupdown" command).
+    ID_SAFE_RE = re.compile(r'^[a-zA-Z0-9.@_:\/-]+$')
+
     def __init__(self, conf, process_id, vpnservice, namespace):
         self.conf = conf
         self.id = process_id
@@ -174,6 +182,36 @@ class BaseSwanProcess(metaclass=abc.ABCMeta):
             if (('local_id' not in ipsec_site_conn.keys()) or
                 (not ipsec_site_conn['local_id'])):
                 ipsec_site_conn['local_id'] = ipsec_site_conn['external_ip']
+        # Drop any ipsec_site_connections with an invalid local_id/peer_id
+        # *before* they can reach a template. Not every template filters
+        # on admin_state_up, so this is the only reliable place to do this.
+        self.vpnservice['ipsec_site_connections'] = [
+            conn for conn in self.vpnservice['ipsec_site_connections']
+            if self._validate_id_field(conn, 'local_id') and
+            self._validate_id_field(conn, 'peer_id')]
+
+    def _validate_id_field(self, ipsec_site_conn, field):
+        """Ensure local_id/peer_id cannot add invalid ipsec.conf directives.
+
+        These values are rendered as-is into ipsec.conf/ipsec.secrets.
+        Reject anything containing characters outside of a known-good
+        set (in particular newlines and quotes) so an invalid value
+        cannot terminate the current directive and cause arbitrary
+        configuration (e.g. an invalid "conn" stanza with a "leftupdown"
+        command).
+
+        :returns: True if the field is valid, False if the connection
+                  should be dropped from the rendered configuration.
+        """
+        value = ipsec_site_conn.get(field)
+        if value and not self.ID_SAFE_RE.match(value):
+            LOG.error("Invalid characters found in %(field)s %(value)r "
+                      "for ipsec site connection %(conn)s. Excluding this "
+                      "connection from the rendered configuration.",
+                      {'field': field, 'value': value,
+                       'conn': ipsec_site_conn.get('id')})
+            return False
+        return True
 
     def base64_encode_psk(self):
         if not self.vpnservice:
