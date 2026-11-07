@@ -28,14 +28,8 @@ It includes both of in-tree and out-of-tree drivers.
 +============================+===========================+==================+
 | LibreSwanDriver            | Dongcan Ye                | yedongcan        |
 +----------------------------+---------------------------+------------------+
-| MidonetIPsecVPNDriver [#]_ | YAMAMOTO Takashi          | yamamoto         |
-+----------------------------+---------------------------+------------------+
-| NSXvIPsecVpnDriver [#]_    | Roey Chen                 | roeyc            |
-+----------------------------+---------------------------+------------------+
 |                            | Lingxian Kong             | kong             |
 | StrongSwanDriver           +---------------------------+------------------+
 |                            | Cao Xuan Hoang            | hoangcx          |
 +----------------------------+---------------------------+------------------+
 
-.. [#] networking-midonet: https://docs.openstack.org/networking-midonet/latest/install/installation.html#vpnaas
-.. [#] vmware-nsx: Maintained under the vmware-nsx repository - https://github.com/openstack/vmware-nsx
