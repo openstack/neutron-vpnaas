@@ -14,6 +14,7 @@
 
 from neutron.plugins.ml2.drivers.ovn.agent import neutron_agent
 from neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb import ovsdb_monitor
+from neutron_lib import context as n_context
 from neutron_lib.plugins import constants as plugin_constants
 from neutron_lib.plugins import directory
 from ovsdbapp.backend.ovs_idl import event as row_event
@@ -70,6 +71,13 @@ class ChassisVPNAgentWriteEvent(ovsdb_monitor.ChassisAgentEvent):
             return False
 
     def run(self, event, row, old):
+        if not hasattr(neutron_agent, 'AgentCache'):
+            # Neutron stores OVN agent state in the Neutron DB instead of
+            # an in-memory AgentCache.
+            agent = OVNVPNAgent(row)
+            directory.get_plugin().create_or_update_agent(
+                n_context.get_admin_context(), agent.agent_state())
+            return
         neutron_agent.AgentCache().update(constants.AGENT_TYPE_VPN, row,
                                           clear_down=True)
 
@@ -82,8 +90,8 @@ class OVNVPNAgentMonitor:
             idl = sb_ovn.ovsdb_connection.idl
             if isinstance(idl, (ovsdb_monitor.OvnSbIdl,
                                 ovsdb_monitor.BaseOvnSbIdl)):
-                # In ChassisVPNAgentWriteEvent driver is unused;
-                # AgentCache update does not need the mech driver.
+                # In ChassisVPNAgentWriteEvent driver is unused; the agent
+                # state is updated without needing the mech driver.
                 # Pass None as the driver argument.
                 idl.notify_handler.watch_event(
                     ChassisVPNAgentWriteEvent(None))

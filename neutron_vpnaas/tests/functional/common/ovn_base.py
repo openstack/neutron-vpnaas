@@ -362,6 +362,8 @@ class TestOvnVPNAgentBase(base.TestOVNFunctionalBase):
                                         'Chassis_Private')
         self.handler.watch_event(row_event)
         self.new_list_request('agents').get_response(self.api)
+        # Newer neutron no longer bumps nb_cfg when listing agents.
+        self.mech_driver.ping_all_chassis()
 
         # If we do not time out waiting for the event, then we are assured
         # that the VPN agent has populated the external_ids from the

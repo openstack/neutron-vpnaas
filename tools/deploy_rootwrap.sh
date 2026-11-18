@@ -54,6 +54,15 @@ fi
 # Get config file and modify for this repo
 cp -p ${src_conf} ${dst_conf}
 sed -i "s:^filters_path=.*$:filters_path=${dst_rootwrap_path}:" ${dst_conf}
-sed -i "s:^\(exec_dirs=.*\)$:\1,${venv_path}/bin:" ${dst_conf}
+# Prioritize the tox environment's executables over global paths (eg
+# /usr/bin, /usr/local/bin). Otherwise, on a system that also has
+# devstack installed, rootwrap may resolve commands such as
+# privsep-helper to a global/devstack-provisioned executable instead
+# of the one from this venv, which can be built against a different
+# (and possibly incompatible) Python/library environment. See
+# neutron's commit a77fb4ec26 ("Prioritize tox environment
+# executables for fullstack/functional tests") for the equivalent fix
+# upstream.
+sed -i "s:^exec_dirs=\(.*\)$:exec_dirs=${venv_path}/bin,\1:" ${dst_conf}
 sudo mkdir -p /etc/neutron/
 sudo cp ${dst_conf} /etc/neutron/

@@ -25,6 +25,12 @@ function neutron_agent_vpnaas_install_agent_packages {
     install_package $IPSEC_PACKAGE
     if is_ubuntu && [[ "$IPSEC_PACKAGE" == "strongswan" ]]; then
         install_package apparmor
+        # Newer Ubuntu releases no longer pull in the legacy "ipsec" (stroke)
+        # tooling with the strongswan package, but the strongswan driver and
+        # the swanctl driver's piddir lookup use the ipsec command.
+        if apt-cache show strongswan-starter >/dev/null 2>&1; then
+            install_package strongswan-starter
+        fi
         # The symlinks prevent profiles from being reloaded on future
         # apparmor restarts. apparmor_parser -R unloads the profiles
         # that were already loaded into the kernel by the strongswan

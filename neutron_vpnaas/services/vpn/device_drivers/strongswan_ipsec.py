@@ -257,6 +257,7 @@ class SwanctlProcess(ipsec.BaseSwanProcess):
 
     binary = 'swanctl'
     IPSEC_BINARY = 'ipsec'
+    DEFAULT_PIDDIR = '/var/run'
 
     def __init__(self, conf, process_id, vpnservice, namespace):
         super().__init__(conf, process_id, vpnservice, namespace)
@@ -267,8 +268,16 @@ class SwanctlProcess(ipsec.BaseSwanProcess):
         LOG.debug("swanctl config dir is '%s'", self._swanctl_config_dir)
 
     def _get_strongswan_piddir(self):
-        return utils.execute(
-            cmd=[self.IPSEC_BINARY, '--piddir'], run_as_root=True).strip()
+        # The ipsec command is only shipped with the legacy strongswan-starter
+        # package, which is not always installed when using swanctl.
+        try:
+            return utils.execute(
+                cmd=[self.IPSEC_BINARY, '--piddir'],
+                run_as_root=True).strip()
+        except Exception:
+            LOG.warning("Unable to run '%s --piddir', using '%s'",
+                        self.IPSEC_BINARY, self.DEFAULT_PIDDIR)
+            return self.DEFAULT_PIDDIR
 
     def _execute(self, cmd, check_exit_code=True, extra_ok_codes=None):
         """Execute command on namespace.
