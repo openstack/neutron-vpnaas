@@ -31,15 +31,30 @@ FAKE_CONN1_ID = test_ipsec.FAKE_IPSEC_SITE_CONNECTION1_ID
 FAKE_CONN2_ID = test_ipsec.FAKE_IPSEC_SITE_CONNECTION2_ID
 FAKE_PROCESS_ID = 'foo-process-id'
 
-SWANCTL_INSTALLED_STATUS = """%s:  INSTALLED, ESTABLISHED, current (IPv4)
-    child_sa:  %s_child
-        INSTALLED, ESTABLISHED, current (IPv4)
-""" % (FAKE_CONN2_ID, FAKE_CONN2_ID)
+# Output of 'swanctl --list-sas' as wrapped by neutron-vpn-netns-wrapper,
+# which prefixes the command output with "Command: ... Exit code: N
+# Stdout: ... Stderr: ..." (stdout and stderr are concatenated).
+IKE_SA_LINE = ('%s: #2, ESTABLISHED, IKEv2, '
+              '8c4712b1eebfd67b_i 5c2a71d9f1e8a357_r')
+CHILD_SA_LINE = ('  %s: #1, reqid 1, INSTALLED, TUNNEL, '
+                 'esp:aes128-sha256 in c471a7f1 (1234B), '
+                 'out 71d9a357 (5678B)')
 
-SWANCTL_CONNECTING_STATUS = """%s:  CONNECTING, current (IPv4)
-""" % FAKE_CONN2_ID
+SWANCTL_INSTALLED_STATUS = (
+    "Command: ['swanctl', '--list-sas'] Exit code: 0 Stdout: %s\n%s Stderr:" %
+    (IKE_SA_LINE % FAKE_CONN2_ID, CHILD_SA_LINE % FAKE_CONN2_ID))
 
-SWANCTL_EMPTY_STATUS = 'No active Security Associations found.'
+SWANCTL_CONNECTING_STATUS = (
+    "Command: ['swanctl', '--list-sas'] Exit code: 0 Stdout: %s: #1, "
+    "CONNECTING, IKEv2, 0000000000000000_i 0000000000000000_r Stderr:" %
+    FAKE_CONN2_ID)
+
+SWANCTL_EMPTY_STATUS = ("""Command: ['swanctl', '--list-sas'] Exit code: 0 """
+                        "Stdout: Stderr: ")
+
+SWANCTL_NOT_RUNNING_STATUS = ("""Command: ['swanctl', '--list-sas'] Exit """
+                              """code: 1 Stdout: Stderr: connecting to """
+                              """socket '/var/run/charon.vici' failed: """)
 
 
 class TestSwanctlProcess(base.BaseTestCase):
@@ -61,18 +76,17 @@ class TestSwanctlProcess(base.BaseTestCase):
             self.tmpdir, 'ipsec', FAKE_PROCESS_ID, 'etc', 'swanctl')
 
     def test_extract_connection_status_installed(self):
-        self.process._extract_and_swanctl_connection_status(
+        self.process._extract_and_record_connection_status(
             SWANCTL_INSTALLED_STATUS)
+        # The CHILD_SA line is the authoritative status: the connection
+        # is ACTIVE because its CHILD_SA is INSTALLED. The IKE_SA line
+        # is ignored (no reqid).
         self.assertEqual(
             constants.ACTIVE,
             self.process.connection_status[FAKE_CONN2_ID]['status'])
-        self.assertEqual(
-            constants.ACTIVE,
-            self.process.connection_status[
-                '%s_child' % FAKE_CONN2_ID]['status'])
 
     def test_extract_connection_status_connecting(self):
-        self.process._extract_and_swanctl_connection_status(
+        self.process._extract_and_record_connection_status(
             SWANCTL_CONNECTING_STATUS)
         self.assertEqual(
             constants.DOWN,
@@ -80,14 +94,22 @@ class TestSwanctlProcess(base.BaseTestCase):
 
     def test_extract_connection_status_empty(self):
         self.process.connection_status = {FAKE_CONN1_ID: {'status': 'foo'}}
-        self.process._extract_and_swanctl_connection_status('')
+        self.process._extract_and_record_connection_status('')
         self.assertEqual({}, self.process.connection_status)
 
-    def test_check_swanctl_status_line(self):
-        conn_id, status = self.process._check_swanctl_status_line(
-            'INSTALLED, ESTABLISHED')
-        self.assertIsNone(conn_id)
-        self.assertEqual(constants.ACTIVE, status)
+    def test_extract_connection_status_no_sa(self):
+        # charon runs but no CHILD_SA is reported: any previous status
+        # must be cleared so the connections are reported as DOWN.
+        self.process.connection_status = {FAKE_CONN1_ID: {'status': 'foo'}}
+        self.process._extract_and_record_connection_status(
+            SWANCTL_EMPTY_STATUS)
+        self.assertEqual({}, self.process.connection_status)
+
+    def test_extract_connection_status_not_running(self):
+        self.process.connection_status = {FAKE_CONN1_ID: {'status': 'foo'}}
+        self.process._extract_and_record_connection_status(
+            SWANCTL_NOT_RUNNING_STATUS)
+        self.assertEqual({}, self.process.connection_status)
 
     @mock.patch.object(strongswan_ipsec.SwanctlProcess,
                        '_wait_for_charon_ready')
@@ -95,11 +117,8 @@ class TestSwanctlProcess(base.BaseTestCase):
     def test_start(self, mock_execute, _mock_wait):
         self.process.start()
         mock_execute.assert_has_calls([
-            mock.call(['ipsec', 'start'], check_exit_code=False),
+            mock.call(['ipsec', 'start']),
             mock.call(['swanctl', '--load-all']),
-            mock.call(['swanctl', '--load-creds']),
-            mock.call(['swanctl', '--initiate', '--child', FAKE_CONN1_ID]),
-            mock.call(['swanctl', '--initiate', '--child', FAKE_CONN2_ID]),
         ], any_order=False)
 
     def test_start_without_namespace(self):
@@ -112,8 +131,7 @@ class TestSwanctlProcess(base.BaseTestCase):
     @mock.patch.object(strongswan_ipsec.SwanctlProcess, '_execute')
     def test_stop(self, mock_execute):
         self.process.stop()
-        mock_execute.assert_called_once_with(
-            ['ipsec', 'stop'], check_exit_code=False)
+        mock_execute.assert_called_once_with(['ipsec', 'stop'])
         self.assertEqual({}, self.process.connection_status)
 
     @mock.patch.object(strongswan_ipsec.SwanctlProcess, '_execute')
@@ -132,7 +150,7 @@ class TestSwanctlProcess(base.BaseTestCase):
         status = self.process.get_status()
         self.assertEqual(SWANCTL_INSTALLED_STATUS, status)
         mock_execute.assert_called_once_with(
-            ['swanctl', '--list-sas'], check_exit_code=False)
+            ['swanctl', '--list-sas'], extra_ok_codes=[1])
 
     @mock.patch.object(strongswan_ipsec.SwanctlProcess, '_execute')
     def test_active(self, mock_execute):
@@ -144,18 +162,49 @@ class TestSwanctlProcess(base.BaseTestCase):
         mock_execute.return_value = SWANCTL_EMPTY_STATUS
         self.assertFalse(self.process.active)
 
-    def test_ensure_configs(self):
+    @mock.patch.object(strongswan_ipsec.SwanctlProcess, '_execute')
+    def test_active_not_running(self, mock_execute):
+        mock_execute.return_value = SWANCTL_NOT_RUNNING_STATUS
+        self.assertFalse(self.process.active)
+
+    def test_translate_dialect(self):
+        self.process.translate_dialect()
+        conn = self.vpnservice['ipsec_site_connections'][0]
+        # stroke keywords -> swanctl/VICI keywords
+        self.assertEqual('1', conn['ikepolicy']['ike_version'])
+        self.assertEqual('start', conn['initiator'])
+        self.assertEqual('trap', conn['dpd_action'])
+        self.assertEqual('aes128', conn['ikepolicy']['encryption_algorithm'])
+        self.assertEqual('sha256', conn['ikepolicy']['auth_algorithm'])
+        self.assertEqual('modp1536', conn['ikepolicy']['pfs'])
+
+    @mock.patch.object(strongswan_ipsec.SwanctlProcess, 'copy_and_overwrite')
+    def test_ensure_configs(self, _mock_copy):
         self.process.ensure_configs()
-        conn_dir = os.path.join(self._swanctl_dir, 'connections')
-        secrets_dir = os.path.join(self._swanctl_dir, 'secrets')
-        self.assertTrue(os.path.isdir(conn_dir))
-        self.assertTrue(os.path.isdir(secrets_dir))
         self.assertTrue(os.path.exists(
-            os.path.join(conn_dir, '%s.conf' % FAKE_CONN1_ID)))
+            os.path.join(self._swanctl_dir, 'swanctl.conf')))
         self.assertTrue(os.path.exists(
-            os.path.join(conn_dir, '%s.conf' % FAKE_CONN2_ID)))
-        self.assertTrue(os.path.exists(
-            os.path.join(secrets_dir, 'secrets.conf')))
+            os.path.join(self._swanctl_dir, 'secrets.conf')))
+        with open(os.path.join(self._swanctl_dir, 'swanctl.conf')) as f:
+            content = f.read()
+        self.assertIn('include secrets.conf', content)
+        self.assertIn(FAKE_CONN1_ID, content)
+        self.assertIn(FAKE_CONN2_ID, content)
+        # ipsec.conf for the starter: minimal, no conn stanzas
+        etc_dir = os.path.dirname(self._swanctl_dir)
+        ipsec_conf = os.path.join(etc_dir, 'ipsec.conf')
+        self.assertTrue(os.path.exists(ipsec_conf))
+        with open(ipsec_conf) as f:
+            content = f.read()
+        self.assertIn('config setup', content)
+        self.assertNotIn('conn ', content)
+
+    @mock.patch.object(strongswan_ipsec.SwanctlProcess, 'copy_and_overwrite')
+    def test_ensure_configs_copies_strongswan_d(self, mock_copy):
+        self.process.ensure_configs()
+        mock_copy.assert_called_once_with(
+            cfg.CONF.strongswan.default_config_area,
+            self.process._get_config_filename('strongswan.d'))
 
     @mock.patch.object(strongswan_ipsec.SwanctlProcess,
                        '_get_strongswan_piddir', return_value='/var/run')
@@ -202,16 +251,26 @@ class TestSwanctlConfigGeneration(test_ipsec.BaseIPsecDeviceDriver):
         self.assertIn('connections {', actual)
         self.assertIn(FAKE_CONN1_ID, actual)
         self.assertIn(FAKE_CONN2_ID, actual)
-        self.assertIn('local_addrs  = [ 60.0.0.4 ]', actual)
-        self.assertIn('remote_addrs = [ 60.0.0.5 ]', actual)
-        self.assertIn('%s_child' % FAKE_CONN1_ID, actual)
+        self.assertIn('local_addrs = 60.0.0.4', actual)
+        self.assertIn('remote_addrs = 60.0.0.5', actual)
+        # both the connection and the child SA are named after the
+        # IPsec site connection id
+        self.assertIn('start_action = start', actual)
+        self.assertIn('dpd_action = trap', actual)
+        self.assertIn('local_ts = 10.0.0.0/24', actual)
+        self.assertIn('remote_ts = 20.0.0.0/24, 30.0.0.0/24', actual)
+        self.assertIn('proposals = aes128-sha256-modp1536', actual)
+        self.assertIn('esp_proposals = aes128-sha256-modp1536', actual)
+        self.assertIn('include secrets.conf', actual)
 
     def test_swanctl_secrets_template(self):
         actual = self.process._gen_config_content(
             self.swanctl_secrets_template, self.vpnservice)
         self.assertIn('secrets {', actual)
-        self.assertIn('type: shared-secret', actual)
-        self.assertIn('0scGFzc3dvcmQ=', actual)
+        self.assertIn('ike-%s' % FAKE_CONN1_ID, actual)
+        self.assertIn('id-1 = 60.0.0.4', actual)
+        self.assertIn('id-2 = 60.0.0.5', actual)
+        self.assertIn('secret = 0scGFzc3dvcmQ=', actual)
 
 
 class TestSwanctlDriver(test_ipsec.IPsecStrongswanDeviceDriverLegacy):
@@ -232,4 +291,10 @@ class TestSwanctlDriver(test_ipsec.IPsecStrongswanDeviceDriverLegacy):
 
     def test_status_handling_for_downed_connection(self):
         self._test_status_handling_for_downed_connection(
+            SWANCTL_CONNECTING_STATUS)
+
+    def test_parse_connection_status(self):
+        self._test_parse_connection_status(
+            SWANCTL_NOT_RUNNING_STATUS,
+            SWANCTL_INSTALLED_STATUS,
             SWANCTL_CONNECTING_STATUS)

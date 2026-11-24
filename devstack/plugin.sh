@@ -25,6 +25,13 @@ function neutron_agent_vpnaas_install_agent_packages {
     install_package $IPSEC_PACKAGE
     if is_ubuntu && [[ "$IPSEC_PACKAGE" == "strongswan" ]]; then
         install_package apparmor
+        # The swanctl driver controls charon via the swanctl CLI (VICI
+        # protocol) and the "ipsec" starter command for the daemon
+        # lifecycle. Depending on the release, the binaries are shipped
+        # in separate packages.
+        if apt-cache show strongswan-swanctl >/dev/null 2>&1; then
+            install_package strongswan-swanctl
+        fi
         # Newer Ubuntu releases no longer pull in the legacy "ipsec" (stroke)
         # tooling with the strongswan package, but the strongswan driver and
         # the swanctl driver's piddir lookup use the ipsec command.

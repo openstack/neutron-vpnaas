@@ -250,6 +250,14 @@ class BaseSwanProcess(metaclass=abc.ABCMeta):
     def ensure_configs(self):
         pass
 
+    def copy_and_overwrite(self, from_path, to_path):
+        # NOTE(toabctl): the agent may run as non-root user, so rm/copy as root
+        if os.path.exists(to_path):
+            agent_utils.execute(
+                cmd=["rm", "-rf", to_path], run_as_root=True)
+        agent_utils.execute(
+            cmd=["cp", "-a", from_path, to_path], run_as_root=True)
+
     def ensure_config_file(self, kind, template, vpnservice, file_mode=None):
         """Update config file,  based on current settings for service."""
         config_str = self._gen_config_content(template, vpnservice)

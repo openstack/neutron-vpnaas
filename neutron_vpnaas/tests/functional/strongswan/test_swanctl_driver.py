@@ -49,22 +49,25 @@ class TestSwanctlConfigGeneration(base.BaseSudoTestCase):
 
     def test_ensure_configs_writes_swanctl_files(self):
         self.process.ensure_configs()
-        conn_dir = os.path.join(self._swanctl_dir, 'connections')
-        secrets_dir = os.path.join(self._swanctl_dir, 'secrets')
-        self.assertTrue(os.path.isdir(conn_dir))
-        self.assertTrue(os.path.isdir(secrets_dir))
 
-        conn_files = os.listdir(conn_dir)
-        self.assertEqual(2, len(conn_files))
-        for conn_file in conn_files:
-            with open(os.path.join(conn_dir, conn_file)) as fh:
-                content = fh.read()
-            self.assertIn('connections {', content)
-            self.assertIn('local_addrs', content)
+        # 'swanctl --load-all' reads swanctl.conf, which must contain
+        # the connections and include the secrets file.
+        swanctl_conf = os.path.join(self._swanctl_dir, 'swanctl.conf')
+        self.assertTrue(os.path.exists(swanctl_conf))
+        with open(swanctl_conf) as fh:
+            content = fh.read()
+        self.assertIn('connections {', content)
+        self.assertIn('local_addrs = 60.0.0.4', content)
+        self.assertIn('include secrets.conf', content)
+        for conn_id in (test_ipsec.FAKE_IPSEC_SITE_CONNECTION1_ID,
+                        test_ipsec.FAKE_IPSEC_SITE_CONNECTION2_ID):
+            self.assertIn(conn_id, content)
 
-        secrets_file = os.path.join(secrets_dir, 'secrets.conf')
+        # Secrets are rendered next to swanctl.conf, with restricted
+        # file permissions.
+        secrets_file = os.path.join(self._swanctl_dir, 'secrets.conf')
         self.assertTrue(os.path.exists(secrets_file))
         with open(secrets_file) as fh:
             secrets_content = fh.read()
         self.assertIn('secrets {', secrets_content)
-        self.assertIn('shared-secret', secrets_content)
+        self.assertIn('secret = 0scGFzc3dvcmQ=', secrets_content)
