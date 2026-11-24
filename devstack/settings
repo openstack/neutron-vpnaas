@@ -9,10 +9,21 @@ fi
 
 # Device driver
 IPSEC_PACKAGE=${IPSEC_PACKAGE:-"strongswan"}
-if [[ $Q_AGENT == "ovn" ]]; then
-    NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.ovn_ipsec.OvnStrongSwanDriver"}
+# Use the swanctl (VICI) based strongSwan driver; set to False to use
+# the legacy stroke-based one.
+STRONGSWAN_USE_SWANCTL=${STRONGSWAN_USE_SWANCTL:-True}
+if [[ "$STRONGSWAN_USE_SWANCTL" == "False" ]]; then
+    if [[ $Q_AGENT == "ovn" ]]; then
+        NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.ovn_ipsec.OvnStrongSwanDriver"}
+    else
+        NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.StrongSwanDriver"}
+    fi
 else
-    NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.StrongSwanDriver"}
+    if [[ $Q_AGENT == "ovn" ]]; then
+        NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.ovn_ipsec.OvnSwanctlDriver"}
+    else
+        NEUTRON_VPNAAS_DEVICE_DRIVER=${NEUTRON_VPNAAS_DEVICE_DRIVER:-"neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.SwanctlDriver"}
+    fi
 fi
 
 function _get_service_provider {

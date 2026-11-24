@@ -63,7 +63,11 @@ function neutron_vpnaas_configure_agent {
     plugin_agent_add_l3_agent_extension vpnaas
     configure_l3_agent
     if [[ "$IPSEC_PACKAGE" == "strongswan" ]]; then
-        iniset_multiline $NEUTRON_L3_CONF vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.StrongSwanDriver
+        if [[ "$STRONGSWAN_USE_SWANCTL" == "False" ]]; then
+            iniset_multiline $NEUTRON_L3_CONF vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.StrongSwanDriver
+        else
+            iniset_multiline $NEUTRON_L3_CONF vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.strongswan_ipsec.SwanctlDriver
+        fi
     elif [[ "$IPSEC_PACKAGE" == "libreswan" ]]; then
         iniset_multiline $NEUTRON_L3_CONF vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.libreswan_ipsec.LibreSwanDriver
     else
@@ -86,7 +90,11 @@ function neutron_vpnaas_configure_ovn_agent {
     fi
 
     if [[ "$IPSEC_PACKAGE" == "strongswan" ]]; then
-        iniset_multiline $OVN_VPNAGENT_CONF vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.ovn_ipsec.OvnStrongSwanDriver
+        if [[ "$STRONGSWAN_USE_SWANCTL" == "False" ]]; then
+            iniset_multiline $OVN_VPNAGENT_CONF vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.ovn_ipsec.OvnStrongSwanDriver
+        else
+            iniset_multiline $OVN_VPNAGENT_CONF vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.ovn_ipsec.OvnSwanctlDriver
+        fi
     elif [[ "$IPSEC_PACKAGE" == "libreswan" ]]; then
         iniset_multiline $OVN_VPNAGENT_CONF vpnagent vpn_device_driver neutron_vpnaas.services.vpn.device_drivers.ovn_ipsec.OvnLibreSwanDriver
     else
