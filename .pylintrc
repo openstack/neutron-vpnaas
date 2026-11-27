@@ -8,10 +8,6 @@ ignore=.git,tests
 # usually to register additional checkers.
 load-plugins=pylint.extensions.no_self_use
 
-# When enabled, pylint would attempt to guess common misconfiguration and emit
-# user-friendly hints instead of false-positive error messages.
-suggestion-mode=yes
-
 [MESSAGES CONTROL]
 # NOTE(gus): This is a long list.  A number of these are important and
 # should be re-enabled once the offending code is fixed (or marked
